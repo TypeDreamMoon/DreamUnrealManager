@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36301.6 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DreamUnrealManager", "DreamUnrealManager\DreamUnrealManager.csproj", "{A3F78F71-F3D1-891D-2011-F35AE3920EEC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DreamUnrealManager.Core", "DreamUnrealManager.Core\DreamUnrealManager.Core.csproj", "{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|arm64 = Debug|arm64
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|arm64 = Release|arm64
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Debug|arm64.ActiveCfg = Debug|arm64
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Debug|arm64.Build.0 = Debug|arm64
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Debug|arm64.Deploy.0 = Debug|arm64
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Debug|x64.ActiveCfg = Debug|x64
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Debug|x64.Build.0 = Debug|x64
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Debug|x64.Deploy.0 = Debug|x64
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Debug|x86.ActiveCfg = Debug|x86
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Debug|x86.Build.0 = Debug|x86
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Debug|x86.Deploy.0 = Debug|x86
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Release|arm64.ActiveCfg = Release|arm64
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Release|arm64.Build.0 = Release|arm64
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Release|arm64.Deploy.0 = Release|arm64
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Release|x64.ActiveCfg = Release|x64
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Release|x64.Build.0 = Release|x64
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Release|x64.Deploy.0 = Release|x64
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Release|x86.ActiveCfg = Release|x86
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Release|x86.Build.0 = Release|x86
+		{A3F78F71-F3D1-891D-2011-F35AE3920EEC}.Release|x86.Deploy.0 = Release|x86
+		{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}.Debug|arm64.ActiveCfg = Debug|arm64
+		{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}.Debug|arm64.Build.0 = Debug|arm64
+		{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}.Debug|x64.ActiveCfg = Debug|x64
+		{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}.Debug|x64.Build.0 = Debug|x64
+		{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}.Debug|x86.ActiveCfg = Debug|x86
+		{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}.Debug|x86.Build.0 = Debug|x86
+		{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}.Release|arm64.ActiveCfg = Release|arm64
+		{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}.Release|arm64.Build.0 = Release|arm64
+		{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}.Release|x64.ActiveCfg = Release|x64
+		{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}.Release|x64.Build.0 = Release|x64
+		{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}.Release|x86.ActiveCfg = Release|x86
+		{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F589B9DE-786E-46BF-B3C5-D5B210035FE7}
+	EndGlobalSection
+EndGlobal

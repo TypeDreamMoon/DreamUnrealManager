@@ -1,0 +1,10 @@
+﻿{
+    "profiles": {
+      "DreamUnrealManager (Package)": {
+        "commandName": "MsixPackage"
+      },
+      "DreamUnrealManager (Unpackaged)": {
+        "commandName": "Project"
+      }
+    }
+}
