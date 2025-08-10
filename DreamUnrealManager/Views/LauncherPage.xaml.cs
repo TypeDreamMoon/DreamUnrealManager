@@ -2,12 +2,15 @@
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Diagnostics;
 using Windows.Storage.Pickers;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml.Media;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using DreamUnrealManager.Models;
 using DreamUnrealManager.Services;
 using Microsoft.UI;
@@ -18,7 +21,27 @@ namespace DreamUnrealManager.Views
     public sealed partial class LauncherPage : Page
     {
         private List<ProjectInfo> _allProjects;
-        private List<ProjectInfo> _filteredProjects;
+        private ObservableCollection<ProjectInfo> _filteredProjects;
+        
+        
+        public ObservableCollection<ProjectInfo> FilteredProjects 
+        { 
+            get => _filteredProjects;
+            set
+            {
+                _filteredProjects = value;
+                OnPropertyChanged();
+            }
+        }
+        
+        public event PropertyChangedEventHandler PropertyChanged;
+        
+        private void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+        
+        
         private string _currentSearchText = "";
         private string _currentEngineFilter = "ALL_ENGINES";
         private string _currentSortOrder = "LastUsed";
@@ -29,7 +52,7 @@ namespace DreamUnrealManager.Views
             {
                 this.InitializeComponent();
                 _allProjects = new List<ProjectInfo>();
-                _filteredProjects = new List<ProjectInfo>();
+                _filteredProjects = new ObservableCollection<ProjectInfo>();
                 this.Loaded += LauncherPage_Loaded;
 
                 // 设置默认状态
@@ -86,7 +109,7 @@ namespace DreamUnrealManager.Views
                 _allProjects = await ProjectDataService.Instance.LoadProjectsAsync();
 
                 WriteDebug($"项目加载完成，共 {_allProjects.Count} 个项目");
-                
+
                 // 输出详细的项目信息用于调试
                 foreach (var project in _allProjects)
                 {
@@ -100,7 +123,7 @@ namespace DreamUnrealManager.Views
             {
                 WriteDebug($"LoadProjects失败: {ex.Message}");
                 WriteDebug($"堆栈跟踪: {ex.StackTrace}");
-                
+
                 // 如果新服务失败，尝试从旧格式加载
                 try
                 {
@@ -152,7 +175,7 @@ namespace DreamUnrealManager.Views
                                 }
                             }
                         }
-                        
+
                         // 迁移到新格式
                         WriteDebug("将项目迁移到新格式");
                         await SaveProjects();
@@ -297,11 +320,17 @@ namespace DreamUnrealManager.Views
                     _ => filtered.OrderByDescending(p => p.LastUsed ?? DateTime.MinValue).ThenBy(p => p.DisplayName)
                 };
 
-                _filteredProjects = filtered.ToList();
+                var filteredList = filtered.ToList();
+
+                // 正确地更新ObservableCollection
+                _filteredProjects.Clear();
+                foreach (var project in filteredList)
+                {
+                    _filteredProjects.Add(project);
+                }
 
                 WriteDebug($"筛选完成，从 {_allProjects.Count} 筛选出 {_filteredProjects.Count} 个项目");
 
-                UpdateProjectsUI();
                 UpdateEmptyState();
                 UpdateFilterStats();
             }
@@ -311,256 +340,6 @@ namespace DreamUnrealManager.Views
                 if (StatusText != null)
                     StatusText.Text = $"筛选失败: {ex.Message}";
             }
-        }
-
-        private void UpdateProjectsUI()
-        {
-            try
-            {
-                WriteDebug("开始更新项目UI");
-
-                if (ProjectsContainer == null)
-                {
-                    WriteDebug("ProjectsContainer为空，跳过更新");
-                    return;
-                }
-
-                ProjectsContainer.Children.Clear();
-
-                foreach (var project in _filteredProjects)
-                {
-                    try
-                    {
-                        var projectCard = CreateProjectCard(project);
-                        ProjectsContainer.Children.Add(projectCard);
-                    }
-                    catch (Exception ex)
-                    {
-                        WriteDebug($"创建项目卡片失败 {project.DisplayName}: {ex.Message}");
-                    }
-                }
-
-                WriteDebug($"UI更新完成，显示 {_filteredProjects.Count} 个项目卡片");
-
-                if (StatusText != null)
-                    StatusText.Text = $"显示 {_filteredProjects.Count} 个项目";
-            }
-            catch (Exception ex)
-            {
-                WriteDebug($"UpdateProjectsUI失败: {ex.Message}");
-                if (StatusText != null)
-                    StatusText.Text = $"更新UI失败: {ex.Message}";
-            }
-        }
-
-        private Border CreateProjectCard(ProjectInfo project)
-        {
-            try
-            {
-                var border = new Border
-                {
-                    Margin = new Thickness(0, 8, 0, 8),
-                    CornerRadius = new CornerRadius(6),
-                    MinHeight = 120,
-                    Padding = new Thickness(0), // 移除所有内边距
-                    Background = new AcrylicBrush()
-                    {
-                        TintColor = Colors.Black,
-                        TintOpacity = 0.5
-                    }
-                };
-
-                var grid = new Grid();
-                // 缩略图列，信息列，按钮列
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // 缩略图列
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // 信息列
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // 按钮列
-
-                // 左侧正方形缩略图 - 完全贴边，无间距
-                var thumbnailContainer = CreateThumbnailContainer(project);
-                Grid.SetColumn(thumbnailContainer, 0);
-                grid.Children.Add(thumbnailContainer);
-
-                // 中间信息面板 - 添加左边距与缩略图分离
-                var infoPanel = new StackPanel
-                {
-                    Spacing = 8,
-                    Margin = new Thickness(20, 16, 16, 16), // 左边距20px与缩略图分离
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-
-                var nameText = new TextBlock
-                {
-                    Text = project.DisplayName ?? "未知项目",
-                    FontSize = 20,
-                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold
-                };
-                infoPanel.Children.Add(nameText);
-
-                var descText = new TextBlock
-                {
-                    Text = project.GetDescription(),
-                    FontSize = 14,
-                    Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray),
-                    TextWrapping = TextWrapping.Wrap,
-                    MaxLines = 2
-                };
-                infoPanel.Children.Add(descText);
-
-                var engineText = new TextBlock
-                {
-                    Text = $"引擎: {project.GetEngineDisplayName()}",
-                    FontSize = 12,
-                    Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray)
-                };
-                infoPanel.Children.Add(engineText);
-
-                var modifiedText = new TextBlock
-                {
-                    Text = $"修改: {project.LastModified:yyyy/MM/dd}",
-                    FontSize = 11,
-                    Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray)
-                };
-                infoPanel.Children.Add(modifiedText);
-
-                Grid.SetColumn(infoPanel, 1);
-                grid.Children.Add(infoPanel);
-
-                // 右侧按钮面板
-                var buttonPanel = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Spacing = 12,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0, 16, 20, 16) // 右边距
-                };
-
-                var launchButton = new Button
-                {
-                    Content = "启动项目",
-                    MinWidth = 100,
-                    Tag = project
-                };
-                launchButton.Click += (s, e) => LaunchProject(project);
-                buttonPanel.Children.Add(launchButton);
-
-                var moreButton = new Button
-                {
-                    Content = "更多操作",
-                    Tag = project
-                };
-                moreButton.Click += (s, e) => ShowProjectMenu(project, moreButton);
-                buttonPanel.Children.Add(moreButton);
-
-                Grid.SetColumn(buttonPanel, 2);
-                grid.Children.Add(buttonPanel);
-
-                border.Child = grid;
-                return border;
-            }
-            catch (Exception ex)
-            {
-                WriteDebug($"CreateProjectCard失败: {ex.Message}");
-
-                return new Border
-                {
-                    Background = new SolidColorBrush(Microsoft.UI.Colors.Red),
-                    CornerRadius = new CornerRadius(2),
-                    Padding = new Thickness(15),
-                    Child = new TextBlock
-                    {
-                        Text = $"加载项目失败: {project?.DisplayName ?? "未知"}",
-                        Foreground = new SolidColorBrush(Microsoft.UI.Colors.White)
-                    }
-                };
-            }
-        }
-
-        // 创建正方形缩略图容器，添加圆角和边距
-        private FrameworkElement CreateThumbnailContainer(ProjectInfo project)
-        {
-            const int thumbnailSize = 120; // 正方形尺寸
-
-            // 构建缩略图路径
-            var thumbnailPath = string.Empty;
-            if (!string.IsNullOrEmpty(project.ProjectDirectory))
-            {
-                thumbnailPath = Path.Combine(project.ProjectDirectory, "Saved", "AutoScreenshot.png");
-            }
-
-            // 检查缩略图是否存在
-            if (!string.IsNullOrEmpty(thumbnailPath) && File.Exists(thumbnailPath))
-            {
-                try
-                {
-                    // 有缩略图时，使用 Border 包裹 Image 并添加圆角
-                    var thumbnailImage = new Image
-                    {
-                        Stretch = Stretch.UniformToFill,
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    };
-
-                    var bitmapImage = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage();
-                    bitmapImage.UriSource = new Uri(thumbnailPath);
-                    thumbnailImage.Source = bitmapImage;
-
-                    // 使用 Border 添加圆角效果
-                    var imageContainer = new Border
-                    {
-                        Width = thumbnailSize,
-                        Height = thumbnailSize,
-                        HorizontalAlignment = HorizontalAlignment.Left,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Margin = new Thickness(12, 12, 0, 12), // 添加边距：左边距12，上下边距12，右边距0
-                        CornerRadius = new CornerRadius(8), // 添加圆角
-                        Child = thumbnailImage
-                    };
-
-                    return imageContainer;
-                }
-                catch
-                {
-                    // 图片加载失败，使用默认样式
-                }
-            }
-
-            // 没有缩略图或加载失败时，创建默认的正方形缩略图，同样添加圆角和边距
-            var defaultContainer = new Border
-            {
-                Width = thumbnailSize,
-                Height = thumbnailSize,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(12, 12, 0, 12), // 添加边距：左边距12，上下边距12，右边距0
-                BorderThickness = new Thickness(0),
-                CornerRadius = new CornerRadius(8), // 添加圆角
-                Background = new LinearGradientBrush
-                {
-                    StartPoint = new Windows.Foundation.Point(0, 0),
-                    EndPoint = new Windows.Foundation.Point(1, 1),
-                    GradientStops =
-                    {
-                        new GradientStop { Color = Microsoft.UI.Colors.DarkSlateBlue, Offset = 0 },
-                        new GradientStop { Color = Microsoft.UI.Colors.SlateBlue, Offset = 0.5 },
-                        new GradientStop { Color = Microsoft.UI.Colors.MediumSlateBlue, Offset = 1 }
-                    }
-                }
-            };
-
-            // 添加项目图标
-            var icon = new FontIcon
-            {
-                Glyph = "\uE7C3", // 项目图标
-                FontSize = 48,
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                Opacity = 0.8
-            };
-
-            defaultContainer.Child = icon;
-            return defaultContainer;
         }
 
         private void ShowProjectMenu(ProjectInfo project, Button moreButton)
@@ -608,12 +387,12 @@ namespace DreamUnrealManager.Views
         {
             try
             {
-                if (EmptyStatePanel == null || ProjectsContainer == null) return;
+                if (EmptyStatePanel == null) return;
 
                 if (_filteredProjects.Count == 0)
                 {
                     EmptyStatePanel.Visibility = Visibility.Visible;
-                    ProjectsContainer.Visibility = Visibility.Collapsed;
+                    ProjectsListView.Visibility = Visibility.Collapsed;
 
                     if (_allProjects.Count == 0)
                     {
@@ -629,7 +408,7 @@ namespace DreamUnrealManager.Views
                 else
                 {
                     EmptyStatePanel.Visibility = Visibility.Collapsed;
-                    ProjectsContainer.Visibility = Visibility.Visible;
+                    ProjectsListView.Visibility = Visibility.Visible;
                 }
             }
             catch (Exception ex)
@@ -772,9 +551,9 @@ namespace DreamUnrealManager.Views
                     WriteDebug($"创建项目信息成功: {projectInfo.DisplayName}");
                     _allProjects.Add(projectInfo);
                     WriteDebug($"项目添加到列表，当前列表大小: {_allProjects.Count}");
-                    
+
                     await SaveProjects(); // 立即保存
-                    
+
                     if (StatusText != null) StatusText.Text = $"成功添加项目: {projectInfo.DisplayName}";
                     WriteDebug($"项目添加成功: {projectInfo.DisplayName}");
                 }
@@ -922,7 +701,7 @@ namespace DreamUnrealManager.Views
             try
             {
                 WriteDebug($"开始保存项目，共 {_allProjects.Count} 个");
-                
+
                 // 输出要保存的项目详细信息用于调试
                 foreach (var project in _allProjects)
                 {
@@ -930,18 +709,18 @@ namespace DreamUnrealManager.Views
                 }
 
                 var success = await ProjectDataService.Instance.SaveProjectsAsync(_allProjects);
-                
+
                 if (success)
                 {
                     WriteDebug("项目保存成功");
-                    
+
                     // 立即验证保存是否成功
                     try
                     {
                         WriteDebug("验证保存的数据...");
                         var verifyProjects = await ProjectDataService.Instance.LoadProjectsAsync();
                         WriteDebug($"验证结果: 保存了 {_allProjects.Count} 个项目，验证读取到 {verifyProjects.Count} 个项目");
-                        
+
                         foreach (var project in verifyProjects)
                         {
                             WriteDebug($"验证读取的项目: {project.DisplayName} - {project.ProjectPath}");
@@ -956,7 +735,7 @@ namespace DreamUnrealManager.Views
                 {
                     WriteDebug("项目保存失败");
                     if (StatusText != null) StatusText.Text = "保存项目失败";
-                    
+
                     // 如果新服务保存失败，回退到旧方式
                     WriteDebug("回退到旧的保存方式");
                     await SaveProjectsOldFormat();
@@ -966,11 +745,11 @@ namespace DreamUnrealManager.Views
             {
                 WriteDebug($"SaveProjects失败: {ex.Message}");
                 WriteDebug($"堆栈跟踪: {ex.StackTrace}");
-                
+
                 // 回退到旧的保存方式
                 WriteDebug("回退到旧的保存方式");
                 await SaveProjectsOldFormat();
-                
+
                 if (StatusText != null) StatusText.Text = $"保存项目失败: {ex.Message}";
             }
         }
@@ -1011,6 +790,26 @@ namespace DreamUnrealManager.Views
             catch (Exception ex)
             {
                 WriteDebug($"ShowErrorDialog失败: {ex.Message}");
+            }
+        }
+
+        private void StartProjectButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            var button = sender as Button;
+            var project = button?.Tag as ProjectInfo;
+            if (project != null)
+            {
+                LaunchProject(project);
+            }
+        }
+
+        private void MoreCommandsButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            var button = sender as Button;
+            var project = button?.Tag as ProjectInfo;
+            if (project != null)
+            {
+                ShowProjectMenu(project, button);
             }
         }
     }

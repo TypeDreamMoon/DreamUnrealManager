@@ -352,6 +352,7 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Text="错误和警告"
@@ -395,6 +396,13 @@
                                     Content="收起"
                                     Click="ToggleIssues_Click"
                                     Margin="5,0,0,0" />
+                            
+                            <!-- 在导出日志按钮后面添加新的按钮 -->
+                            <Button Grid.Column="4" x:Name="ExportErrorsButton"
+                                    Content="导出错误"
+                                    Click="ExportErrors_Click"
+                                    Margin="5,0,0,0"/>
+
                         </Grid>
 
                         <!-- 问题列表 -->
@@ -443,6 +451,9 @@
                                 </ComboBox>
                                 <Button Content="清空终端"
                                         Click="ClearTerminal_Click" />
+                                <Button x:Name="ExportLogButton"
+                                        Content="导出日志"
+                                        Click="ExportLog_Click" />
                                 <Button x:Name="ScrollToBottomButton"
                                         Content="滚动到底部"
                                         Click="ScrollToBottom_Click" />

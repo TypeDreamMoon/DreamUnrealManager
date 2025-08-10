@@ -12,61 +12,119 @@ namespace DreamUnrealManager.Models
     public class ProjectInfo : INotifyPropertyChanged
     {
         [JsonPropertyName("FileVersion")]
-        public int FileVersion { get; set; }
+        public int FileVersion
+        {
+            get;
+            set;
+        }
 
         [JsonPropertyName("EngineAssociation")]
-        public string EngineAssociation { get; set; }
+        public string EngineAssociation
+        {
+            get;
+            set;
+        }
 
         [JsonPropertyName("Category")]
-        public string Category { get; set; }
+        public string Category
+        {
+            get;
+            set;
+        }
 
         [JsonPropertyName("Description")]
-        public string Description { get; set; }
+        public string Description
+        {
+            get;
+            set;
+        }
 
         [JsonPropertyName("FriendlyName")]
-        public string FriendlyName { get; set; }
+        public string FriendlyName
+        {
+            get;
+            set;
+        }
 
         [JsonPropertyName("Modules")]
-        public List<ProjectModule> Modules { get; set; } = new List<ProjectModule>();
+        public List<ProjectModule> Modules
+        {
+            get;
+            set;
+        } = new List<ProjectModule>();
 
         [JsonPropertyName("Plugins")]
-        public List<ProjectPlugin> Plugins { get; set; } = new List<ProjectPlugin>();
+        public List<ProjectPlugin> Plugins
+        {
+            get;
+            set;
+        } = new List<ProjectPlugin>();
 
         [JsonPropertyName("TargetPlatforms")]
-        public string[] TargetPlatforms { get; set; }
+        public string[] TargetPlatforms
+        {
+            get;
+            set;
+        }
 
         // 项目路径信息
-        public string ProjectPath { get; set; }
+        public string ProjectPath
+        {
+            get;
+            set;
+        }
+
+        public string ProjectIconPath =>
+            Path.Combine(ProjectDirectory, "Saved", "AutoScreenshot.png");
+
 
         public string ProjectName => Path.GetFileNameWithoutExtension(ProjectPath);
 
         // 修改为可读写属性
         private string _displayName;
-        public string DisplayName 
-        { 
-            get => !string.IsNullOrEmpty(_displayName) ? _displayName : 
-                   (!string.IsNullOrEmpty(FriendlyName) ? FriendlyName : ProjectName);
+
+        public string DisplayName
+        {
+            get => !string.IsNullOrEmpty(_displayName) ? _displayName : (!string.IsNullOrEmpty(FriendlyName) ? FriendlyName : ProjectName);
             set => _displayName = value;
         }
 
         private string _projectDirectory;
-        public string ProjectDirectory 
-        { 
-            get => !string.IsNullOrEmpty(_projectDirectory) ? _projectDirectory : 
-                   Path.GetDirectoryName(ProjectPath);
+
+        public string ProjectDirectory
+        {
+            get => !string.IsNullOrEmpty(_projectDirectory) ? _projectDirectory : Path.GetDirectoryName(ProjectPath);
             set => _projectDirectory = value;
         }
 
-        public DateTime LastModified { get; set; }
+        public DateTime LastModified
+        {
+            get;
+            set;
+        }
+        
+        public string GetLastModifiedString()
+        {
+            return LastModified.ToString("yyyy年MM月dd日 HH:mm:ss");
+        }
 
         // 添加 LastUsed 属性
-        public DateTime? LastUsed { get; set; }
+        public DateTime? LastUsed
+        {
+            get;
+            set;
+        }
 
-        public string ThumbnailPath { get; set; }
+        public string ThumbnailPath
+        {
+            get;
+            set;
+        }
 
         private long _projectSize;
-        public long ProjectSize 
-        { 
+
+        public long ProjectSize
+        {
             get => _projectSize;
             set
             {
@@ -76,11 +134,19 @@ namespace DreamUnrealManager.Models
             }
         }
 
-        public bool IsValid { get; set; } = true;
+        public bool IsValid
+        {
+            get;
+            set;
+        } = true;
 
         // 引擎信息
         [JsonIgnore]
-        public UnrealEngineInfo AssociatedEngine { get; set; }
+        public UnrealEngineInfo AssociatedEngine
+        {
+            get;
+            set;
+        }
 
         // 添加项目大小字符串属性
         public string ProjectSizeString => GetProjectSizeString();
@@ -117,22 +183,22 @@ namespace DreamUnrealManager.Models
         {
             if (!string.IsNullOrEmpty(Description))
                 return Description;
-            
+
             // 如果没有描述，生成基于项目信息的描述
             var descriptionParts = new List<string>();
-            
+
             // 添加引擎版本信息
             if (!string.IsNullOrEmpty(EngineAssociation))
             {
                 descriptionParts.Add($"UE {EngineAssociation} 项目");
             }
-            
+
             // 添加模块信息
             if (Modules != null && Modules.Count > 0)
             {
                 descriptionParts.Add($"包含 {Modules.Count} 个模块");
             }
-            
+
             // 添加插件信息
             if (Plugins != null && Plugins.Count > 0)
             {
@@ -142,7 +208,7 @@ namespace DreamUnrealManager.Models
                     descriptionParts.Add($"启用 {enabledPlugins} 个插件");
                 }
             }
-            
+
             return descriptionParts.Any() ? string.Join(" · ", descriptionParts) : "Unreal Engine 项目";
         }
 
@@ -169,9 +235,9 @@ namespace DreamUnrealManager.Models
         {
             if (!LastUsed.HasValue)
                 return "从未使用";
-            
+
             var timeSpan = DateTime.Now - LastUsed.Value;
-            
+
             if (timeSpan.TotalDays < 1)
                 return $"{(int)timeSpan.TotalHours} 小时前";
             else if (timeSpan.TotalDays < 7)
@@ -188,24 +254,24 @@ namespace DreamUnrealManager.Models
         public string GetDetailedInfo()
         {
             var info = new List<string>();
-            
+
             if (!string.IsNullOrEmpty(EngineAssociation))
                 info.Add($"引擎版本: UE {EngineAssociation}");
-            
+
             if (FileVersion > 0)
                 info.Add($"文件版本: {FileVersion}");
-            
+
             var modulesCount = GetModulesCount();
             if (modulesCount > 0)
                 info.Add($"模块数量: {modulesCount}");
-            
+
             var pluginsCount = GetEnabledPluginsCount();
             if (pluginsCount > 0)
                 info.Add($"启用插件: {pluginsCount}");
-            
+
             if (TargetPlatforms?.Length > 0)
                 info.Add($"目标平台: {string.Join(", ", TargetPlatforms)}");
-            
+
             return string.Join(" | ", info);
         }
 
@@ -216,14 +282,14 @@ namespace DreamUnrealManager.Models
         {
             if (Plugins == null || Plugins.Count == 0)
                 return "无插件";
-            
+
             var enabledPlugins = Plugins.Where(p => p.Enabled).Select(p => p.Name).Take(3);
             var pluginsList = string.Join(", ", enabledPlugins);
-            
+
             var totalEnabledCount = Plugins.Count(p => p.Enabled);
             if (totalEnabledCount > 3)
                 pluginsList += $" 等 {totalEnabledCount} 个插件";
-            
+
             return pluginsList.Length > 0 ? pluginsList : "无启用插件";
         }
 
@@ -278,30 +344,62 @@ namespace DreamUnrealManager.Models
     public class ProjectModule
     {
         [JsonPropertyName("Name")]
-        public string Name { get; set; }
+        public string Name
+        {
+            get;
+            set;
+        }
 
         [JsonPropertyName("Type")]
-        public string Type { get; set; }
+        public string Type
+        {
+            get;
+            set;
+        }
 
         [JsonPropertyName("LoadingPhase")]
-        public string LoadingPhase { get; set; }
+        public string LoadingPhase
+        {
+            get;
+            set;
+        }
 
         [JsonPropertyName("AdditionalDependencies")]
-        public string[] AdditionalDependencies { get; set; }
+        public string[] AdditionalDependencies
+        {
+            get;
+            set;
+        }
     }
 
     public class ProjectPlugin
     {
         [JsonPropertyName("Name")]
-        public string Name { get; set; }
+        public string Name
+        {
+            get;
+            set;
+        }
 
         [JsonPropertyName("Enabled")]
-        public bool Enabled { get; set; }
+        public bool Enabled
+        {
+            get;
+            set;
+        }
 
         [JsonPropertyName("TargetAllowList")]
-        public string[] TargetAllowList { get; set; }
+        public string[] TargetAllowList
+        {
+            get;
+            set;
+        }
 
         [JsonPropertyName("SupportedTargetPlatforms")]
-        public string[] SupportedTargetPlatforms { get; set; }
+        public string[] SupportedTargetPlatforms
+        {
+            get;
+            set;
+        }
     }
 }
