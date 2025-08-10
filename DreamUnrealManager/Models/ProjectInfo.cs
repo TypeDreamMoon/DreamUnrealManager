@@ -11,6 +11,35 @@ namespace DreamUnrealManager.Models
 {
     public class ProjectInfo : INotifyPropertyChanged
     {
+        private bool _isGitEnabled;
+        private long _gitFolderSize;
+
+        [JsonIgnore]
+        public bool IsGitEnabled
+        {
+            get => _isGitEnabled;
+            set
+            {
+                _isGitEnabled = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(GitInfoString));
+            }
+        }
+
+        [JsonIgnore]
+        public long GitFolderSize
+        {
+            get => _gitFolderSize;
+            set
+            {
+                _gitFolderSize = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(GitInfoString));
+            }
+        }
+
+        [JsonIgnore] public string GitInfoString => GetGitInfoString();
+
         [JsonPropertyName("FileVersion")]
         public int FileVersion
         {
@@ -102,7 +131,7 @@ namespace DreamUnrealManager.Models
             get;
             set;
         }
-        
+
         public string GetLastModifiedString()
         {
             return LastModified.ToString("yyyy年MM月dd日 HH:mm:ss");
@@ -313,6 +342,8 @@ namespace DreamUnrealManager.Models
 
                 ThumbnailPath = possiblePaths.FirstOrDefault(File.Exists);
             }
+            
+            CheckGitStatus();
         }
 
         /// <summary>
@@ -338,6 +369,168 @@ namespace DreamUnrealManager.Models
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        /// <summary>
+        /// 获取Git信息字符串
+        /// </summary>
+        public string GetGitInfoString()
+        {
+            if (!IsGitEnabled)
+                return "未启用Git";
+
+            if (GitFolderSize == 0)
+                return "Git已启用 (大小计算中...)";
+
+            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+            double len = GitFolderSize;
+            int order = 0;
+            while (len >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                len = len / 1024;
+            }
+
+            return $"Git已启用 ({len:0.##} {sizes[order]})";
+        }
+
+        /// <summary>
+        /// 检查项目是否启用了Git并计算.git文件夹大小
+        /// </summary>
+        public void CheckGitStatus()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(ProjectDirectory))
+                {
+                    IsGitEnabled = false;
+                    GitFolderSize = 0;
+                    return;
+                }
+
+                var gitPath = Path.Combine(ProjectDirectory, ".git");
+
+                // 检查.git文件夹是否存在（包括隐藏文件夹）
+                var gitDirectoryExists = false;
+                try
+                {
+                    var gitDirInfo = new DirectoryInfo(gitPath);
+                    gitDirectoryExists = gitDirInfo.Exists;
+                }
+                catch
+                {
+                    // 如果无法直接访问，尝试使用Directory.Exists
+                    gitDirectoryExists = Directory.Exists(gitPath);
+                }
+
+                IsGitEnabled = gitDirectoryExists;
+
+                if (IsGitEnabled)
+                {
+                    // 在后台线程计算.git文件夹大小，避免阻塞UI
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            var size = CalculateDirectorySize(gitPath);
+                            GitFolderSize = size;
+                        }
+                        catch
+                        {
+                            GitFolderSize = 0;
+                        }
+                    });
+                }
+                else
+                {
+                    GitFolderSize = 0;
+                }
+            }
+            catch
+            {
+                IsGitEnabled = false;
+                GitFolderSize = 0;
+            }
+        }
+
+        /// <summary>
+        /// 获取详细的Git信息，包括分支等
+        /// </summary>
+        public string GetDetailedGitInfo()
+        {
+            if (!IsGitEnabled)
+                return "未启用Git版本控制";
+
+            var gitPath = Path.Combine(ProjectDirectory, ".git");
+            var details = new List<string>();
+
+            try
+            {
+                // 尝试读取当前分支信息
+                var headPath = Path.Combine(gitPath, "HEAD");
+                if (File.Exists(headPath))
+                {
+                    var headContent = File.ReadAllText(headPath).Trim();
+                    if (headContent.StartsWith("ref: refs/heads/"))
+                    {
+                        var branch = headContent.Substring("ref: refs/heads/".Length);
+                        details.Add($"分支: {branch}");
+                    }
+                }
+            }
+            catch
+            {
+                // 忽略读取分支信息时的错误
+            }
+
+            if (GitFolderSize > 0)
+            {
+                string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+                double len = GitFolderSize;
+                int order = 0;
+                while (len >= 1024 && order < sizes.Length - 1)
+                {
+                    order++;
+                    len = len / 1024;
+                }
+
+                details.Add($"仓库大小: {len:0.##} {sizes[order]}");
+            }
+
+            return details.Count > 0 ? string.Join(", ", details) : "Git已启用";
+        }
+
+
+        /// <summary>
+        /// 递归计算目录大小
+        /// </summary>
+        private long CalculateDirectorySize(string directoryPath)
+        {
+            long size = 0;
+
+            try
+            {
+                // 获取目录下所有文件大小
+                var files = Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories);
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        var fileInfo = new FileInfo(file);
+                        size += fileInfo.Length;
+                    }
+                    catch
+                    {
+                        // 忽略无法访问的文件
+                    }
+                }
+            }
+            catch
+            {
+                // 忽略无法访问的目录
+            }
+
+            return size;
         }
     }
 

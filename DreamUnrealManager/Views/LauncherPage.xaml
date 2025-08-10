@@ -180,6 +180,7 @@
                                     <TextBlock Text="{x:Bind Description}"></TextBlock>
                                     <TextBlock Text="{x:Bind GetEngineDisplayName()}" />
                                     <TextBlock Text="{x:Bind GetLastModifiedString()}"></TextBlock>
+                                    <TextBlock Text="{x:Bind GetGitInfoString()}"></TextBlock>
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="2"

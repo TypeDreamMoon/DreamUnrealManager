@@ -22,10 +22,10 @@ namespace DreamUnrealManager.Views
     {
         private List<ProjectInfo> _allProjects;
         private ObservableCollection<ProjectInfo> _filteredProjects;
-        
-        
-        public ObservableCollection<ProjectInfo> FilteredProjects 
-        { 
+
+
+        public ObservableCollection<ProjectInfo> FilteredProjects
+        {
             get => _filteredProjects;
             set
             {
@@ -33,18 +33,20 @@ namespace DreamUnrealManager.Views
                 OnPropertyChanged();
             }
         }
-        
+
         public event PropertyChangedEventHandler PropertyChanged;
-        
+
         private void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
-        
-        
+
+
         private string _currentSearchText = "";
         private string _currentEngineFilter = "ALL_ENGINES";
         private string _currentSortOrder = "LastUsed";
+        private ContentDialog _progressDialog;
+        private TextBox _progressOutputTextBox;
 
         public LauncherPage()
         {
@@ -227,6 +229,46 @@ namespace DreamUnrealManager.Views
                         projectInfo.Category = cat.GetString() ?? "";
                     }
 
+                    // 解析模块和插件信息
+                    if (root.TryGetProperty("Modules", out var modulesElement) && modulesElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        var modules = new List<ProjectModule>();
+                        foreach (var moduleElement in modulesElement.EnumerateArray())
+                        {
+                            var module = new ProjectModule();
+                            if (moduleElement.TryGetProperty("Name", out var nameElement))
+                                module.Name = nameElement.GetString();
+
+                            if (moduleElement.TryGetProperty("Type", out var typeElement))
+                                module.Type = typeElement.GetString();
+
+                            if (moduleElement.TryGetProperty("LoadingPhase", out var loadingPhaseElement))
+                                module.LoadingPhase = loadingPhaseElement.GetString();
+
+                            modules.Add(module);
+                        }
+
+                        projectInfo.Modules = modules;
+                    }
+
+                    if (root.TryGetProperty("Plugins", out var pluginsElement) && pluginsElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        var plugins = new List<ProjectPlugin>();
+                        foreach (var pluginElement in pluginsElement.EnumerateArray())
+                        {
+                            var plugin = new ProjectPlugin();
+                            if (pluginElement.TryGetProperty("Name", out var nameElement))
+                                plugin.Name = nameElement.GetString();
+
+                            if (pluginElement.TryGetProperty("Enabled", out var enabledElement))
+                                plugin.Enabled = enabledElement.GetBoolean();
+
+                            plugins.Add(plugin);
+                        }
+
+                        projectInfo.Plugins = plugins;
+                    }
+
                     WriteDebug($"解析项目文件成功: {projectInfo.DisplayName}");
                 }
                 catch (Exception ex)
@@ -236,6 +278,13 @@ namespace DreamUnrealManager.Views
                     projectInfo.Description = "无法读取项目描述";
                 }
 
+                // 关联引擎信息
+                await AssociateEngineWithProject(projectInfo);
+
+                // 刷新缩略图和Git状态
+                projectInfo.RefreshThumbnail();
+                projectInfo.CheckGitStatus();
+
                 return projectInfo;
             }
             catch (Exception ex)
@@ -244,6 +293,44 @@ namespace DreamUnrealManager.Views
                 return null;
             }
         }
+
+        private async Task AssociateEngineWithProject(ProjectInfo project)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(project.EngineAssociation))
+                    return;
+
+                // 获取引擎管理器实例
+                var engineManager = EngineManagerService.Instance;
+                await engineManager.LoadEngines(); // 确保引擎已加载
+
+                var engines = engineManager.GetValidEngines();
+                if (engines == null)
+                    return;
+
+                // 查找匹配的引擎
+                var matchingEngine = engines.FirstOrDefault(e =>
+                    e.Version == project.EngineAssociation ||
+                    e.FullVersion == project.EngineAssociation ||
+                    (e.BuildVersionInfo?.BranchName?.Contains(project.EngineAssociation) ?? false));
+
+                if (matchingEngine != null)
+                {
+                    project.AssociatedEngine = matchingEngine;
+                    WriteDebug($"项目 {project.DisplayName} 关联到引擎 {matchingEngine.DisplayName}");
+                }
+                else
+                {
+                    WriteDebug($"未找到与项目 {project.DisplayName} 关联的引擎 (关联标识: {project.EngineAssociation})");
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteDebug($"AssociateEngineWithProject失败: {ex.Message}");
+            }
+        }
+
 
         private void LoadEngineFilters()
         {
@@ -351,6 +438,18 @@ namespace DreamUnrealManager.Views
                 var openFolderItem = new MenuFlyoutItem { Text = "打开项目文件夹", Tag = project };
                 openFolderItem.Click += (s, e) => OpenProjectFolder(project);
                 flyout.Items.Add(openFolderItem);
+
+                var generateVSItem = new MenuFlyoutItem { Text = "生成 Visual Studio 项目文件", Tag = project };
+                generateVSItem.Click += (s, e) => GenerateVisualStudioProjectFiles(project);
+                flyout.Items.Add(generateVSItem);
+
+                var refresh = new MenuFlyoutItem() { Text = "刷新项目", Tag = project };
+                refresh.Click += (s, e) => RefreshProject(project);
+                flyout.Items.Add(refresh);
+
+                var switchEngineItem = new MenuFlyoutItem { Text = "切换引擎版本", Tag = project };
+                switchEngineItem.Click += (s, e) => SwitchEngineVersion(project);
+                flyout.Items.Add(switchEngineItem);
 
                 var removeItem = new MenuFlyoutItem { Text = "从列表中移除", Tag = project };
                 removeItem.Click += (s, e) => RemoveProject(project);
@@ -587,7 +686,16 @@ namespace DreamUnrealManager.Views
                         var refreshedProject = await CreateProjectInfo(project.ProjectPath);
                         if (refreshedProject != null)
                         {
+                            // 保留原有的一些重要属性
                             refreshedProject.LastUsed = project.LastUsed;
+
+                            // 如果新加载的项目没有引擎关联，但原项目有，则保留原有关联
+                            if (refreshedProject.AssociatedEngine == null && project.AssociatedEngine != null)
+                            {
+                                refreshedProject.AssociatedEngine = project.AssociatedEngine;
+                                refreshedProject.EngineAssociation = project.EngineAssociation;
+                            }
+
                             validProjects.Add(refreshedProject);
                         }
                     }
@@ -661,6 +769,20 @@ namespace DreamUnrealManager.Views
             {
                 WriteDebug($"OpenProjectFolder失败: {ex.Message}");
                 if (StatusText != null) StatusText.Text = $"打开文件夹失败: {ex.Message}";
+            }
+        }
+
+        private async void RefreshProject(ProjectInfo project)
+        {
+            try
+            {
+                project.RefreshThumbnail();
+            }
+            catch (Exception ex)
+            {
+                WriteDebug($"RefreshProject失败: {ex.Message}");
+                if (StatusText != null) StatusText.Text = $"刷新项目失败: {ex.Message}";
+                await ShowErrorDialog($"刷新项目失败: {ex.Message}");
             }
         }
 
@@ -811,6 +933,749 @@ namespace DreamUnrealManager.Views
             {
                 ShowProjectMenu(project, button);
             }
+        }
+
+        private async void GenerateVisualStudioProjectFiles(ProjectInfo project)
+        {
+            try
+            {
+                // 创建进度对话框
+                CreateProgressDialog();
+
+                // 显示进度对话框
+                var dialogTask = _progressDialog.ShowAsync();
+
+                // 添加初始消息
+                AppendProgressOutput($"正在为项目 {project.DisplayName} 生成 Visual Studio 项目文件...\n");
+                AppendProgressOutput($"项目路径: {project.ProjectPath}\n");
+                AppendProgressOutput(new string('-', 50) + "\n");
+
+                // 查找关联的引擎
+                UnrealEngineInfo engine = null;
+                if (project.AssociatedEngine != null && project.AssociatedEngine.IsValid)
+                {
+                    engine = project.AssociatedEngine;
+                    AppendProgressOutput($"使用项目关联的引擎: {engine.DisplayName} ({engine.Version})\n");
+                }
+                else if (!string.IsNullOrEmpty(project.EngineAssociation))
+                {
+                    AppendProgressOutput($"项目关联标识: {project.EngineAssociation}\n");
+
+                    // 尝试从引擎管理器获取引擎信息
+                    var engineManager = EngineManagerService.Instance;
+                    await engineManager.LoadEngines(); // 确保引擎已加载
+                    var engines = engineManager.GetValidEngines();
+
+                    if (engines != null)
+                    {
+                        engine = engines.FirstOrDefault(e =>
+                            e.Version == project.EngineAssociation ||
+                            e.FullVersion == project.EngineAssociation ||
+                            (e.BuildVersionInfo?.BranchName?.Contains(project.EngineAssociation) ?? false));
+
+                        if (engine != null)
+                        {
+                            AppendProgressOutput($"找到匹配的引擎: {engine.DisplayName} ({engine.Version})\n");
+                        }
+                        else
+                        {
+                            // 如果没找到精确匹配，尝试使用第一个有效的引擎
+                            engine = engines.FirstOrDefault();
+                            if (engine != null)
+                            {
+                                AppendProgressOutput($"未找到精确匹配的引擎，使用默认引擎: {engine.DisplayName} ({engine.Version})\n");
+                            }
+                        }
+                    }
+                }
+
+                // 如果仍未找到引擎，尝试使用任何有效的引擎
+                if (engine == null)
+                {
+                    var engineManager = EngineManagerService.Instance;
+                    await engineManager.LoadEngines();
+                    var engines = engineManager.GetValidEngines();
+                    engine = engines?.FirstOrDefault();
+
+                    if (engine != null)
+                    {
+                        AppendProgressOutput($"使用系统中的第一个有效引擎: {engine.DisplayName} ({engine.Version})\n");
+                    }
+                }
+
+                if (engine == null)
+                {
+                    throw new Exception("未找到有效的 Unreal Engine 安装。请确保至少安装了一个有效的 Unreal Engine 版本。");
+                }
+
+                AppendProgressOutput($"引擎路径: {engine.EnginePath}\n\n");
+
+                var unrealBuildToolPath = Path.Combine(engine.EnginePath, "Engine", "Binaries", "DotNET", "UnrealBuildTool.exe");
+                if (!File.Exists(unrealBuildToolPath))
+                {
+                    unrealBuildToolPath = Path.Combine(engine.EnginePath, "Engine", "Binaries", "DotNET", "UnrealBuildTool", "UnrealBuildTool.exe");
+                }
+
+                if (!File.Exists(unrealBuildToolPath))
+                {
+                    throw new Exception($"未找到 UnrealBuildTool.exe: {unrealBuildToolPath}\n请检查引擎安装是否完整。");
+                }
+
+                // 构建命令行参数
+                var arguments = $"-projectfiles -project=\"{project.ProjectPath}\" -game -rocket -progress";
+
+                AppendProgressOutput($"执行命令: {unrealBuildToolPath} {arguments}\n");
+                AppendProgressOutput(new string('=', 60) + "\n");
+
+                // 创建进程启动信息
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = unrealBuildToolPath,
+                    Arguments = arguments,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    WorkingDirectory = engine.EnginePath
+                };
+
+                // 启动进程
+                using var process = Process.Start(startInfo);
+                if (process == null)
+                {
+                    throw new Exception("无法启动 UnrealBuildTool 进程");
+                }
+
+                // 异步读取输出
+                var outputTask = ReadProcessOutput(process);
+
+                // 等待进程完成
+                await process.WaitForExitAsync();
+
+                // 等待输出读取完成
+                await outputTask;
+
+                if (process.ExitCode == 0)
+                {
+                    AppendProgressOutput(new string('=', 60) + "\n");
+                    AppendProgressOutput($"成功为项目 {project.DisplayName} 生成 Visual Studio 项目文件\n");
+
+                    // 等待几秒后关闭对话框
+                    await Task.Delay(2000);
+                    _progressDialog?.Hide();
+                }
+                else
+                {
+                    AppendProgressOutput(new string('=', 60) + "\n");
+                    AppendProgressOutput($"生成 Visual Studio 项目文件失败 (退出代码: {process.ExitCode})\n");
+                    AppendProgressOutput("请检查上面的输出信息以了解失败原因。\n");
+
+                    // 保持对话框打开，让用户看到错误信息
+                    // 用户需要手动关闭
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteDebug($"GenerateVisualStudioProjectFiles 失败: {ex.Message}");
+                AppendProgressOutput($"\n错误: {ex.Message}\n");
+                AppendProgressOutput("\n点击\"关闭\"按钮关闭此窗口\n");
+                // 不隐藏对话框，让用户看到错误信息
+            }
+        }
+
+
+        private void CreateProgressDialog()
+        {
+            // 创建输出文本框
+            _progressOutputTextBox = new TextBox
+            {
+                IsReadOnly = true,
+                TextWrapping = TextWrapping.Wrap,
+                AcceptsReturn = true,
+                Height = 400,
+                FontFamily = new FontFamily("Consolas"),
+                FontSize = 12,
+            };
+
+            // 创建对话框
+            _progressDialog = new ContentDialog
+            {
+                Title = "生成 Visual Studio 项目文件",
+                Content = _progressOutputTextBox,
+                CloseButtonText = "关闭",
+                XamlRoot = this.XamlRoot,
+                PrimaryButtonStyle = Application.Current.Resources["AccentButtonStyle"] as Style
+            };
+        }
+
+        private void AppendProgressOutput(string text)
+        {
+            if (_progressOutputTextBox != null)
+            {
+                // 在UI线程上更新文本
+                _progressOutputTextBox.DispatcherQueue?.TryEnqueue(() =>
+                {
+                    _progressOutputTextBox.Text += text;
+                    // 自动滚动到底部
+                    _progressOutputTextBox.SelectionStart = _progressOutputTextBox.Text.Length;
+                });
+            }
+        }
+
+        private async Task ReadProcessOutput(Process process)
+        {
+            try
+            {
+                // 同时读取标准输出和错误输出
+                var outputTask = process.StandardOutput.ReadToEndAsync();
+                var errorTask = process.StandardError.ReadToEndAsync();
+
+                // 等待读取完成
+                var output = await outputTask;
+                var error = await errorTask;
+
+                // 显示输出
+                if (!string.IsNullOrEmpty(output))
+                {
+                    var lines = output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var line in lines)
+                    {
+                        AppendProgressOutput(line + "\n");
+                        await Task.Delay(10); // 小延迟以确保UI更新
+                    }
+                }
+
+                // 显示错误输出
+                if (!string.IsNullOrEmpty(error))
+                {
+                    AppendProgressOutput("\n--- 错误输出 ---\n");
+                    var lines = error.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var line in lines)
+                    {
+                        AppendProgressOutput(line + "\n");
+                        await Task.Delay(10); // 小延迟以确保UI更新
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendProgressOutput($"\n读取输出时出错: {ex.Message}\n");
+            }
+        }
+
+        private async void SwitchEngineVersion(ProjectInfo project)
+        {
+            try
+            {
+                // 加载引擎列表
+                var engineManager = EngineManagerService.Instance;
+                await engineManager.LoadEngines();
+                var validEngines = engineManager.GetValidEngines();
+
+                if (validEngines == null || !validEngines.Any())
+                {
+                    await ShowErrorDialog("未找到有效的引擎安装。请先安装至少一个 Unreal Engine 版本。");
+                    return;
+                }
+
+                // 创建引擎选择对话框
+                var engineSelectionDialog = new ContentDialog
+                {
+                    Title = $"切换 {project.DisplayName} 的引擎版本",
+                    Content = CreateEngineSelectionContent(project, validEngines),
+                    PrimaryButtonText = "下一步",
+                    CloseButtonText = "取消",
+                    XamlRoot = this.XamlRoot
+                };
+
+                var result = await engineSelectionDialog.ShowAsync();
+                if (result == ContentDialogResult.Primary)
+                {
+                    // 显示确认对话框
+                    await ShowEngineSwitchConfirmation(project, validEngines);
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteDebug($"SwitchEngineVersion 失败: {ex.Message}");
+                await ShowErrorDialog($"切换引擎版本失败: {ex.Message}");
+            }
+        }
+
+        private async Task ShowEngineSwitchConfirmation(ProjectInfo project, IEnumerable<UnrealEngineInfo> validEngines)
+        {
+            try
+            {
+                if (_engineSelectionComboBox?.SelectedItem == null)
+                {
+                    WriteDebug("未选择引擎版本");
+                    return;
+                }
+
+                var selectedItem = _engineSelectionComboBox.SelectedItem as ComboBoxItem;
+                var selectedEngine = selectedItem?.Tag as UnrealEngineInfo;
+
+                if (selectedEngine == null)
+                {
+                    WriteDebug("选择的引擎无效");
+                    return;
+                }
+
+                // 检查是否选择了不同的引擎
+                if (project.AssociatedEngine?.EnginePath == selectedEngine.EnginePath)
+                {
+                    if (StatusText != null)
+                        StatusText.Text = "项目已使用选定的引擎版本";
+                    return;
+                }
+
+                // 创建确认对话框
+                var confirmationDialog = new ContentDialog
+                {
+                    Title = "⚠️ 重要警告：引擎版本切换确认",
+                    Content = CreateConfirmationContent(project, selectedEngine),
+                    PrimaryButtonText = "我理解风险，继续切换",
+                    CloseButtonText = "取消",
+                    XamlRoot = this.XamlRoot,
+                    PrimaryButtonStyle = Application.Current.Resources["AccentButtonStyle"] as Style // 红色按钮样式
+                };
+
+                var result = await confirmationDialog.ShowAsync();
+                if (result == ContentDialogResult.Primary)
+                {
+                    // 显示二次确认对话框（输入项目名称）
+                    await ShowFinalConfirmation(project, selectedEngine, validEngines);
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteDebug($"ShowEngineSwitchConfirmation 失败: {ex.Message}");
+                await ShowErrorDialog($"显示确认对话框失败: {ex.Message}");
+            }
+        }
+
+        private ComboBox _engineSelectionComboBox;
+
+        private UIElement CreateEngineSelectionContent(ProjectInfo project, IEnumerable<UnrealEngineInfo> validEngines)
+        {
+            var stackPanel = new StackPanel
+            {
+                Spacing = 10
+            };
+
+            var infoText = new TextBlock
+            {
+                Text = $"当前引擎: {project.GetEngineDisplayName()}\n请选择新的引擎版本:",
+                TextWrapping = TextWrapping.Wrap
+            };
+            stackPanel.Children.Add(infoText);
+
+            // 创建引擎选择下拉框
+            _engineSelectionComboBox = new ComboBox
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(0, 10, 0, 0)
+            };
+
+            // 添加引擎选项
+            int selectedIndex = -1;
+            int index = 0;
+            foreach (var engine in validEngines)
+            {
+                var displayText = $"{engine.DisplayName}";
+                if (!string.IsNullOrEmpty(engine.FullVersion))
+                    displayText += $" ({engine.FullVersion})";
+                else if (!string.IsNullOrEmpty(engine.Version))
+                    displayText += $" ({engine.Version})";
+
+                var item = new ComboBoxItem
+                {
+                    Content = displayText,
+                    Tag = engine
+                };
+                _engineSelectionComboBox.Items.Add(item);
+
+                // 如果这是项目当前关联的引擎，设置为选中项
+                if (project.AssociatedEngine?.EnginePath == engine.EnginePath)
+                {
+                    selectedIndex = index;
+                }
+
+                index++;
+            }
+
+            // 如果没有找到匹配的引擎，但项目有引擎关联标识，则尝试匹配
+            if (selectedIndex == -1 && !string.IsNullOrEmpty(project.EngineAssociation))
+            {
+                index = 0;
+                foreach (var engine in validEngines)
+                {
+                    if (engine.Version == project.EngineAssociation ||
+                        engine.FullVersion == project.EngineAssociation ||
+                        (engine.BuildVersionInfo?.BranchName?.Contains(project.EngineAssociation) ?? false))
+                    {
+                        selectedIndex = index;
+                        break;
+                    }
+
+                    index++;
+                }
+            }
+
+            // 设置默认选中项
+            if (selectedIndex >= 0)
+            {
+                _engineSelectionComboBox.SelectedIndex = selectedIndex;
+            }
+            else if (_engineSelectionComboBox.Items.Count > 0)
+            {
+                _engineSelectionComboBox.SelectedIndex = 0;
+            }
+
+            stackPanel.Children.Add(_engineSelectionComboBox);
+
+            var warningText = new TextBlock
+            {
+                Text = "注意：切换引擎版本后，您可能需要重新生成项目文件。",
+                TextWrapping = TextWrapping.Wrap,
+                FontStyle = Windows.UI.Text.FontStyle.Italic,
+                Foreground = new SolidColorBrush(Colors.Orange)
+            };
+            stackPanel.Children.Add(warningText);
+
+            return stackPanel;
+        }
+
+        private UIElement CreateConfirmationContent(ProjectInfo project, UnrealEngineInfo newEngine)
+        {
+            var stackPanel = new StackPanel
+            {
+                Spacing = 15
+            };
+
+            var warningIcon = new FontIcon
+            {
+                Glyph = "\uE7BA", // 警告图标
+                Foreground = new SolidColorBrush(Colors.OrangeRed),
+                FontSize = 24,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            stackPanel.Children.Add(warningIcon);
+
+            var titleText = new TextBlock
+            {
+                Text = "您即将更改项目引擎版本",
+                FontSize = 16,
+                TextAlignment = TextAlignment.Center
+            };
+            stackPanel.Children.Add(titleText);
+
+            var infoText = new TextBlock
+            {
+                Text = $"项目: {project.DisplayName}\n" +
+                       $"当前引擎: {project.GetEngineDisplayName()}\n" +
+                       $"新引擎: {newEngine.DisplayName} ({newEngine.Version})",
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 10, 0, 0)
+            };
+            stackPanel.Children.Add(infoText);
+
+            var warningMessages = new List<string>
+            {
+                "• 此操作将直接修改项目文件",
+                "• 项目可能需要重新编译才能在新引擎版本中正常工作",
+                "• 某些插件或代码可能与新引擎版本不兼容",
+                "• 建议在切换前备份项目"
+            };
+
+            var warningList = new ItemsControl();
+            foreach (var message in warningMessages)
+            {
+                var item = new TextBlock
+                {
+                    Text = message,
+                    Foreground = new SolidColorBrush(Colors.OrangeRed),
+                    TextWrapping = TextWrapping.Wrap
+                };
+                warningList.Items.Add(item);
+            }
+
+            stackPanel.Children.Add(warningList);
+
+            var confirmText = new TextBlock
+            {
+                Text = "点击下方红色按钮确认您已了解风险并希望继续。",
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 10, 0, 0)
+            };
+            stackPanel.Children.Add(confirmText);
+
+            return stackPanel;
+        }
+
+        private TextBox _projectNameConfirmationTextBox;
+
+        private async Task ShowFinalConfirmation(ProjectInfo project, UnrealEngineInfo newEngine, IEnumerable<UnrealEngineInfo> validEngines)
+        {
+            try
+            {
+                var finalConfirmationDialog = new ContentDialog
+                {
+                    Title = "最终确认",
+                    Content = CreateFinalConfirmationContent(project),
+                    PrimaryButtonText = "确认切换引擎版本",
+                    CloseButtonText = "取消",
+                    XamlRoot = this.XamlRoot,
+                    PrimaryButtonStyle = Application.Current.Resources["AccentButtonStyle"] as Style // 红色按钮样式
+                };
+
+                var result = await finalConfirmationDialog.ShowAsync();
+                if (result == ContentDialogResult.Primary)
+                {
+                    // 验证项目名称输入
+                    if (_projectNameConfirmationTextBox?.Text != project.DisplayName)
+                    {
+                        await ShowErrorDialog("项目名称不匹配，请输入正确的项目名称。");
+                        return;
+                    }
+
+                    // 应用引擎切换
+                    await ApplyEngineSwitch(project, newEngine, validEngines);
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteDebug($"ShowFinalConfirmation 失败: {ex.Message}");
+                await ShowErrorDialog($"显示最终确认对话框失败: {ex.Message}");
+            }
+        }
+
+        private UIElement CreateFinalConfirmationContent(ProjectInfo project)
+        {
+            var stackPanel = new StackPanel
+            {
+                Spacing = 15
+            };
+
+            var warningIcon = new FontIcon
+            {
+                Glyph = "\uE783", // 错误/停止图标
+                Foreground = new SolidColorBrush(Colors.Red),
+                FontSize = 24,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            stackPanel.Children.Add(warningIcon);
+
+            var titleText = new TextBlock
+            {
+                Text = "最后一次确认",
+                FontSize = 16,
+                TextAlignment = TextAlignment.Center
+            };
+            stackPanel.Children.Add(titleText);
+
+            var instructionText = new TextBlock
+            {
+                Text = "为确保这是您的真实意图，请在下方输入框中输入项目名称以确认操作：",
+                TextWrapping = TextWrapping.Wrap
+            };
+            stackPanel.Children.Add(instructionText);
+
+            _projectNameConfirmationTextBox = new TextBox
+            {
+                PlaceholderText = "请输入项目名称",
+                Margin = new Thickness(0, 10, 0, 0)
+            };
+            stackPanel.Children.Add(_projectNameConfirmationTextBox);
+
+            var projectNameText = new TextBlock
+            {
+                Text = $"项目名称: {project.DisplayName}",
+                FontStyle = Windows.UI.Text.FontStyle.Italic,
+                Foreground = new SolidColorBrush(Colors.Gray),
+                Margin = new Thickness(0, 5, 0, 0)
+            };
+            stackPanel.Children.Add(projectNameText);
+
+            var warningText = new TextBlock
+            {
+                Text = "⚠️ 注意：此操作不可逆，将直接修改项目文件。",
+                Foreground = new SolidColorBrush(Colors.Red),
+                TextWrapping = TextWrapping.Wrap
+            };
+            stackPanel.Children.Add(warningText);
+
+            return stackPanel;
+        }
+
+        private async Task ApplyEngineSwitch(ProjectInfo project, UnrealEngineInfo newEngine, IEnumerable<UnrealEngineInfo> validEngines)
+        {
+            try
+            {
+                // 更新项目引擎关联
+                project.AssociatedEngine = newEngine;
+                project.EngineAssociation = newEngine.Version;
+
+                // 更新项目文件中的引擎关联
+                await UpdateProjectEngineAssociation(project, newEngine);
+
+                // 保存项目列表
+                await SaveProjects();
+
+                // 刷新UI
+                ApplyFilters();
+
+                if (StatusText != null)
+                    StatusText.Text = $"已将 {project.DisplayName} 的引擎版本切换为 {newEngine.DisplayName}";
+
+                WriteDebug($"成功将项目 {project.DisplayName} 的引擎切换为 {newEngine.DisplayName}");
+
+                // 显示成功消息
+                var successDialog = new ContentDialog
+                {
+                    Title = "成功",
+                    Content = $"项目 {project.DisplayName} 的引擎版本已成功切换为 {newEngine.DisplayName}。\n\n建议您重新生成项目文件以确保兼容性。",
+                    CloseButtonText = "确定",
+                    XamlRoot = this.XamlRoot
+                };
+                await successDialog.ShowAsync();
+            }
+            catch (Exception ex)
+            {
+                WriteDebug($"ApplyEngineSwitch 失败: {ex.Message}");
+                throw new Exception($"应用引擎切换失败: {ex.Message}");
+            }
+        }
+
+        private async Task ApplyEngineSwitch(ProjectInfo project, IEnumerable<UnrealEngineInfo> validEngines)
+        {
+            try
+            {
+                if (_engineSelectionComboBox?.SelectedItem == null)
+                {
+                    WriteDebug("未选择引擎版本");
+                    return;
+                }
+
+                var selectedItem = _engineSelectionComboBox.SelectedItem as ComboBoxItem;
+                var selectedEngine = selectedItem?.Tag as UnrealEngineInfo;
+
+                if (selectedEngine == null)
+                {
+                    WriteDebug("选择的引擎无效");
+                    return;
+                }
+
+                // 检查是否选择了不同的引擎
+                if (project.AssociatedEngine?.EnginePath == selectedEngine.EnginePath)
+                {
+                    if (StatusText != null)
+                        StatusText.Text = "项目已使用选定的引擎版本";
+                    return;
+                }
+
+                // 更新项目引擎关联
+                project.AssociatedEngine = selectedEngine;
+                project.EngineAssociation = selectedEngine.Version;
+
+                // 更新项目文件中的引擎关联
+                await UpdateProjectEngineAssociation(project, selectedEngine);
+
+                // 保存项目列表
+                await SaveProjects();
+
+                // 刷新UI
+                ApplyFilters();
+
+                if (StatusText != null)
+                    StatusText.Text = $"已将 {project.DisplayName} 的引擎版本切换为 {selectedEngine.DisplayName}";
+
+                WriteDebug($"成功将项目 {project.DisplayName} 的引擎切换为 {selectedEngine.DisplayName}");
+            }
+            catch (Exception ex)
+            {
+                WriteDebug($"ApplyEngineSwitch 失败: {ex.Message}");
+                throw new Exception($"应用引擎切换失败: {ex.Message}");
+            }
+        }
+
+        private async Task UpdateProjectEngineAssociation(ProjectInfo project, UnrealEngineInfo newEngine)
+        {
+            try
+            {
+                if (!File.Exists(project.ProjectPath))
+                {
+                    throw new FileNotFoundException($"项目文件不存在: {project.ProjectPath}");
+                }
+
+                // 读取项目文件内容
+                var content = await File.ReadAllTextAsync(project.ProjectPath);
+
+                // 解析JSON
+                using var jsonDoc = System.Text.Json.JsonDocument.Parse(content);
+                var root = jsonDoc.RootElement;
+
+                // 创建新的JSON对象
+                var jsonObject = new Dictionary<string, object>();
+
+                // 复制所有现有属性
+                foreach (var property in root.EnumerateObject())
+                {
+                    switch (property.Value.ValueKind)
+                    {
+                        case System.Text.Json.JsonValueKind.String:
+                            jsonObject[property.Name] = property.Value.GetString();
+                            break;
+                        case System.Text.Json.JsonValueKind.Number:
+                            jsonObject[property.Name] = property.Value.GetDouble();
+                            break;
+                        case System.Text.Json.JsonValueKind.True:
+                        case System.Text.Json.JsonValueKind.False:
+                            jsonObject[property.Name] = property.Value.GetBoolean();
+                            break;
+                        case System.Text.Json.JsonValueKind.Array:
+                            jsonObject[property.Name] = property.Value.EnumerateArray().ToArray();
+                            break;
+                        case System.Text.Json.JsonValueKind.Object:
+                            jsonObject[property.Name] = property.Value;
+                            break;
+                        default:
+                            jsonObject[property.Name] = property.Value.GetString();
+                            break;
+                    }
+                }
+
+                // 更新引擎关联
+                jsonObject["EngineAssociation"] = newEngine.Version;
+
+                // 转换回JSON字符串
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    WriteIndented = true
+                };
+                var newContent = System.Text.Json.JsonSerializer.Serialize(jsonObject, options);
+
+                // 写入文件
+                await File.WriteAllTextAsync(project.ProjectPath, newContent);
+
+                WriteDebug($"成功更新项目 {project.DisplayName} 的引擎关联为 {newEngine.Version}");
+            }
+            catch (Exception ex)
+            {
+                WriteDebug($"UpdateProjectEngineAssociation 失败: {ex.Message}");
+                throw new Exception($"更新项目文件失败: {ex.Message}");
+            }
+        }
+    }
+
+    public static class ProcessExtensions
+    {
+        public static Task WaitForExitAsync(this Process process)
+        {
+            var tcs = new TaskCompletionSource<object>();
+            process.EnableRaisingEvents = true;
+            process.Exited += (sender, args) => tcs.SetResult(null);
+            return tcs.Task;
         }
     }
 }
