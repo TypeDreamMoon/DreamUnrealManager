@@ -6,7 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid x:Name="ContentArea" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Grid x:Name="ContentArea">
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel Margin="20" Spacing="20">
 
@@ -27,18 +27,18 @@
 
                         <!-- 插件文件选择 -->
                         <StackPanel Spacing="5">
-                            <TextBlock Text="插件 .uplugin 文件:"/>
+                            <TextBlock Text="插件 .uplugin 文件:" />
                             <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBox x:Name="SourcePathTextBox" 
-                                        PlaceholderText="选择插件 .uplugin 文件"/>
-                                <Button Grid.Column="1" 
-                                       Content="浏览..." 
-                                       Margin="10,0,0,0"
-                                       Click="BrowseSourcePath_Click"/>
+                                <TextBox x:Name="SourcePathTextBox"
+                                         PlaceholderText="选择插件 .uplugin 文件" />
+                                <Button Grid.Column="1"
+                                        Content="浏览..."
+                                        Margin="10,0,0,0"
+                                        Click="BrowseSourcePath_Click" />
                             </Grid>
                         </StackPanel>
 
@@ -113,7 +113,7 @@
 
                         <!-- 手动插件名称输入（如果需要覆盖） -->
                         <StackPanel Spacing="5">
-                            <TextBlock Text="构建名称 (可选，留空使用插件原名):"/>
+                            <TextBlock Text="构建名称 (可选，留空使用插件原名):" />
                             <TextBox x:Name="PluginNameTextBox"
                                      PlaceholderText="留空将使用插件文件中的友好名称" />
                         </StackPanel>
@@ -128,7 +128,7 @@
                         <TextBlock Text="引擎版本选择"
                                    FontSize="20"
                                    FontWeight="SemiBold" />
-                        
+
                         <!-- 构建模式选择 -->
                         <StackPanel Spacing="10">
                             <RadioButton x:Name="SingleBuildRadio"
@@ -281,12 +281,12 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    
+
                                     <FontIcon Grid.Column="0"
                                               Glyph="&#xE90F;"
                                               Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
                                               Margin="0,0,10,0" />
-                                    
+
                                     <StackPanel Grid.Column="1">
                                         <TextBlock x:Name="CurrentEngineNameText"
                                                    Text="当前引擎: 未开始"
@@ -296,18 +296,18 @@
                                                    FontSize="12"
                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
-                                    
+
                                     <TextBlock x:Name="BuildProgressText"
                                                Grid.Column="2"
                                                Text="0%"
                                                FontWeight="Bold"
                                                VerticalAlignment="Center" />
                                 </Grid>
-                                
+
                                 <ProgressBar x:Name="CurrentBuildProgressBar"
                                              Value="0"
                                              Maximum="100" />
-                                
+
                                 <TextBlock x:Name="CurrentBuildStepText"
                                            Text="准备中..."
                                            FontSize="12"
@@ -353,12 +353,12 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            
+
                             <TextBlock Text="错误和警告"
                                        FontSize="20"
                                        FontWeight="SemiBold"
                                        VerticalAlignment="Center" />
-                            
+
                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="15">
                                 <Border Background="{ThemeResource SystemFillColorCriticalBrush}"
                                         CornerRadius="12"
@@ -371,7 +371,7 @@
                                                    FontWeight="SemiBold" />
                                     </StackPanel>
                                 </Border>
-                                
+
                                 <Border Background="{ThemeResource SystemFillColorCautionBrush}"
                                         CornerRadius="12"
                                         Padding="8,4">
@@ -384,12 +384,12 @@
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
-                            
+
                             <Button Grid.Column="2"
                                     Content="清空列表"
                                     Click="ClearIssues_Click"
                                     Margin="10,0,0,0" />
-                            
+
                             <Button Grid.Column="3"
                                     x:Name="CollapseIssuesButton"
                                     Content="收起"
@@ -424,22 +424,22 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            
+
                             <TextBlock Text="构建终端"
                                        FontSize="20"
                                        FontWeight="SemiBold"
                                        VerticalAlignment="Center" />
-                            
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" CornerRadius="8">
                                 <ComboBox x:Name="TerminalSizeComboBox"
                                           PlaceholderText="终端高度"
                                           MinWidth="100"
                                           SelectionChanged="TerminalSizeComboBox_SelectionChanged">
                                     <ComboBoxItem Content="小 (200px)" Tag="200" />
-                                    <ComboBoxItem Content="中 (300px)" Tag="300" />
-                                    <ComboBoxItem Content="大 (400px)" Tag="400" IsSelected="True" />
-                                    <ComboBoxItem Content="超大 (500px)" Tag="500" />
-                                    <ComboBoxItem Content="巨大 (600px)" Tag="600" />
+                                    <ComboBoxItem Content="中 (400px)" Tag="400" />
+                                    <ComboBoxItem Content="大 (800px)" Tag="800" IsSelected="True" />
+                                    <ComboBoxItem Content="超大 (1200px)" Tag="1200" />
+                                    <ComboBoxItem Content="巨大 (1800px)" Tag="1800" />
                                 </ComboBox>
                                 <Button Content="清空终端"
                                         Click="ClearTerminal_Click" />
@@ -450,20 +450,21 @@
                         </Grid>
 
                         <!-- 终端输出 -->
-                        <Border Background="{ThemeResource ControlFillColorInputActiveBrush}"
-                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
-                                BorderThickness="1"
-                                CornerRadius="4">
+                        <Border BorderThickness="1"
+                                CornerRadius="8">
                             <ScrollViewer x:Name="TerminalScrollViewer"
+                                          CornerRadius="8"
                                           Height="400"
                                           ZoomMode="Disabled"
                                           HorizontalScrollBarVisibility="Auto"
                                           VerticalScrollBarVisibility="Auto"
-                                          Background="Black"
                                           Padding="10">
+                                <ScrollViewer.Background>
+                                    <AcrylicBrush TintOpacity="0.5" TintColor="Black"></AcrylicBrush>
+                                </ScrollViewer.Background>
                                 <RichTextBlock x:Name="TerminalOutput"
                                                FontFamily="Consolas"
-                                               FontSize="12"
+                                               FontSize="17"
                                                Foreground="LightGray"
                                                IsTextSelectionEnabled="True">
                                     <Paragraph>

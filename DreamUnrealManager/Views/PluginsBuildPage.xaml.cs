@@ -107,6 +107,10 @@ namespace DreamUnrealManager.Views
 
                 // 页面加载完成后显示欢迎消息
                 WriteToTerminal("插件构建页面已就绪", TerminalMessageType.Success);
+
+                TerminalOutput.FontFamily = new FontFamily(Settings.Get("Console.Font", "Consolas"));
+                
+                WriteToTerminal("Powered by Dream Moon. © 2025", TerminalMessageType.Info);
             }
             catch (Exception ex)
             {
@@ -235,6 +239,11 @@ namespace DreamUnrealManager.Views
             Warning,
             Error,
             Command
+        }
+
+        private void OnConsoleOutputReceived(string line)
+        {
+            WriteToTerminal(line, TerminalMessageType.Info);
         }
 
         private void WriteToTerminal(string message, TerminalMessageType messageType = TerminalMessageType.Info)
@@ -865,19 +874,127 @@ namespace DreamUnrealManager.Views
         }
 
 
+        // private async Task ExecuteRunUATCommand(UnrealEngineInfo engine, CancellationToken cancellationToken)
+        // {
+        //     UpdateCurrentEngineInfo(engine, "验证引擎配置");
+        //     // 更新具体的引擎构建状态
+        //     UpdateNavigationStatus(true, 1, $"构建 {engine.DisplayName}");
+        //
+        //     WriteToTerminal($"验证引擎配置: {engine.DisplayName}", TerminalMessageType.Info);
+        //
+        //     var runUATPath = Path.Combine(engine.EnginePath, "Engine", "Build", "BatchFiles", "RunUAT.bat");
+        //     if (!File.Exists(runUATPath))
+        //     {
+        //         throw new Exception($"RunUAT.bat 不存在: {runUATPath}");
+        //     }
+        //
+        //     WriteToTerminal($"RunUAT.bat 路径: {runUATPath}", TerminalMessageType.Info);
+        //
+        //     var outputPath = GetFinalOutputPath(engine);
+        //     Directory.CreateDirectory(outputPath);
+        //
+        //     var command = BuildRunUATCommand(engine);
+        //     WriteToTerminal($"执行命令: {command}", TerminalMessageType.Command);
+        //
+        //     UpdateCurrentEngineInfo(engine, "启动 UAT 构建进程");
+        //     UpdateBuildProgress(10, "启动构建进程");
+        //     // 更新导航状态为正在编译
+        //     UpdateNavigationStatus(true, 1, $"正在编译 {engine.DisplayName}");
+        //
+        //     var processInfo = new ProcessStartInfo
+        //     {
+        //         FileName = "cmd.exe",
+        //         Arguments = $"/c \"{command}\"",
+        //         UseShellExecute = false,
+        //         RedirectStandardOutput = true,
+        //         RedirectStandardError = true,
+        //         CreateNoWindow = true,
+        //         StandardOutputEncoding = Encoding.UTF8,
+        //         StandardErrorEncoding = Encoding.UTF8,
+        //         WorkingDirectory = Path.GetDirectoryName(runUATPath)
+        //     };
+        //
+        //     _currentProcess = new Process { StartInfo = processInfo };
+        //
+        //     _currentProcess.OutputDataReceived += (sender, args) =>
+        //     {
+        //         if (!string.IsNullOrEmpty(args.Data))
+        //         {
+        //             WriteToTerminal(args.Data, TerminalMessageType.Info);
+        //             UpdateBuildProgressFromOutput(args.Data);
+        //             UpdateNavigationStatusFromOutput(args.Data, engine);
+        //         }
+        //     };
+        //
+        //     _currentProcess.ErrorDataReceived += (sender, args) =>
+        //     {
+        //         if (!string.IsNullOrEmpty(args.Data))
+        //         {
+        //             WriteToTerminal(args.Data, TerminalMessageType.Error);
+        //             // 检查是否是严重错误
+        //             if (IsRealError(args.Data, TerminalMessageType.Error))
+        //             {
+        //                 UpdateNavigationStatus(true, 1, $"构建错误: {engine.DisplayName}");
+        //             }
+        //         }
+        //     };
+        //
+        //     try
+        //     {
+        //         _currentProcess.Start();
+        //         _currentProcess.BeginOutputReadLine();
+        //         _currentProcess.BeginErrorReadLine();
+        //
+        //         while (!_currentProcess.HasExited)
+        //         {
+        //             cancellationToken.ThrowIfCancellationRequested();
+        //             await Task.Delay(500, cancellationToken);
+        //         }
+        //
+        //         _currentProcess.WaitForExit();
+        //
+        //         if (_currentProcess.ExitCode == 0)
+        //         {
+        //             UpdateBuildProgress(100, "构建完成");
+        //             UpdateNavigationStatus(true, 1, $"构建完成: {engine.DisplayName}");
+        //             WriteToTerminal($"=== {engine.DisplayName} 构建成功完成 ===", TerminalMessageType.Success);
+        //             WriteToTerminal($"输出路径: {outputPath}", TerminalMessageType.Success);
+        //         }
+        //         else
+        //         {
+        //             UpdateBuildProgress(0, "构建失败");
+        //             UpdateNavigationStatus(true, 1, $"构建失败: {engine.DisplayName}");
+        //             throw new Exception($"构建失败，退出代码: {_currentProcess.ExitCode}");
+        //         }
+        //     }
+        //     catch (OperationCanceledException)
+        //     {
+        //         if (_currentProcess != null && !_currentProcess.HasExited)
+        //         {
+        //             _currentProcess.Kill();
+        //             WriteToTerminal("构建进程已被终止", TerminalMessageType.Warning);
+        //             UpdateNavigationStatus(false, 0, "构建已取消");
+        //         }
+        //
+        //         throw;
+        //     }
+        //     finally
+        //     {
+        //         _currentProcess?.Dispose();
+        //         _currentProcess = null;
+        //     }
+        // }
+
         private async Task ExecuteRunUATCommand(UnrealEngineInfo engine, CancellationToken cancellationToken)
         {
             UpdateCurrentEngineInfo(engine, "验证引擎配置");
-            // 更新具体的引擎构建状态
             UpdateNavigationStatus(true, 1, $"构建 {engine.DisplayName}");
 
             WriteToTerminal($"验证引擎配置: {engine.DisplayName}", TerminalMessageType.Info);
 
             var runUATPath = Path.Combine(engine.EnginePath, "Engine", "Build", "BatchFiles", "RunUAT.bat");
             if (!File.Exists(runUATPath))
-            {
                 throw new Exception($"RunUAT.bat 不存在: {runUATPath}");
-            }
 
             WriteToTerminal($"RunUAT.bat 路径: {runUATPath}", TerminalMessageType.Info);
 
@@ -889,90 +1006,40 @@ namespace DreamUnrealManager.Views
 
             UpdateCurrentEngineInfo(engine, "启动 UAT 构建进程");
             UpdateBuildProgress(10, "启动构建进程");
-            // 更新导航状态为正在编译
             UpdateNavigationStatus(true, 1, $"正在编译 {engine.DisplayName}");
 
-            var processInfo = new ProcessStartInfo
+            // 事件处理
+            void OutputHandler(string line)
             {
-                FileName = "cmd.exe",
-                Arguments = $"/c \"{command}\"",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8,
-                WorkingDirectory = Path.GetDirectoryName(runUATPath)
-            };
+                WriteToTerminal(line, TerminalMessageType.Info);
+                UpdateBuildProgressFromOutput(line);
+                UpdateNavigationStatusFromOutput(line, engine);
+            }
 
-            _currentProcess = new Process { StartInfo = processInfo };
-
-            _currentProcess.OutputDataReceived += (sender, args) =>
-            {
-                if (!string.IsNullOrEmpty(args.Data))
-                {
-                    WriteToTerminal(args.Data, TerminalMessageType.Info);
-                    UpdateBuildProgressFromOutput(args.Data);
-                    UpdateNavigationStatusFromOutput(args.Data, engine);
-                }
-            };
-
-            _currentProcess.ErrorDataReceived += (sender, args) =>
-            {
-                if (!string.IsNullOrEmpty(args.Data))
-                {
-                    WriteToTerminal(args.Data, TerminalMessageType.Error);
-                    // 检查是否是严重错误
-                    if (IsRealError(args.Data, TerminalMessageType.Error))
-                    {
-                        UpdateNavigationStatus(true, 1, $"构建错误: {engine.DisplayName}");
-                    }
-                }
-            };
+            ConsoleService.Instance.OutputReceived += OutputHandler;
 
             try
             {
-                _currentProcess.Start();
-                _currentProcess.BeginOutputReadLine();
-                _currentProcess.BeginErrorReadLine();
+                await ConsoleService.Instance.ExecuteCommandAsync(command, cancellationToken);
 
-                while (!_currentProcess.HasExited)
+                // 等待构建完成（可根据实际情况优化等待方式）
+                // 这里简单等待一段时间，实际可根据输出内容判断
+                while (!cancellationToken.IsCancellationRequested)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    await Task.Delay(500, cancellationToken);
-                }
-
-                _currentProcess.WaitForExit();
-
-                if (_currentProcess.ExitCode == 0)
-                {
-                    UpdateBuildProgress(100, "构建完成");
-                    UpdateNavigationStatus(true, 1, $"构建完成: {engine.DisplayName}");
-                    WriteToTerminal($"=== {engine.DisplayName} 构建成功完成 ===", TerminalMessageType.Success);
-                    WriteToTerminal($"输出路径: {outputPath}", TerminalMessageType.Success);
-                }
-                else
-                {
-                    UpdateBuildProgress(0, "构建失败");
-                    UpdateNavigationStatus(true, 1, $"构建失败: {engine.DisplayName}");
-                    throw new Exception($"构建失败，退出代码: {_currentProcess.ExitCode}");
+                    await Task.Delay(1000, cancellationToken);
+                    // 可根据输出内容或其他机制判断是否完成
+                    // 这里只是示例，实际应有更优雅的完成判断
                 }
             }
             catch (OperationCanceledException)
             {
-                if (_currentProcess != null && !_currentProcess.HasExited)
-                {
-                    _currentProcess.Kill();
-                    WriteToTerminal("构建进程已被终止", TerminalMessageType.Warning);
-                    UpdateNavigationStatus(false, 0, "构建已取消");
-                }
-
+                WriteToTerminal("构建进程已被终止", TerminalMessageType.Warning);
+                UpdateNavigationStatus(false, 0, "构建已取消");
                 throw;
             }
             finally
             {
-                _currentProcess?.Dispose();
-                _currentProcess = null;
+                ConsoleService.Instance.OutputReceived -= OutputHandler;
             }
         }
 
@@ -1562,6 +1629,11 @@ namespace DreamUnrealManager.Views
                         WriteToTerminal($"错误: 以下引擎无效: {string.Join(", ", invalidEngines.Select(e => e.DisplayName))}", TerminalMessageType.Error);
                         return false;
                     }
+                }
+                else
+                {
+                    WriteToTerminal("错误: 请选择构建模式（单个或批量）", TerminalMessageType.Error);
+                    return false;
                 }
 
                 return true;

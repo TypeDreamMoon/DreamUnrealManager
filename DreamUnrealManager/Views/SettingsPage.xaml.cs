@@ -3,11 +3,14 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using System;
+using System.Collections.ObjectModel;
+using System.Drawing.Text;
 using System.Linq;
 using Windows.Storage.Pickers;
 using DreamUnrealManager.Models;
 using DreamUnrealManager.Services;
 using Windows.UI;
+using Microsoft.UI;
 
 namespace DreamUnrealManager.Views
 {
@@ -15,29 +18,42 @@ namespace DreamUnrealManager.Views
     {
         private readonly EngineManagerService _engineManager;
 
+        public ObservableCollection<FontOption> AvailableFonts
+        {
+            get;
+        } = new();
+
+        private bool _fontInitDone;
+
         public SettingsPage()
         {
             this.InitializeComponent();
             _engineManager = EngineManagerService.Instance;
-            
+
             Loaded += SettingsPage_Loaded;
         }
+
 
         private async void SettingsPage_Loaded(object sender, RoutedEventArgs e)
         {
             await LoadEngines();
+            LoadFonts();
         }
 
         private void CreateEngineItem(UnrealEngineInfo engine)
         {
             var border = new Border
             {
-                Background = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0)), // Transparent
                 BorderBrush = new SolidColorBrush(Color.FromArgb(255, 211, 211, 211)), // LightGray
-                BorderThickness = new Thickness(1.0),
                 CornerRadius = new CornerRadius(4.0),
                 Margin = new Thickness(2.0),
                 Padding = new Thickness(15.0, 10.0, 15.0, 10.0)
+            };
+
+            border.Background = new AcrylicBrush()
+            {
+                TintColor = Colors.Black,
+                TintOpacity = 0.5
             };
 
             var grid = new Grid();
@@ -47,17 +63,17 @@ namespace DreamUnrealManager.Views
 
             // 引擎信息
             var infoPanel = new StackPanel { Spacing = 5 };
-            
-            var nameText = new TextBlock 
-            { 
-                Text = engine.DisplayName, 
+
+            var nameText = new TextBlock
+            {
+                Text = engine.DisplayName,
                 FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                FontSize = 16 
+                FontSize = 16
             };
             infoPanel.Children.Add(nameText);
 
-            var pathText = new TextBlock 
-            { 
+            var pathText = new TextBlock
+            {
                 Text = engine.EnginePath,
                 Foreground = new SolidColorBrush(Color.FromArgb(255, 128, 128, 128)), // Gray
                 FontSize = 12
@@ -65,9 +81,9 @@ namespace DreamUnrealManager.Views
             infoPanel.Children.Add(pathText);
 
             var detailsPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 15 };
-            
-            var versionText = new TextBlock 
-            { 
+
+            var versionText = new TextBlock
+            {
                 Text = !string.IsNullOrEmpty(engine.FullVersion) ? $"版本: {engine.FullVersion}" : $"版本: {engine.Version ?? "未知"}",
                 Foreground = new SolidColorBrush(Color.FromArgb(255, 128, 128, 128)), // Gray
                 FontSize = 12
@@ -77,8 +93,8 @@ namespace DreamUnrealManager.Views
             // 如果有构建信息，显示更详细的信息
             if (engine.BuildVersionInfo != null)
             {
-                var changelistText = new TextBlock 
-                { 
+                var changelistText = new TextBlock
+                {
                     Text = $"CL: {engine.BuildVersionInfo.Changelist}",
                     Foreground = new SolidColorBrush(Color.FromArgb(255, 128, 128, 128)), // Gray
                     FontSize = 12
@@ -86,12 +102,13 @@ namespace DreamUnrealManager.Views
                 detailsPanel.Children.Add(changelistText);
             }
 
-            var statusColor = engine.IsValid ? 
-                Color.FromArgb(255, 0, 128, 0) : // Green
-                Color.FromArgb(255, 255, 0, 0);  // Red
-            
-            var statusText = new TextBlock 
-            { 
+            var statusColor = engine.IsValid
+                ? Color.FromArgb(255, 0, 128, 0)
+                : // Green
+                Color.FromArgb(255, 255, 0, 0); // Red
+
+            var statusText = new TextBlock
+            {
                 Text = engine.StatusText,
                 Foreground = new SolidColorBrush(statusColor),
                 FontSize = 12
@@ -115,9 +132,9 @@ namespace DreamUnrealManager.Views
             grid.Children.Add(indicator);
 
             // 操作按钮
-            var buttonPanel = new StackPanel 
-            { 
-                Orientation = Orientation.Horizontal, 
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
                 Spacing = 5,
                 VerticalAlignment = VerticalAlignment.Center
             };
@@ -153,7 +170,7 @@ namespace DreamUnrealManager.Views
         {
             var dialog = new AddEngineDialog();
             dialog.XamlRoot = this.XamlRoot;
-            
+
             var result = await dialog.ShowAsync();
             if (result == ContentDialogResult.Primary)
             {
@@ -187,7 +204,7 @@ namespace DreamUnrealManager.Views
             {
                 var dialog = new AddEngineDialog(engine);
                 dialog.XamlRoot = this.XamlRoot;
-                
+
                 var result = await dialog.ShowAsync();
                 if (result == ContentDialogResult.Primary)
                 {
@@ -241,7 +258,7 @@ namespace DreamUnrealManager.Views
             {
                 await _engineManager.AutoDetectEngines();
                 await LoadEngines();
-                
+
                 var dialog = new ContentDialog
                 {
                     Title = "自动检测完成",
@@ -267,10 +284,10 @@ namespace DreamUnrealManager.Views
             try
             {
                 await _engineManager.LoadEngines();
-                
+
                 // 清空现有项目
                 EnginesStackPanel.Children.Clear();
-                
+
                 // 添加每个引擎项目
                 foreach (var engine in _engineManager.Engines)
                 {
@@ -294,6 +311,74 @@ namespace DreamUnrealManager.Views
             };
             await dialog.ShowAsync();
         }
+
+        private void LoadFonts()
+        {
+            // 从设置读取；若无则用 Consolas
+            var desiredName = Settings.Get("Console.Font", "Consolas");
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // 用 GDI 枚举已安装字体，并合并进去（去重 + 排序）
+            try
+            {
+                using var collection = new InstalledFontCollection();
+                var names = collection.Families
+                    .Select(ff => ff.Name)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var name in names)
+                    if (seen.Add(name))
+                        AvailableFonts.Add(new FontOption(name));
+            }
+            catch
+            {
+                // 忽略：枚举失败就用上面的 preferred 列表
+            }
+
+            // 确保设置中保存的字体在列表里（即使没被枚举到）
+            if (seen.Add(desiredName))
+                AvailableFonts.Add(new FontOption(desiredName));
+
+            // 只设置下拉框的选中项，不改变页面字体
+            FontCombo.SelectedItem = AvailableFonts.FirstOrDefault(f =>
+                                         string.Equals(f.Name, desiredName, StringComparison.OrdinalIgnoreCase))
+                                     ?? AvailableFonts.FirstOrDefault();
+
+            _fontInitDone = true;
+        }
+
+        private void FontCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!_fontInitDone) return; // 忽略初始化阶段触发
+            if (FontCombo.SelectedItem is FontOption opt)
+            {
+                // 仅保存到设置；不改页面字体
+                Settings.Set("Console.Font", opt.Name);
+            }
+        }
+    }
+
+    public sealed class FontOption
+    {
+        public string Name
+        {
+            get;
+        }
+
+        public FontFamily FontFamily
+        {
+            get;
+        }
+
+        public FontOption(string name)
+        {
+            Name = name;
+            FontFamily = new FontFamily(name);
+        }
+
+        public override string ToString() => Name;
     }
 
     // 添加引擎对话框
@@ -309,7 +394,7 @@ namespace DreamUnrealManager.Views
         public AddEngineDialog(UnrealEngineInfo editingEngine = null)
         {
             _editingEngine = editingEngine;
-            
+
             Title = editingEngine == null ? "添加引擎" : "编辑引擎";
             PrimaryButtonText = editingEngine == null ? "添加" : "保存";
             CloseButtonText = "取消";
@@ -323,8 +408,8 @@ namespace DreamUnrealManager.Views
 
             // 显示名称
             panel.Children.Add(new TextBlock { Text = "显示名称:" });
-            _displayNameTextBox = new TextBox 
-            { 
+            _displayNameTextBox = new TextBox
+            {
                 PlaceholderText = "例如: Unreal Engine 5.3",
                 Text = _editingEngine?.DisplayName ?? ""
             };
@@ -336,18 +421,18 @@ namespace DreamUnrealManager.Views
             pathPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             pathPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            _pathTextBox = new TextBox 
-            { 
+            _pathTextBox = new TextBox
+            {
                 PlaceholderText = "例如: C:\\Program Files\\Epic Games\\UE_5.3",
                 Text = _editingEngine?.EnginePath ?? ""
             };
             Grid.SetColumn(_pathTextBox, 0);
             pathPanel.Children.Add(_pathTextBox);
 
-            var browseButton = new Button 
-            { 
-                Content = "浏览...", 
-                Margin = new Thickness(10.0, 0, 0, 0) 
+            var browseButton = new Button
+            {
+                Content = "浏览...",
+                Margin = new Thickness(10.0, 0, 0, 0)
             };
             browseButton.Click += BrowseButton_Click;
             Grid.SetColumn(browseButton, 1);
@@ -377,7 +462,7 @@ namespace DreamUnrealManager.Views
                 if (folder != null)
                 {
                     _pathTextBox.Text = folder.Path;
-                    
+
                     // 如果显示名称为空，尝试从路径自动生成
                     if (string.IsNullOrWhiteSpace(_displayNameTextBox.Text))
                     {

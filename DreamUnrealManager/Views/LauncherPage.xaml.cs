@@ -10,6 +10,7 @@ using Microsoft.UI.Xaml.Media;
 using System.Linq;
 using DreamUnrealManager.Models;
 using DreamUnrealManager.Services;
+using Microsoft.UI;
 using WinRT;
 
 namespace DreamUnrealManager.Views
@@ -359,12 +360,14 @@ namespace DreamUnrealManager.Views
                 var border = new Border
                 {
                     Margin = new Thickness(0, 8, 0, 8),
-                    Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
                     CornerRadius = new CornerRadius(6),
-                    BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.Gray),
-                    BorderThickness = new Thickness(1),
                     MinHeight = 120,
-                    Padding = new Thickness(0) // 移除所有内边距
+                    Padding = new Thickness(0), // 移除所有内边距
+                    Background = new AcrylicBrush()
+                    {
+                        TintColor = Colors.Black,
+                        TintOpacity = 0.5
+                    }
                 };
 
                 var grid = new Grid();

@@ -6,8 +6,9 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid x:Name="ContentArea" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Grid x:Name="ContentArea">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -25,106 +26,111 @@
                        Margin="0,5,0,0" />
         </StackPanel>
 
-        <!-- 工具栏 -->
-        <Border Grid.Row="1"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                BorderThickness="0,1,0,1"
-                Padding="20,12">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+        <StackPanel CornerRadius="8"
+                    Orientation="Vertical"
+                    Grid.Row="1">
+            <!-- 工具栏 -->
+            <Border Grid.Row="1"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="0,1,0,1"
+                    Padding="20,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
 
-                <!-- 搜索框 -->
-                <AutoSuggestBox x:Name="ProjectSearchBox"
-                                PlaceholderText="搜索项目..."
-                                Width="300"
-                                HorizontalAlignment="Left"
-                                QueryIcon="Find"
-                                TextChanged="ProjectSearchBox_TextChanged" />
+                    <!-- 搜索框 -->
+                    <AutoSuggestBox x:Name="ProjectSearchBox"
+                                    PlaceholderText="搜索项目..."
+                                    Width="300"
+                                    HorizontalAlignment="Left"
+                                    QueryIcon="Find"
+                                    TextChanged="ProjectSearchBox_TextChanged" />
 
-                <!-- 操作按钮 -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
-                    <Button Content="添加项目"
-                            Click="AddProject_Click"
-                            Style="{ThemeResource AccentButtonStyle}" />
-                    <Button Content="刷新列表"
-                            Click="RefreshProjects_Click" />
-                    <Button Content="打开项目文件夹"
-                            Click="OpenProjectFolder_Click" />
-                </StackPanel>
-            </Grid>
-        </Border>
+                    <!-- 操作按钮 -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                        <Button Content="添加项目"
+                                Click="AddProject_Click"
+                                Style="{ThemeResource AccentButtonStyle}" />
+                        <Button Content="刷新列表"
+                                Click="RefreshProjects_Click" />
+                        <Button Content="打开项目文件夹"
+                                Click="OpenProjectFolder_Click" />
+                    </StackPanel>
+                </Grid>
+            </Border>
 
-        <!-- 筛选工具栏 -->
-        <Border Grid.Row="2"
-                Background="{ThemeResource LayerFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
-                BorderThickness="0,0,0,1"
-                Padding="20,12">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+            <!-- 筛选工具栏 -->
+            <Border Grid.Row="2"
+                    Background="{ThemeResource LayerFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                    BorderThickness="0,0,0,1"
+                    Padding="20,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
 
-                <!-- 筛选标签 -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                    <FontIcon Glyph="&#xE71C;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <TextBlock Text="筛选:"
-                               FontWeight="SemiBold"
-                               VerticalAlignment="Center" />
-                </StackPanel>
+                    <!-- 筛选标签 -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE71C;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Text="筛选:"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
 
-                <!-- 引擎版本筛选 -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="15" Margin="15,0,0,0">
-                    <ComboBox x:Name="EngineFilterComboBox"
-                              PlaceholderText="选择引擎版本"
-                              MinWidth="180"
-                              SelectionChanged="EngineFilterComboBox_SelectionChanged">
-                        <ComboBox.Header>
-                            <TextBlock Text="引擎版本" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        </ComboBox.Header>
-                    </ComboBox>
+                    <!-- 引擎版本筛选 -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="15" Margin="15,0,0,0">
+                        <ComboBox x:Name="EngineFilterComboBox"
+                                  PlaceholderText="选择引擎版本"
+                                  MinWidth="180"
+                                  SelectionChanged="EngineFilterComboBox_SelectionChanged">
+                            <ComboBox.Header>
+                                <TextBlock Text="引擎版本" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </ComboBox.Header>
+                        </ComboBox>
 
-                    <ComboBox x:Name="SortOrderComboBox"
-                              MinWidth="120"
-                              SelectionChanged="SortOrderComboBox_SelectionChanged">
-                        <ComboBox.Header>
-                            <TextBlock Text="排序方式" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        </ComboBox.Header>
-                        <ComboBoxItem Content="最近使用" Tag="LastUsed" IsSelected="True" />
-                        <ComboBoxItem Content="名称" Tag="Name" />
-                        <ComboBoxItem Content="引擎版本" Tag="Engine" />
-                        <ComboBoxItem Content="项目大小" Tag="Size" />
-                        <ComboBoxItem Content="修改时间" Tag="Modified" />
-                    </ComboBox>
-                </StackPanel>
+                        <ComboBox x:Name="SortOrderComboBox"
+                                  MinWidth="120"
+                                  SelectionChanged="SortOrderComboBox_SelectionChanged">
+                            <ComboBox.Header>
+                                <TextBlock Text="排序方式" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </ComboBox.Header>
+                            <ComboBoxItem Content="最近使用" Tag="LastUsed" IsSelected="True" />
+                            <ComboBoxItem Content="名称" Tag="Name" />
+                            <ComboBoxItem Content="引擎版本" Tag="Engine" />
+                            <ComboBoxItem Content="项目大小" Tag="Size" />
+                            <ComboBoxItem Content="修改时间" Tag="Modified" />
+                        </ComboBox>
+                    </StackPanel>
 
-                <!-- 筛选统计和清除按钮 -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                    <TextBlock x:Name="FilterStatsText"
-                               Text="显示 0 个项目"
-                               FontSize="12"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               VerticalAlignment="Center" />
-                </StackPanel>
+                    <!-- 筛选统计和清除按钮 -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="FilterStatsText"
+                                   Text="显示 0 个项目"
+                                   FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
 
-                <Button Grid.Column="3"
-                        Content="清除筛选"
-                        Click="ClearFilters_Click"
-                        Style="{ThemeResource DefaultButtonStyle }"
-                        Margin="10,0,0,0" />
-            </Grid>
-        </Border>
+                    <Button Grid.Column="3"
+                            Content="清除筛选"
+                            Click="ClearFilters_Click"
+                            Style="{ThemeResource DefaultButtonStyle }"
+                            Margin="10,0,0,0" />
+                </Grid>
+            </Border>
+        </StackPanel>
+
 
         <!-- 项目列表 -->
-        <ScrollViewer Grid.Row="3" Padding="20,10">
-            <StackPanel x:Name="ProjectsContainer" Spacing="10">
+        <ScrollViewer Grid.Row="2" Padding="2,2">
+            <StackPanel x:Name="ProjectsContainer" Spacing="5">
                 <!-- 项目将动态添加到这里 -->
             </StackPanel>
         </ScrollViewer>
@@ -137,17 +143,11 @@
                     Spacing="20"
                     Visibility="Collapsed">
             <!-- 空状态插图 -->
-            <Border Width="200"
-                    Height="150"
-                    Background="{ThemeResource AccentFillColorDefaultBrush}"
-                    CornerRadius="6"
-                    Opacity="0.1">
-                <FontIcon Glyph="&#xE7C3;"
-                          FontSize="80"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Center"
-                          Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-            </Border>
+            <FontIcon Glyph="&#xE7C3;"
+                      FontSize="80"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
 
             <StackPanel Spacing="8" HorizontalAlignment="Center">
                 <TextBlock x:Name="EmptyStateTitle"
@@ -170,6 +170,7 @@
                     MinWidth="120"
                     FontSize="16"
                     Padding="20,12"
+                    HorizontalAlignment="Center"
                     Click="AddProject_Click">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <FontIcon Glyph="&#xE710;" FontSize="16" />
@@ -179,7 +180,8 @@
         </StackPanel>
 
         <!-- 状态栏 -->
-        <Border Grid.Row="3"
+        <Border Grid.Row="4"
+                CornerRadius="8,8,0,0"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="0,1,0,0"

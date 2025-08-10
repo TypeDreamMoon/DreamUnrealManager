@@ -4,9 +4,11 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:views="using:DreamUnrealManager.Views"
     mc:Ignorable="d">
 
-    <Grid x:Name="ContentArea" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Grid x:Name="ContentArea">
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel Margin="20" Spacing="20">
 
@@ -42,13 +44,13 @@
                         </Grid>
 
                         <!-- 引擎列表 -->
-                        <ScrollViewer Height="400" 
-                                     VerticalScrollBarVisibility="Auto"
-                                     Background="{ThemeResource ControlFillColorTransparentBrush}"
-                                     BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
-                                     BorderThickness="1"
-                                     CornerRadius="4">
-                            <StackPanel x:Name="EnginesStackPanel" Spacing="2" Margin="5"/>
+                        <ScrollViewer Height="400"
+                                      VerticalScrollBarVisibility="Auto"
+                                      Background="{ThemeResource ControlFillColorTransparentBrush}"
+                                      BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                      BorderThickness="1"
+                                      CornerRadius="4">
+                            <StackPanel x:Name="EnginesStackPanel" Spacing="2" Margin="5" />
                         </ScrollViewer>
 
                         <TextBlock Text="提示: 可以手动添加自定义的 Unreal Engine 安装路径，或使用自动检测功能扫描常见的安装位置。"
@@ -83,6 +85,43 @@
                                    SpinButtonPlacementMode="Inline" />
                     </StackPanel>
                 </Border>
+
+                <controls:SettingsCard x:Name="ConsoleFontSettingCard"
+                                       Description="控制台字体"
+                                       Header="控制台字体"
+                                       CornerRadius="8">
+
+                    <ComboBox x:Name="FontCombo"
+                              PlaceholderText="选择字体…"
+                              ItemsSource="{x:Bind AvailableFonts}"
+                              SelectionChanged="FontCombo_SelectionChanged"
+                              SelectedValuePath="Name"
+                              MaxDropDownHeight="420">
+
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="views:FontOption">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="180" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Column="0"
+                                               Text="{x:Bind Name}"
+                                               VerticalAlignment="Center" />
+
+                                    <TextBlock Grid.Column="1"
+                                               Text="Aa 0123 中國汉字 かなカナ — The quick brown fox"
+                                               FontFamily="{x:Bind FontFamily}"
+                                               Opacity="0.9"
+                                               TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                </controls:SettingsCard>
+
 
             </StackPanel>
         </ScrollViewer>
