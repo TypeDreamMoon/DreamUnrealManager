@@ -6,7 +6,189 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid x:Name="ContentArea">
-        
+    <Grid x:Name="ContentArea" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- 页面标题 -->
+        <StackPanel Grid.Row="0" Margin="20,20,20,10">
+            <TextBlock Text="项目启动器"
+                       FontSize="28"
+                       FontWeight="SemiBold" />
+            <TextBlock Text="选择并启动你的 Unreal Engine 项目"
+                       FontSize="14"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,5,0,0" />
+        </StackPanel>
+
+        <!-- 工具栏 -->
+        <Border Grid.Row="1"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="0,1,0,1"
+                Padding="20,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- 搜索框 -->
+                <AutoSuggestBox x:Name="ProjectSearchBox"
+                                PlaceholderText="搜索项目..."
+                                Width="300"
+                                HorizontalAlignment="Left"
+                                QueryIcon="Find"
+                                TextChanged="ProjectSearchBox_TextChanged" />
+
+                <!-- 操作按钮 -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                    <Button Content="添加项目"
+                            Click="AddProject_Click"
+                            Style="{ThemeResource AccentButtonStyle}" />
+                    <Button Content="刷新列表"
+                            Click="RefreshProjects_Click" />
+                    <Button Content="打开项目文件夹"
+                            Click="OpenProjectFolder_Click" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 筛选工具栏 -->
+        <Border Grid.Row="2"
+                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="20,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- 筛选标签 -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE71C;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Text="筛选:"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- 引擎版本筛选 -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="15" Margin="15,0,0,0">
+                    <ComboBox x:Name="EngineFilterComboBox"
+                              PlaceholderText="选择引擎版本"
+                              MinWidth="180"
+                              SelectionChanged="EngineFilterComboBox_SelectionChanged">
+                        <ComboBox.Header>
+                            <TextBlock Text="引擎版本" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </ComboBox.Header>
+                    </ComboBox>
+
+                    <ComboBox x:Name="SortOrderComboBox"
+                              MinWidth="120"
+                              SelectionChanged="SortOrderComboBox_SelectionChanged">
+                        <ComboBox.Header>
+                            <TextBlock Text="排序方式" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </ComboBox.Header>
+                        <ComboBoxItem Content="最近使用" Tag="LastUsed" IsSelected="True" />
+                        <ComboBoxItem Content="名称" Tag="Name" />
+                        <ComboBoxItem Content="引擎版本" Tag="Engine" />
+                        <ComboBoxItem Content="项目大小" Tag="Size" />
+                        <ComboBoxItem Content="修改时间" Tag="Modified" />
+                    </ComboBox>
+                </StackPanel>
+
+                <!-- 筛选统计和清除按钮 -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <TextBlock x:Name="FilterStatsText"
+                               Text="显示 0 个项目"
+                               FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+
+                <Button Grid.Column="3"
+                        Content="清除筛选"
+                        Click="ClearFilters_Click"
+                        Style="{ThemeResource DefaultButtonStyle }"
+                        Margin="10,0,0,0" />
+            </Grid>
+        </Border>
+
+        <!-- 项目列表 -->
+        <ScrollViewer Grid.Row="3" Padding="20,10">
+            <StackPanel x:Name="ProjectsContainer" Spacing="10">
+                <!-- 项目将动态添加到这里 -->
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 空状态提示 -->
+        <StackPanel x:Name="EmptyStatePanel"
+                    Grid.Row="3"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="20"
+                    Visibility="Collapsed">
+            <!-- 空状态插图 -->
+            <Border Width="200"
+                    Height="150"
+                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                    CornerRadius="6"
+                    Opacity="0.1">
+                <FontIcon Glyph="&#xE7C3;"
+                          FontSize="80"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+            </Border>
+
+            <StackPanel Spacing="8" HorizontalAlignment="Center">
+                <TextBlock x:Name="EmptyStateTitle"
+                           Text="暂无项目"
+                           FontSize="24"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="EmptyStateMessage"
+                           Text="点击下方按钮来添加你的第一个 Unreal Engine 项目"
+                           FontSize="14"
+                           HorizontalAlignment="Center"
+                           Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           MaxWidth="400" />
+            </StackPanel>
+
+            <Button Style="{ThemeResource AccentButtonStyle}"
+                    MinWidth="120"
+                    FontSize="16"
+                    Padding="20,12"
+                    Click="AddProject_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE710;" FontSize="16" />
+                    <TextBlock Text="添加项目" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+        <!-- 状态栏 -->
+        <Border Grid.Row="3"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="20,8"
+                VerticalAlignment="Bottom">
+            <TextBlock x:Name="StatusText"
+                       Text="就绪"
+                       FontSize="12"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        </Border>
     </Grid>
 </Page>

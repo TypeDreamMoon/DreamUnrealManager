@@ -14,6 +14,15 @@
 	<UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <PlatformTarget>x64</PlatformTarget>
+    <Company>64HzGames</Company>
+    <Product>Dream Unreal Manager</Product>
+    <Authors>Dream Moon</Authors>
+    <Copyright>Copyright (C) Dream Moon. All Rights Reserved.</Copyright>
+    <PackageProjectUrl>https://dmstudio.top</PackageProjectUrl>
+    <PackageIcon>DreamUnrealManager.png</PackageIcon>
+    <RepositoryUrl>https://github.com/typedreammoon/dreamunrealmanager</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -34,6 +43,10 @@
   <ItemGroup>
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\DreamUnrealManager.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
 

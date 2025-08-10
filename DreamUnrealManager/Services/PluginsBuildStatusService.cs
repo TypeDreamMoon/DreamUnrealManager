@@ -7,7 +7,9 @@ namespace DreamUnrealManager.Services
         private static readonly Lazy<PluginsBuildStatusService> _instance = new(() => new PluginsBuildStatusService());
         public static PluginsBuildStatusService Instance => _instance.Value;
 
-        private PluginsBuildStatusService() { }
+        private PluginsBuildStatusService()
+        {
+        }
 
         public event EventHandler<PluginsBuildStatusEventArgs>? StatusChanged;
 
@@ -67,8 +69,22 @@ namespace DreamUnrealManager.Services
 
     public class PluginsBuildStatusEventArgs : EventArgs
     {
-        public bool IsActive { get; set; }
-        public int TaskCount { get; set; }
-        public string StatusText { get; set; } = "";
+        public bool IsActive
+        {
+            get;
+            set;
+        }
+
+        public int TaskCount
+        {
+            get;
+            set;
+        }
+
+        public string StatusText
+        {
+            get;
+            set;
+        } = "";
     }
 }

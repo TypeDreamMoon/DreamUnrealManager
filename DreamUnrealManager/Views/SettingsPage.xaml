@@ -4,64 +4,87 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:helpers="using:DreamUnrealManager.Helpers"
-    xmlns:xaml="using:Microsoft.UI.Xaml"
     mc:Ignorable="d">
-    <Page.Resources>
-        <helpers:EnumToBooleanConverter x:Key="EnumToBooleanConverter" />
-    </Page.Resources>
-    <Grid>
-        <StackPanel
-            x:Name="ContentArea">
-            <TextBlock x:Uid="Settings_Personalization" Style="{ThemeResource SubtitleTextBlockStyle}" />
-            <StackPanel Margin="{StaticResource SmallTopBottomMargin}">
-                <TextBlock x:Uid="Settings_Theme" />
 
-                <StackPanel Margin="{StaticResource XSmallTopMargin}">
-                    <RadioButton
-                        x:Uid="Settings_Theme_Light"
-                        Command="{x:Bind ViewModel.SwitchThemeCommand}"
-                        IsChecked="{x:Bind ViewModel.ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Light, Mode=OneWay}"
-                        FontSize="15"
-                        GroupName="AppTheme">
-                        <RadioButton.CommandParameter>
-                            <xaml:ElementTheme>Light</xaml:ElementTheme>
-                        </RadioButton.CommandParameter>
-                    </RadioButton>
-                    <RadioButton
-                        x:Uid="Settings_Theme_Dark"
-                        Command="{x:Bind ViewModel.SwitchThemeCommand}"
-                        IsChecked="{x:Bind ViewModel.ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Dark, Mode=OneWay}"
-                        FontSize="15"
-                        GroupName="AppTheme">
-                        <RadioButton.CommandParameter>
-                            <xaml:ElementTheme>Dark</xaml:ElementTheme>
-                        </RadioButton.CommandParameter>
-                    </RadioButton>
-                    <RadioButton
-                        x:Uid="Settings_Theme_Default"
-                        Command="{x:Bind ViewModel.SwitchThemeCommand}"
-                        IsChecked="{x:Bind ViewModel.ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Default, Mode=OneWay}"
-                        FontSize="15"
-                        GroupName="AppTheme">
-                        <RadioButton.CommandParameter>
-                            <xaml:ElementTheme>Default</xaml:ElementTheme>
-                        </RadioButton.CommandParameter>
-                    </RadioButton>
-                </StackPanel>
+    <Grid x:Name="ContentArea" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="20" Spacing="20">
+
+                <!-- 页面标题 -->
+                <TextBlock Text="设置"
+                           FontSize="28"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,10" />
+
+                <!-- 引擎管理卡片 -->
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="8"
+                        Padding="20">
+                    <StackPanel Spacing="15">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Unreal Engine 管理"
+                                       FontSize="20"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                                <Button Content="添加引擎"
+                                        Click="AddEngine_Click"
+                                        Style="{ThemeResource AccentButtonStyle}" />
+                                <Button Content="自动检测"
+                                        Click="AutoDetect_Click" />
+                                <Button Content="刷新"
+                                        Click="RefreshEngines_Click" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 引擎列表 -->
+                        <ScrollViewer Height="400" 
+                                     VerticalScrollBarVisibility="Auto"
+                                     Background="{ThemeResource ControlFillColorTransparentBrush}"
+                                     BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                     BorderThickness="1"
+                                     CornerRadius="4">
+                            <StackPanel x:Name="EnginesStackPanel" Spacing="2" Margin="5"/>
+                        </ScrollViewer>
+
+                        <TextBlock Text="提示: 可以手动添加自定义的 Unreal Engine 安装路径，或使用自动检测功能扫描常见的安装位置。"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <!-- 其他设置卡片 -->
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="8"
+                        Padding="20">
+                    <StackPanel Spacing="15">
+                        <TextBlock Text="应用设置"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+
+                        <ToggleSwitch x:Name="AutoScanToggle"
+                                      Header="启动时自动扫描引擎"
+                                      IsOn="True" />
+
+                        <ToggleSwitch x:Name="LogDetailToggle"
+                                      Header="详细构建日志"
+                                      IsOn="False" />
+
+                        <NumberBox x:Name="MaxLogLinesNumber"
+                                   Header="最大日志行数"
+                                   Value="1000"
+                                   Minimum="100"
+                                   Maximum="10000"
+                                   SpinButtonPlacementMode="Inline" />
+                    </StackPanel>
+                </Border>
+
             </StackPanel>
-
-            <TextBlock x:Uid="Settings_About" Style="{ThemeResource SubtitleTextBlockStyle}" />
-
-            <StackPanel Margin="{StaticResource XSmallTopMargin}">
-                <TextBlock Text="{x:Bind ViewModel.VersionDescription, Mode=OneWay}" Style="{ThemeResource BodyTextBlockStyle}" />
-
-                <TextBlock
-                    x:Uid="Settings_AboutDescription"
-                    Margin="{StaticResource XSmallTopMargin}"
-                    Style="{ThemeResource BodyTextBlockStyle}" />
-                <HyperlinkButton x:Uid="SettingsPage_PrivacyTermsLink" Margin="{StaticResource SettingsPageHyperlinkButtonMargin}" />
-            </StackPanel>
-        </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Page>

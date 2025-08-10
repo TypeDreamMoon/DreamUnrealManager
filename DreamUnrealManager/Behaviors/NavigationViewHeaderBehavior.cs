@@ -79,6 +79,8 @@ public class NavigationViewHeaderBehavior : Behavior<NavigationView>
 
     private void UpdateHeader()
     {
+        if (AssociatedObject == null || _currentPage == null)
+            return;
         if (_currentPage != null)
         {
             var headerMode = GetHeaderMode(_currentPage);

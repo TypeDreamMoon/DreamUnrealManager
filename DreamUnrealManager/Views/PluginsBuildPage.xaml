@@ -6,7 +6,514 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid x:Name="ContentArea">
-        
+    <Grid x:Name="ContentArea" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="20" Spacing="20">
+
+                <!-- 页面标题 -->
+                <TextBlock Text="插件构建"
+                           FontSize="28"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,10" />
+
+                <!-- 插件信息卡片 -->
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="8"
+                        Padding="20">
+                    <StackPanel Spacing="15">
+                        <TextBlock Text="插件信息"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+
+                        <!-- 插件文件选择 -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="插件 .uplugin 文件:"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="SourcePathTextBox" 
+                                        PlaceholderText="选择插件 .uplugin 文件"/>
+                                <Button Grid.Column="1" 
+                                       Content="浏览..." 
+                                       Margin="10,0,0,0"
+                                       Click="BrowseSourcePath_Click"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- 插件详细信息面板 -->
+                        <Border x:Name="PluginInfoPanel"
+                                Background="{ThemeResource ControlFillColorTransparentBrush}"
+                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="15"
+                                Visibility="Collapsed">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!-- 友好名称 -->
+                                <TextBlock Grid.Row="0" Grid.Column="0"
+                                           Text="插件名称:"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,10,5" />
+                                <TextBlock x:Name="PluginFriendlyNameText"
+                                           Grid.Row="0" Grid.Column="1"
+                                           Margin="0,0,0,5" />
+
+                                <!-- 版本信息 -->
+                                <TextBlock Grid.Row="1" Grid.Column="0"
+                                           Text="版本:"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,10,5" />
+                                <TextBlock x:Name="PluginVersionText"
+                                           Grid.Row="1" Grid.Column="1"
+                                           Margin="0,0,0,5" />
+
+                                <!-- 描述 -->
+                                <TextBlock Grid.Row="2" Grid.Column="0"
+                                           Text="描述:"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,10,5" />
+                                <TextBlock x:Name="PluginDescriptionText"
+                                           Grid.Row="2" Grid.Column="1"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,5" />
+
+                                <!-- 作者 -->
+                                <TextBlock Grid.Row="3" Grid.Column="0"
+                                           Text="作者:"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,10,5" />
+                                <TextBlock x:Name="PluginCreatedByText"
+                                           Grid.Row="3" Grid.Column="1"
+                                           Margin="0,0,0,5" />
+
+                                <!-- 模块信息 -->
+                                <TextBlock Grid.Row="4" Grid.Column="0"
+                                           Text="模块:"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,10,5" />
+                                <TextBlock x:Name="PluginModulesText"
+                                           Grid.Row="4" Grid.Column="1"
+                                           Margin="0,0,0,5" />
+                            </Grid>
+                        </Border>
+
+                        <!-- 手动插件名称输入（如果需要覆盖） -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="构建名称 (可选，留空使用插件原名):"/>
+                            <TextBox x:Name="PluginNameTextBox"
+                                     PlaceholderText="留空将使用插件文件中的友好名称" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 引擎版本选择 -->
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="8"
+                        Padding="20">
+                    <StackPanel Spacing="15">
+                        <TextBlock Text="引擎版本选择"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+                        
+                        <!-- 构建模式选择 -->
+                        <StackPanel Spacing="10">
+                            <RadioButton x:Name="SingleBuildRadio"
+                                         Content="单版本构建"
+                                         IsChecked="True"
+                                         Checked="BuildModeRadio_Checked" />
+                            <RadioButton x:Name="BatchBuildRadio"
+                                         Content="批量构建 (多个引擎版本)"
+                                         Checked="BuildModeRadio_Checked" />
+                        </StackPanel>
+
+                        <!-- 单版本构建选择 -->
+                        <StackPanel x:Name="SingleBuildPanel" Spacing="5">
+                            <TextBlock Text="目标引擎版本:" />
+                            <ComboBox x:Name="EngineVersionComboBox"
+                                      HorizontalAlignment="Stretch"
+                                      PlaceholderText="请选择引擎版本">
+                            </ComboBox>
+                        </StackPanel>
+
+                        <!-- 批量构建选择 -->
+                        <StackPanel x:Name="BatchBuildPanel" Spacing="10" Visibility="Collapsed">
+                            <TextBlock Text="选择要构建的引擎版本:" />
+                            <TextBlock Text="构建将按顺序执行，如果任何一个版本构建失败，整个批量构建将停止。"
+                                       FontSize="12"
+                                       Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                       TextWrapping="Wrap" />
+                            <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="EngineVersionsCheckList" Spacing="5">
+                                    <!-- 引擎版本复选框将动态添加到这里 -->
+                                </StackPanel>
+                            </ScrollViewer>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Content="全选" Click="SelectAllEngines_Click" />
+                                <Button Content="全不选" Click="DeselectAllEngines_Click" />
+                                <Button Content="仅选择 UE5" Click="SelectUE5Only_Click" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 构建配置卡片 -->
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="8"
+                        Padding="20">
+                    <StackPanel Spacing="15">
+                        <TextBlock Text="构建配置"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+
+                        <!-- 构建类型 -->
+                        <StackPanel Orientation="Horizontal" Spacing="20">
+                            <TextBlock Text="构建类型:"
+                                       VerticalAlignment="Center" />
+                            <RadioButton x:Name="DevelopmentRadio"
+                                         Content="Development"
+                                         IsChecked="True" />
+                            <RadioButton x:Name="ShippingRadio"
+                                         Content="Shipping" />
+                            <RadioButton x:Name="DebugRadio"
+                                         Content="Debug" />
+                        </StackPanel>
+
+                        <!-- 目标平台 -->
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="目标平台:" />
+                            <StackPanel Orientation="Horizontal" Spacing="15">
+                                <CheckBox x:Name="Win64CheckBox"
+                                          Content="Win64"
+                                          IsChecked="True" />
+                                <CheckBox x:Name="Win32CheckBox"
+                                          Content="Win32" />
+                                <CheckBox x:Name="MacCheckBox"
+                                          Content="Mac" />
+                                <CheckBox x:Name="LinuxCheckBox"
+                                          Content="Linux" />
+                                <CheckBox x:Name="AndroidCheckBox"
+                                          Content="Android" />
+                                <CheckBox x:Name="iOSCheckBox"
+                                          Content="iOS" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- 额外选项 -->
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="构建选项:" />
+                            <CheckBox x:Name="CleanBuildCheckBox"
+                                      Content="清理构建" />
+                            <CheckBox x:Name="PackageCheckBox"
+                                      Content="生成安装包" />
+                            <CheckBox x:Name="GenerateDocsCheckBox"
+                                      Content="生成文档" />
+                            <CheckBox x:Name="StopOnErrorCheckBox"
+                                      Content="遇到错误时停止批量构建"
+                                      IsChecked="True" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 路径配置卡片 -->
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="8"
+                        Padding="20">
+                    <StackPanel Spacing="15">
+                        <TextBlock Text="输出配置"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+
+                        <!-- 输出路径 -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="构建输出路径:" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="OutputPathTextBox"
+                                         PlaceholderText="选择构建输出目录" />
+                                <Button Grid.Column="1"
+                                        Content="浏览..."
+                                        Margin="10,0,0,0"
+                                        Click="BrowseOutputPath_Click" />
+                            </Grid>
+                            <TextBlock Text="批量构建时，每个引擎版本将创建独立的子目录"
+                                       FontSize="12"
+                                       Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 当前构建状态卡片 -->
+                <Border x:Name="BuildStatusCard"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="8"
+                        Padding="20"
+                        Visibility="Collapsed">
+                    <StackPanel Spacing="15">
+                        <TextBlock Text="当前构建状态"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+
+                        <!-- 当前引擎信息 -->
+                        <Border Background="{ThemeResource ControlFillColorInputActiveBrush}"
+                                CornerRadius="4"
+                                Padding="15">
+                            <StackPanel Spacing="10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <FontIcon Grid.Column="0"
+                                              Glyph="&#xE90F;"
+                                              Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                              Margin="0,0,10,0" />
+                                    
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock x:Name="CurrentEngineNameText"
+                                                   Text="当前引擎: 未开始"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock x:Name="CurrentEngineVersionText"
+                                                   Text=""
+                                                   FontSize="12"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    
+                                    <TextBlock x:Name="BuildProgressText"
+                                               Grid.Column="2"
+                                               Text="0%"
+                                               FontWeight="Bold"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                                
+                                <ProgressBar x:Name="CurrentBuildProgressBar"
+                                             Value="0"
+                                             Maximum="100" />
+                                
+                                <TextBlock x:Name="CurrentBuildStepText"
+                                           Text="准备中..."
+                                           FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 批量构建总体进度 -->
+                        <StackPanel x:Name="BatchProgressPanel" Spacing="10" Visibility="Collapsed">
+                            <TextBlock Text="批量构建总进度:" FontWeight="SemiBold" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="BatchProgressStatusText"
+                                           Text="准备中..."
+                                           VerticalAlignment="Center" />
+                                <TextBlock x:Name="BatchProgressText"
+                                           Grid.Column="1"
+                                           Text="0/0"
+                                           VerticalAlignment="Center"
+                                           FontWeight="SemiBold" />
+                            </Grid>
+                            <ProgressBar x:Name="BatchProgressBar"
+                                         Value="0"
+                                         Maximum="100" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 错误和警告列表 -->
+                <Border x:Name="IssuesCard"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="8"
+                        Padding="20"
+                        Visibility="Collapsed">
+                    <StackPanel Spacing="15">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Text="错误和警告"
+                                       FontSize="20"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                            
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="15">
+                                <Border Background="{ThemeResource SystemFillColorCriticalBrush}"
+                                        CornerRadius="12"
+                                        Padding="8,4">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <FontIcon Glyph="&#xE783;" FontSize="12" Foreground="White" />
+                                        <TextBlock x:Name="ErrorCountText"
+                                                   Text="0"
+                                                   Foreground="White"
+                                                   FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Border>
+                                
+                                <Border Background="{ThemeResource SystemFillColorCautionBrush}"
+                                        CornerRadius="12"
+                                        Padding="8,4">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <FontIcon Glyph="&#xE7BA;" FontSize="12" Foreground="White" />
+                                        <TextBlock x:Name="WarningCountText"
+                                                   Text="0"
+                                                   Foreground="White"
+                                                   FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                            
+                            <Button Grid.Column="2"
+                                    Content="清空列表"
+                                    Click="ClearIssues_Click"
+                                    Margin="10,0,0,0" />
+                            
+                            <Button Grid.Column="3"
+                                    x:Name="CollapseIssuesButton"
+                                    Content="收起"
+                                    Click="ToggleIssues_Click"
+                                    Margin="5,0,0,0" />
+                        </Grid>
+
+                        <!-- 问题列表 -->
+                        <ScrollViewer x:Name="IssuesScrollViewer"
+                                      Height="200"
+                                      VerticalScrollBarVisibility="Auto"
+                                      Background="{ThemeResource ControlFillColorInputActiveBrush}"
+                                      CornerRadius="4">
+                            <StackPanel x:Name="IssuesListPanel" Spacing="2" Margin="10">
+                                <TextBlock Text="暂无错误或警告"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           FontStyle="Italic"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,20" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </StackPanel>
+                </Border>
+
+                <!-- 内置终端和日志 -->
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="8"
+                        Padding="20">
+                    <StackPanel Spacing="15">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Text="构建终端"
+                                       FontSize="20"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                            
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                                <ComboBox x:Name="TerminalSizeComboBox"
+                                          PlaceholderText="终端高度"
+                                          MinWidth="100"
+                                          SelectionChanged="TerminalSizeComboBox_SelectionChanged">
+                                    <ComboBoxItem Content="小 (200px)" Tag="200" />
+                                    <ComboBoxItem Content="中 (300px)" Tag="300" />
+                                    <ComboBoxItem Content="大 (400px)" Tag="400" IsSelected="True" />
+                                    <ComboBoxItem Content="超大 (500px)" Tag="500" />
+                                    <ComboBoxItem Content="巨大 (600px)" Tag="600" />
+                                </ComboBox>
+                                <Button Content="清空终端"
+                                        Click="ClearTerminal_Click" />
+                                <Button x:Name="ScrollToBottomButton"
+                                        Content="滚动到底部"
+                                        Click="ScrollToBottom_Click" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 终端输出 -->
+                        <Border Background="{ThemeResource ControlFillColorInputActiveBrush}"
+                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                            <ScrollViewer x:Name="TerminalScrollViewer"
+                                          Height="400"
+                                          ZoomMode="Disabled"
+                                          HorizontalScrollBarVisibility="Auto"
+                                          VerticalScrollBarVisibility="Auto"
+                                          Background="Black"
+                                          Padding="10">
+                                <RichTextBlock x:Name="TerminalOutput"
+                                               FontFamily="Consolas"
+                                               FontSize="12"
+                                               Foreground="LightGray"
+                                               IsTextSelectionEnabled="True">
+                                    <Paragraph>
+                                        <Run Foreground="Green">等待开始构建...</Run>
+                                    </Paragraph>
+                                </RichTextBlock>
+                            </ScrollViewer>
+                        </Border>
+
+                        <!-- 构建命令预览 -->
+                        <StackPanel x:Name="CommandPreviewPanel" Spacing="5" Visibility="Collapsed">
+                            <TextBlock Text="将要执行的命令:" FontWeight="SemiBold" />
+                            <ScrollViewer MaxHeight="100" VerticalScrollBarVisibility="Auto">
+                                <TextBlock x:Name="CommandPreviewText"
+                                           FontFamily="Consolas"
+                                           FontSize="11"
+                                           TextWrapping="Wrap"
+                                           Padding="10"
+                                           IsTextSelectionEnabled="True" />
+                            </ScrollViewer>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 操作按钮 -->
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            Spacing="20"
+                            Margin="0,10,0,20">
+                    <Button x:Name="PreviewCommandButton"
+                            Content="预览命令"
+                            MinWidth="120"
+                            Click="PreviewCommand_Click" />
+                    <Button x:Name="StartBuildButton"
+                            Content="开始构建"
+                            Style="{ThemeResource AccentButtonStyle}"
+                            MinWidth="120"
+                            Click="StartBuild_Click" />
+                    <Button x:Name="StopBuildButton"
+                            Content="停止构建"
+                            IsEnabled="False"
+                            MinWidth="120"
+                            Click="StopBuild_Click" />
+                    <Button x:Name="OpenOutputButton"
+                            Content="打开输出目录"
+                            MinWidth="120"
+                            Click="OpenOutput_Click" />
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Page>

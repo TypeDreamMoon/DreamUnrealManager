@@ -42,13 +42,45 @@ namespace DreamUnrealManager.Services
         }
 
         /// <summary>
+        /// 获取应用程序数据目录
+        /// </summary>
+        private async Task<string> GetAppDataDirectoryAsync()
+        {
+            try
+            {
+                // 先尝试使用标准的 ApplicationData
+                var localFolder = ApplicationData.Current.LocalFolder;
+                WriteDebug($"使用标准 ApplicationData 路径: {localFolder.Path}");
+                return localFolder.Path;
+            }
+            catch (Exception ex)
+            {
+                WriteDebug($"无法访问 ApplicationData，使用备用方法: {ex.Message}");
+                
+                // 备用方法：使用环境变量
+                var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                var appDirectory = Path.Combine(appDataPath, "DreamUnrealManager");
+                
+                // 确保目录存在
+                if (!Directory.Exists(appDirectory))
+                {
+                    Directory.CreateDirectory(appDirectory);
+                    WriteDebug($"创建应用程序数据目录: {appDirectory}");
+                }
+                
+                WriteDebug($"使用备用数据路径: {appDirectory}");
+                return appDirectory;
+            }
+        }
+
+        /// <summary>
         /// 保存项目列表到本地存储
         /// </summary>
         public async Task<bool> SaveProjectsAsync(List<ProjectInfo> projects)
         {
             try
             {
-                WriteDebug("开始保存项目数据");
+                WriteDebug($"开始保存项目数据，共 {projects.Count} 个项目");
 
                 var projectsData = new ProjectsData
                 {
@@ -69,7 +101,14 @@ namespace DreamUnrealManager.Services
                     Version = 1
                 };
 
-                var localFolder = ApplicationData.Current.LocalFolder;
+                WriteDebug($"创建项目数据对象，包含 {projectsData.Projects.Count} 个项目");
+
+                var appDataDirectory = await GetAppDataDirectoryAsync();
+                var filePath = Path.Combine(appDataDirectory, ProjectsFileName);
+                var backupPath = Path.Combine(appDataDirectory, BackupFileName);
+
+                WriteDebug($"目标文件路径: {filePath}");
+
                 var jsonOptions = new JsonSerializerOptions
                 {
                     WriteIndented = true,
@@ -77,17 +116,20 @@ namespace DreamUnrealManager.Services
                 };
 
                 var jsonString = JsonSerializer.Serialize(projectsData, jsonOptions);
+                WriteDebug($"JSON 序列化完成，长度: {jsonString.Length}");
 
                 // 先保存备份文件
                 try
                 {
-                    var existingFile = await localFolder.TryGetItemAsync(ProjectsFileName);
-                    if (existingFile != null)
+                    if (File.Exists(filePath))
                     {
-                        var backupFile = await localFolder.CreateFileAsync(BackupFileName, CreationCollisionOption.ReplaceExisting);
-                        var existingContent = await FileIO.ReadTextAsync((StorageFile)existingFile);
-                        await FileIO.WriteTextAsync(backupFile, existingContent);
+                        var existingContent = await File.ReadAllTextAsync(filePath);
+                        await File.WriteAllTextAsync(backupPath, existingContent);
                         WriteDebug("备份文件已创建");
+                    }
+                    else
+                    {
+                        WriteDebug("没有找到现有文件，跳过备份");
                     }
                 }
                 catch (Exception ex)
@@ -96,8 +138,23 @@ namespace DreamUnrealManager.Services
                 }
 
                 // 保存新文件
-                var file = await localFolder.CreateFileAsync(ProjectsFileName, CreationCollisionOption.ReplaceExisting);
-                await FileIO.WriteTextAsync(file, jsonString);
+                await File.WriteAllTextAsync(filePath, jsonString);
+                WriteDebug($"文件写入完成: {filePath}");
+
+                // 立即验证文件是否写入成功
+                try
+                {
+                    var verifyContent = await File.ReadAllTextAsync(filePath);
+                    WriteDebug($"验证文件内容，长度: {verifyContent.Length}");
+                    if (verifyContent.Length != jsonString.Length)
+                    {
+                        WriteDebug($"警告：保存的文件长度不匹配！期望: {jsonString.Length}, 实际: {verifyContent.Length}");
+                    }
+                }
+                catch (Exception verifyEx)
+                {
+                    WriteDebug($"验证保存的文件失败: {verifyEx.Message}");
+                }
 
                 WriteDebug($"项目数据保存成功，共 {projects.Count} 个项目");
                 return true;
@@ -105,6 +162,7 @@ namespace DreamUnrealManager.Services
             catch (Exception ex)
             {
                 WriteDebug($"保存项目数据失败: {ex.Message}");
+                WriteDebug($"堆栈跟踪: {ex.StackTrace}");
                 return false;
             }
         }
@@ -118,16 +176,23 @@ namespace DreamUnrealManager.Services
             {
                 WriteDebug("开始加载项目数据");
 
-                var localFolder = ApplicationData.Current.LocalFolder;
-                var file = await localFolder.TryGetItemAsync(ProjectsFileName) as StorageFile;
+                var appDataDirectory = await GetAppDataDirectoryAsync();
+                var filePath = Path.Combine(appDataDirectory, ProjectsFileName);
 
-                if (file == null)
+                WriteDebug($"项目数据文件路径: {filePath}");
+
+                if (!File.Exists(filePath))
                 {
                     WriteDebug("未找到项目数据文件，尝试迁移旧数据");
                     return await MigrateFromOldFormat();
                 }
 
-                var jsonString = await FileIO.ReadTextAsync(file);
+                WriteDebug($"找到项目数据文件: {filePath}");
+                WriteDebug($"文件最后修改时间: {File.GetLastWriteTime(filePath)}");
+
+                var jsonString = await File.ReadAllTextAsync(filePath);
+                WriteDebug($"读取文件内容，长度: {jsonString.Length}");
+
                 if (string.IsNullOrWhiteSpace(jsonString))
                 {
                     WriteDebug("项目数据文件为空");
@@ -137,13 +202,17 @@ namespace DreamUnrealManager.Services
                 var projectsData = JsonSerializer.Deserialize<ProjectsData>(jsonString);
                 if (projectsData?.Projects == null)
                 {
-                    WriteDebug("项目数据格式错误");
+                    WriteDebug("项目数据格式错误或为空");
                     return new List<ProjectInfo>();
                 }
+
+                WriteDebug($"JSON 解析成功，找到 {projectsData.Projects.Count} 个项目记录");
 
                 var projects = new List<ProjectInfo>();
                 foreach (var dto in projectsData.Projects)
                 {
+                    WriteDebug($"处理项目记录: {dto.DisplayName} - {dto.ProjectPath}");
+                    
                     if (File.Exists(dto.ProjectPath))
                     {
                         var projectInfo = new ProjectInfo
@@ -164,10 +233,11 @@ namespace DreamUnrealManager.Services
                         if (actualModified != dto.LastModified)
                         {
                             projectInfo.LastModified = actualModified;
+                            WriteDebug($"项目文件已更新: {projectInfo.DisplayName}");
                         }
 
                         projects.Add(projectInfo);
-                        WriteDebug($"加载项目: {projectInfo.DisplayName}");
+                        WriteDebug($"加载项目成功: {projectInfo.DisplayName}");
                     }
                     else
                     {
@@ -180,7 +250,9 @@ namespace DreamUnrealManager.Services
             }
             catch (Exception ex)
             {
-                WriteDebug($"加载项目数据失败: {ex.Message}，尝试使用备份");
+                WriteDebug($"加载项目数据失败: {ex.Message}");
+                WriteDebug($"堆栈跟踪: {ex.StackTrace}");
+                WriteDebug("尝试使用备份");
                 return await LoadFromBackup();
             }
         }
@@ -192,16 +264,16 @@ namespace DreamUnrealManager.Services
         {
             try
             {
-                var localFolder = ApplicationData.Current.LocalFolder;
-                var backupFile = await localFolder.TryGetItemAsync(BackupFileName) as StorageFile;
+                var appDataDirectory = await GetAppDataDirectoryAsync();
+                var backupPath = Path.Combine(appDataDirectory, BackupFileName);
 
-                if (backupFile == null)
+                if (!File.Exists(backupPath))
                 {
                     WriteDebug("备份文件不存在");
                     return await MigrateFromOldFormat();
                 }
 
-                var jsonString = await FileIO.ReadTextAsync(backupFile);
+                var jsonString = await File.ReadAllTextAsync(backupPath);
                 var projectsData = JsonSerializer.Deserialize<ProjectsData>(jsonString);
 
                 if (projectsData?.Projects == null)
@@ -243,49 +315,58 @@ namespace DreamUnrealManager.Services
             {
                 WriteDebug("尝试从旧格式迁移项目数据");
 
-                var localSettings = ApplicationData.Current.LocalSettings;
-                if (!localSettings.Values.ContainsKey("ProjectsData"))
+                // 尝试从注册表或其他位置读取旧数据
+                try
                 {
-                    WriteDebug("未找到旧格式数据");
-                    return new List<ProjectInfo>();
-                }
-
-                var savedData = localSettings.Values["ProjectsData"] as string;
-                if (string.IsNullOrEmpty(savedData))
-                {
-                    return new List<ProjectInfo>();
-                }
-
-                var projectPaths = savedData.Split('|');
-                var projects = new List<ProjectInfo>();
-
-                foreach (var path in projectPaths)
-                {
-                    if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                    var localSettings = ApplicationData.Current.LocalSettings;
+                    if (!localSettings.Values.ContainsKey("ProjectsData"))
                     {
-                        try
+                        WriteDebug("未找到旧格式数据");
+                        return new List<ProjectInfo>();
+                    }
+
+                    var savedData = localSettings.Values["ProjectsData"] as string;
+                    if (string.IsNullOrEmpty(savedData))
+                    {
+                        return new List<ProjectInfo>();
+                    }
+
+                    var projectPaths = savedData.Split('|');
+                    var projects = new List<ProjectInfo>();
+
+                    foreach (var path in projectPaths)
+                    {
+                        if (!string.IsNullOrEmpty(path) && File.Exists(path))
                         {
-                            var projectInfo = await CreateProjectInfoFromPath(path);
-                            if (projectInfo != null)
+                            try
                             {
-                                projects.Add(projectInfo);
+                                var projectInfo = await CreateProjectInfoFromPath(path);
+                                if (projectInfo != null)
+                                {
+                                    projects.Add(projectInfo);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                WriteDebug($"迁移项目失败 {path}: {ex.Message}");
                             }
                         }
-                        catch (Exception ex)
-                        {
-                            WriteDebug($"迁移项目失败 {path}: {ex.Message}");
-                        }
                     }
-                }
 
-                // 保存到新格式
-                if (projects.Count > 0)
+                    // 保存到新格式
+                    if (projects.Count > 0)
+                    {
+                        await SaveProjectsAsync(projects);
+                        WriteDebug($"成功迁移 {projects.Count} 个项目到新格式");
+                    }
+
+                    return projects;
+                }
+                catch (Exception ex)
                 {
-                    await SaveProjectsAsync(projects);
-                    WriteDebug($"成功迁移 {projects.Count} 个项目到新格式");
+                    WriteDebug($"无法访问 ApplicationData 进行迁移: {ex.Message}");
+                    return new List<ProjectInfo>();
                 }
-
-                return projects;
             }
             catch (Exception ex)
             {
@@ -338,19 +419,6 @@ namespace DreamUnrealManager.Services
                     projectInfo.Description = "无法读取项目描述";
                 }
 
-                // 计算项目大小（异步）
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        projectInfo.ProjectSize = await CalculateProjectSize(projectInfo.ProjectDirectory);
-                    }
-                    catch
-                    {
-                        projectInfo.ProjectSize = 0;
-                    }
-                });
-
                 return projectInfo;
             }
             catch (Exception ex)
@@ -358,61 +426,6 @@ namespace DreamUnrealManager.Services
                 WriteDebug($"CreateProjectInfoFromPath失败: {ex.Message}");
                 return null;
             }
-        }
-
-        /// <summary>
-        /// 计算项目大小
-        /// </summary>
-        private async Task<long> CalculateProjectSize(string projectDirectory)
-        {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    if (string.IsNullOrEmpty(projectDirectory) || !Directory.Exists(projectDirectory))
-                        return 0;
-
-                    var dirInfo = new DirectoryInfo(projectDirectory);
-                    return GetDirectorySize(dirInfo);
-                }
-                catch
-                {
-                    return 0;
-                }
-            });
-        }
-
-        private long GetDirectorySize(DirectoryInfo dir)
-        {
-            long size = 0;
-            try
-            {
-                // 跳过一些不必要的文件夹以提高性能
-                if (dir.Name.Equals("Intermediate", StringComparison.OrdinalIgnoreCase) ||
-                    dir.Name.Equals("Binaries", StringComparison.OrdinalIgnoreCase) ||
-                    dir.Name.Equals(".vs", StringComparison.OrdinalIgnoreCase))
-                {
-                    return 0;
-                }
-
-                FileInfo[] files = dir.GetFiles();
-                foreach (FileInfo file in files)
-                {
-                    size += file.Length;
-                }
-
-                DirectoryInfo[] dirs = dir.GetDirectories();
-                foreach (DirectoryInfo subDir in dirs)
-                {
-                    size += GetDirectorySize(subDir);
-                }
-            }
-            catch
-            {
-                // 忽略访问权限问题
-            }
-
-            return size;
         }
 
         /// <summary>
@@ -430,90 +443,6 @@ namespace DreamUnrealManager.Services
             }
 
             return removedCount;
-        }
-
-        /// <summary>
-        /// 导出项目列表
-        /// </summary>
-        public async Task<bool> ExportProjectsAsync(List<ProjectInfo> projects, StorageFile file)
-        {
-            try
-            {
-                var projectsData = new ProjectsData
-                {
-                    Projects = projects.Select(p => new ProjectDataDto
-                    {
-                        ProjectPath = p.ProjectPath ?? "",
-                        DisplayName = p.DisplayName ?? "",
-                        ProjectDirectory = p.ProjectDirectory ?? "",
-                        EngineAssociation = p.EngineAssociation ?? "",
-                        Description = p.Description ?? "",
-                        Category = p.Category ?? "",
-                        LastModified = p.LastModified,
-                        LastUsed = p.LastUsed,
-                        ProjectSize = p.ProjectSize
-                    }).ToList(),
-                    LastSaved = DateTime.Now,
-                    Version = 1
-                };
-
-                var jsonOptions = new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-                };
-
-                var jsonString = JsonSerializer.Serialize(projectsData, jsonOptions);
-                await FileIO.WriteTextAsync(file, jsonString);
-
-                WriteDebug($"导出了 {projects.Count} 个项目");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                WriteDebug($"导出项目失败: {ex.Message}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// 导入项目列表
-        /// </summary>
-        public async Task<List<ProjectInfo>> ImportProjectsAsync(StorageFile file)
-        {
-            try
-            {
-                var jsonString = await FileIO.ReadTextAsync(file);
-                var projectsData = JsonSerializer.Deserialize<ProjectsData>(jsonString);
-
-                if (projectsData?.Projects == null)
-                {
-                    throw new InvalidDataException("导入的文件格式不正确");
-                }
-
-                var projects = projectsData.Projects
-                    .Where(dto => File.Exists(dto.ProjectPath))
-                    .Select(dto => new ProjectInfo
-                    {
-                        ProjectPath = dto.ProjectPath,
-                        DisplayName = dto.DisplayName,
-                        ProjectDirectory = dto.ProjectDirectory,
-                        EngineAssociation = dto.EngineAssociation,
-                        Description = dto.Description,
-                        Category = dto.Category,
-                        LastModified = dto.LastModified,
-                        LastUsed = dto.LastUsed,
-                        ProjectSize = dto.ProjectSize
-                    }).ToList();
-
-                WriteDebug($"导入了 {projects.Count} 个项目");
-                return projects;
-            }
-            catch (Exception ex)
-            {
-                WriteDebug($"导入项目失败: {ex.Message}");
-                throw;
-            }
         }
 
         private void WriteDebug(string message)
