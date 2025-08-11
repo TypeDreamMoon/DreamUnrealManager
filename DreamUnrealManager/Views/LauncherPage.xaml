@@ -18,8 +18,8 @@
         <!-- 网格 -->
         <ItemsPanelTemplate x:Key="GridItemsPanel">
             <ItemsWrapGrid Orientation="Horizontal"
-                           HorizontalAlignment="Stretch"
-                           VerticalAlignment="Top" />
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
         </ItemsPanelTemplate>
 
         <!-- 列表 -->
@@ -37,6 +37,28 @@
         </ItemsPanelTemplate>
 
         <!-- ===== DataTemplates（3种卡片） ===== -->
+
+        <MenuFlyout x:Key="ProjectMenuFlyoutTemplate">
+
+            <MenuFlyoutItem Text="启动" Tag="{Binding}" Click="ContextMenu_LaunchProject_Click" />
+            <MenuFlyoutItem Text="用 IDE 打开" Tag="{Binding}" Click="ContextMenu_OpenWithIDE_Click" />
+            <MenuFlyoutItem Text="打开项目文件夹" Tag="{Binding}" Click="ContextMenu_OpenFolder_Click" />
+            <MenuFlyoutItem Text="查看详情"
+                            Tag="{Binding}"
+                            Click="ContextMenu_ShowDetails_Click" />
+            <MenuFlyoutItem Text="收藏/取消收藏"
+                            Tag="{Binding}"
+                            Click="ContextMenu_ToggleFavorite_Click" />
+            <MenuFlyoutSeparator />
+            <MenuFlyoutItem Visibility="{Binding IsCPlusPlusProject, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
+                            Text="生成 VS 项目文件"
+                            Tag="{Binding}"
+                            Click="ContextMenu_GenerateVSProject_Click" />
+            <MenuFlyoutItem Text="刷新项目" Tag="{Binding}" Click="ContextMenu_RefreshProject_Click" />
+            <MenuFlyoutItem Text="切换引擎版本" Tag="{Binding}" Click="ContextMenu_SwitchEngine_Click" />
+            <MenuFlyoutSeparator />
+            <MenuFlyoutItem Text="从列表中移除" Tag="{Binding}" Click="ContextMenu_RemoveProject_Click" />
+        </MenuFlyout>
 
         <!-- 网格卡片（图主导） -->
         <DataTemplate x:Key="GridProjectTemplate" x:DataType="models:ProjectInfo">
@@ -92,17 +114,7 @@
                             <Button Content="更多"
                                     Tag="{x:Bind}">
                                 <Button.Flyout>
-                                    <MenuFlyout>
-                                        <MenuFlyoutItem Text="启动" Tag="{x:Bind}" Click="ContextMenu_LaunchProject_Click" />
-                                        <MenuFlyoutItem Text="用 IDE 打开" Tag="{x:Bind}" Click="ContextMenu_OpenWithIDE_Click" />
-                                        <MenuFlyoutItem Text="打开项目文件夹" Tag="{x:Bind}" Click="ContextMenu_OpenFolder_Click" />
-                                        <MenuFlyoutSeparator />
-                                        <MenuFlyoutItem Text="生成 VS 项目文件" Tag="{x:Bind}" Click="ContextMenu_GenerateVSProject_Click" />
-                                        <MenuFlyoutItem Text="刷新项目" Tag="{x:Bind}" Click="ContextMenu_RefreshProject_Click" />
-                                        <MenuFlyoutItem Text="切换引擎版本" Tag="{x:Bind}" Click="ContextMenu_SwitchEngine_Click" />
-                                        <MenuFlyoutSeparator />
-                                        <MenuFlyoutItem Text="从列表中移除" Tag="{x:Bind}" Click="ContextMenu_RemoveProject_Click" />
-                                    </MenuFlyout>
+                                    <StaticResource ResourceKey="ProjectMenuFlyoutTemplate" />
                                 </Button.Flyout>
                             </Button>
                         </StackPanel>
@@ -135,17 +147,7 @@
 
                 <!-- 右键菜单（挂在 Border 上） -->
                 <Border.ContextFlyout>
-                    <MenuFlyout>
-                        <MenuFlyoutItem Text="启动" Tag="{x:Bind}" Click="ContextMenu_LaunchProject_Click" />
-                        <MenuFlyoutItem Text="用 IDE 打开" Tag="{x:Bind}" Click="ContextMenu_OpenWithIDE_Click" />
-                        <MenuFlyoutItem Text="打开项目文件夹" Tag="{x:Bind}" Click="ContextMenu_OpenFolder_Click" />
-                        <MenuFlyoutSeparator />
-                        <MenuFlyoutItem Text="生成 VS 项目文件" Tag="{x:Bind}" Click="ContextMenu_GenerateVSProject_Click" />
-                        <MenuFlyoutItem Text="刷新项目" Tag="{x:Bind}" Click="ContextMenu_RefreshProject_Click" />
-                        <MenuFlyoutItem Text="切换引擎版本" Tag="{x:Bind}" Click="ContextMenu_SwitchEngine_Click" />
-                        <MenuFlyoutSeparator />
-                        <MenuFlyoutItem Text="从列表中移除" Tag="{x:Bind}" Click="ContextMenu_RemoveProject_Click" />
-                    </MenuFlyout>
+                    <StaticResource ResourceKey="ProjectMenuFlyoutTemplate" />
                 </Border.ContextFlyout>
             </Border>
         </DataTemplate>
@@ -277,7 +279,8 @@
 
                         <Button MinWidth="110"
                                 Tag="{x:Bind}"
-                                Click="StartWithIdeButton_OnClick">
+                                Click="StartWithIdeButton_OnClick"
+                                Visibility="{x:Bind IsCPlusPlusProject, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <FontIcon Glyph="&#xEC7A;" />
                                 <TextBlock Text="{x:Bind GetIdeButtonText()}" />
@@ -286,24 +289,7 @@
 
                         <Button MinWidth="110" Tag="{x:Bind}" ToolTipService.ToolTip="更多操作">
                             <Button.Flyout>
-                                <MenuFlyout>
-                                    <MenuFlyoutItem Text="启动" Tag="{x:Bind}" Click="ContextMenu_LaunchProject_Click" />
-                                    <MenuFlyoutItem Text="{x:Bind GetIdeButtonText()}" Tag="{x:Bind}" Click="ContextMenu_OpenWithIDE_Click" />
-                                    <MenuFlyoutItem Text="打开项目文件夹" Tag="{x:Bind}" Click="ContextMenu_OpenFolder_Click" />
-                                    <MenuFlyoutItem Text="查看详情"
-                                                    Tag="{x:Bind}"
-                                                    Click="ContextMenu_ShowDetails_Click" />
-                                    <MenuFlyoutItem Text="收藏/取消收藏"
-                                                    Tag="{x:Bind}"
-                                                    Click="ContextMenu_ToggleFavorite_Click" />
-                                    <MenuFlyoutSeparator />
-                                    <MenuFlyoutItem Text="生成 VS 项目文件" Tag="{x:Bind}" Click="ContextMenu_GenerateVSProject_Click" />
-                                    <MenuFlyoutItem Text="刷新项目" Tag="{x:Bind}" Click="ContextMenu_RefreshProject_Click" />
-                                    <MenuFlyoutItem Text="切换引擎版本" Tag="{x:Bind}" Click="ContextMenu_SwitchEngine_Click" />
-                                    <MenuFlyoutSeparator />
-                                    <MenuFlyoutItem Text="从列表中移除" Tag="{x:Bind}" Click="ContextMenu_RemoveProject_Click" />
-
-                                </MenuFlyout>
+                                <StaticResource ResourceKey="ProjectMenuFlyoutTemplate" />
                             </Button.Flyout>
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <FontIcon Glyph="&#xE712;" />
@@ -322,28 +308,11 @@
                                       HorizontalAlignment="Center"
                                       VerticalAlignment="Center" />
                     </Grid>
-
-                    <!-- 右键菜单（挂在根） -->
-                    <Grid.ContextFlyout>
-                        <MenuFlyout>
-                            <MenuFlyoutItem Text="启动" Tag="{x:Bind}" Click="ContextMenu_LaunchProject_Click" />
-                            <MenuFlyoutItem Text="{x:Bind GetIdeButtonText()}" Tag="{x:Bind}" Click="ContextMenu_OpenWithIDE_Click" />
-                            <MenuFlyoutItem Text="打开项目文件夹" Tag="{x:Bind}" Click="ContextMenu_OpenFolder_Click" />
-                            <MenuFlyoutItem Text="查看详情"
-                                            Tag="{x:Bind}"
-                                            Click="ContextMenu_ShowDetails_Click" />
-                            <MenuFlyoutItem Text="收藏/取消收藏"
-                                            Tag="{x:Bind}"
-                                            Click="ContextMenu_ToggleFavorite_Click" />
-                            <MenuFlyoutSeparator />
-                            <MenuFlyoutItem Text="生成 VS 项目文件" Tag="{x:Bind}" Click="ContextMenu_GenerateVSProject_Click" />
-                            <MenuFlyoutItem Text="刷新项目" Tag="{x:Bind}" Click="ContextMenu_RefreshProject_Click" />
-                            <MenuFlyoutItem Text="切换引擎版本" Tag="{x:Bind}" Click="ContextMenu_SwitchEngine_Click" />
-                            <MenuFlyoutSeparator />
-                            <MenuFlyoutItem Text="从列表中移除" Tag="{x:Bind}" Click="ContextMenu_RemoveProject_Click" />
-                        </MenuFlyout>
-                    </Grid.ContextFlyout>
                 </Grid>
+                <!-- 右键菜单（挂在根） -->
+                <Border.ContextFlyout>
+                    <StaticResource ResourceKey="ProjectMenuFlyoutTemplate" />
+                </Border.ContextFlyout>
             </Border>
         </DataTemplate>
 
@@ -352,6 +321,8 @@
             <Border Height="88"
                     Margin="6"
                     CornerRadius="10"
+                    MinWidth="400"
+                    MaxWidth="1000"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1">
@@ -390,25 +361,13 @@
                         <Button ToolTipService.ToolTip="启动" Tag="{x:Bind}" Click="StartProjectButton_OnClick">
                             <FontIcon Glyph="&#xE768;" />
                         </Button>
+                        <Button ToolTipService.ToolTip="使用IDE启动" Tag="{x:Bind}" Click="StartWithIdeButton_OnClick"
+                                Visibility="{x:Bind IsCPlusPlusProject, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                            <FontIcon Glyph="&#xEC7A;" />
+                        </Button>
                         <Button ToolTipService.ToolTip="更多" Tag="{x:Bind}">
                             <Button.Flyout>
-                                <MenuFlyout>
-                                    <MenuFlyoutItem Text="启动" Tag="{x:Bind}" Click="ContextMenu_LaunchProject_Click" />
-                                    <MenuFlyoutItem Text="用 IDE 打开" Tag="{x:Bind}" Click="ContextMenu_OpenWithIDE_Click" />
-                                    <MenuFlyoutItem Text="打开项目文件夹" Tag="{x:Bind}" Click="ContextMenu_OpenFolder_Click" />
-                                    <MenuFlyoutItem Text="查看详情"
-                                                    Tag="{x:Bind}"
-                                                    Click="ContextMenu_ShowDetails_Click" />
-                                    <MenuFlyoutItem Text="收藏/取消收藏"
-                                                    Tag="{x:Bind}"
-                                                    Click="ContextMenu_ToggleFavorite_Click" />
-                                    <MenuFlyoutSeparator />
-                                    <MenuFlyoutItem Text="生成 VS 项目文件" Tag="{x:Bind}" Click="ContextMenu_GenerateVSProject_Click" />
-                                    <MenuFlyoutItem Text="刷新项目" Tag="{x:Bind}" Click="ContextMenu_RefreshProject_Click" />
-                                    <MenuFlyoutItem Text="切换引擎版本" Tag="{x:Bind}" Click="ContextMenu_SwitchEngine_Click" />
-                                    <MenuFlyoutSeparator />
-                                    <MenuFlyoutItem Text="从列表中移除" Tag="{x:Bind}" Click="ContextMenu_RemoveProject_Click" />
-                                </MenuFlyout>
+                                <StaticResource ResourceKey="ProjectMenuFlyoutTemplate" />
                             </Button.Flyout>
                             <FontIcon Glyph="&#xE712;" />
                         </Button>
@@ -425,6 +384,9 @@
                                       VerticalAlignment="Center" />
                     </Grid>
                 </Grid>
+                <Border.ContextFlyout>
+                    <StaticResource ResourceKey="ProjectMenuFlyoutTemplate" />
+                </Border.ContextFlyout>
             </Border>
         </DataTemplate>
 
@@ -436,6 +398,7 @@
             <Setter Property="VerticalContentAlignment" Value="Stretch" />
             <Setter Property="Background" Value="Transparent" />
         </Style>
+
     </Page.Resources>
 
     <!-- ========== 页面布局 ========== -->
@@ -480,6 +443,7 @@
                 <!-- 右侧按钮 + 布局切换 -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
                     <controls:Segmented x:Name="LayoutSegmented"
+                                        SelectedIndex="0"
                                         SelectionChanged="LayoutSegmented_SelectionChanged">
                         <controls:SegmentedItem>
                             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -522,6 +486,7 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
@@ -557,17 +522,29 @@
                               Content="只看收藏"
                               Checked="FavoriteOnlyToggle_Checked"
                               Unchecked="FavoriteOnlyToggle_Checked"
-                              VerticalAlignment="Center" />
+                              VerticalAlignment="Center"
+                              Margin="10,0,0,0" />
 
-                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <ToggleButton Grid.Column="3" x:Name="FavoriteFrontToggle"
+                              Content="收藏在前"
+                              Checked="FavoriteFrontToggle_Checked"
+                              Unchecked="FavoriteFrontToggle_Checked"
+                              VerticalAlignment="Center"
+                              Margin="10,0,0,0">
+                </ToggleButton>
+
+                <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <TextBlock x:Name="FilterStatsText"
                                Text="显示 0 个项目"
                                FontSize="12"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               VerticalAlignment="Center" />
+                               VerticalAlignment="Center"
+                               Margin="10,0,0,0"
+                               Width="100"
+                               TextAlignment="Center" />
                 </StackPanel>
 
-                <Button Grid.Column="4"
+                <Button Grid.Column="5"
                         Content="清除筛选"
                         Click="ClearFilters_Click"
                         Margin="10,0,0,0" />
@@ -575,7 +552,8 @@
         </Border>
 
         <!-- 内容区 -->
-        <Grid Grid.Row="3" Margin="15,0,15,10">
+
+        <Grid Grid.Row="3" Margin="15,0,15,10" CornerRadius="0 ,0, 8, 8">
             <!-- 空状态 -->
             <StackPanel x:Name="EmptyStatePanel"
                         HorizontalAlignment="Center"
@@ -601,7 +579,7 @@
                                MaxWidth="400"
                                TextWrapping="Wrap" />
                 </StackPanel>
-                <Button MinWidth="120" FontSize="16" Padding="20,12" Click="AddProject_Click">
+                <Button HorizontalAlignment="Stretch" MinWidth="120" FontSize="16" Padding="20,12" Click="AddProject_Click">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE710;" FontSize="16" />
                         <TextBlock Text="添加项目" />
@@ -615,16 +593,17 @@
                       ItemContainerStyle="{StaticResource ProjectItemContainerStyle}"
                       IsItemClickEnabled="False"
                       SelectionMode="None"
+                      HorizontalContentAlignment="Center"
+                      VerticalContentAlignment="Center"
                       ItemsPanel="{StaticResource GridItemsPanel}"
                       ItemTemplate="{StaticResource GridProjectTemplate}" />
         </Grid>
 
+
         <!-- 底部状态条 -->
         <Border Grid.Row="4"
-                CornerRadius="8,8,0,0"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                BorderThickness="0,1,0,0"
                 Padding="20,8"
                 VerticalAlignment="Bottom">
             <TextBlock x:Name="StatusText"

@@ -4,8 +4,75 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:DreamUnrealManager.Models"
     xmlns:helpers="using:DreamUnrealManager.Helpers"
     mc:Ignorable="d">
+
+    <Page.Resources>
+
+        <helpers:EmptyListToVisibilityConverter x:Key="EmptyListToCollapsedConverter" />
+        <helpers:ListToVisibilityConverter x:Key="ListToVisibilityConverter" />
+        <helpers:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <!-- 收藏项目模板 -->
+        <DataTemplate x:Key="FavoriteProjectTemplate" x:DataType="models:ProjectInfo">
+            <Border Margin="0,8"
+                    CornerRadius="10"
+                    MinHeight="140"
+                    Padding="0"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1">
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 左侧项目图标 -->
+                    <Border Grid.Column="0" Width="120" Height="120" Margin="12" CornerRadius="8">
+                        <Image Source="{x:Bind ProjectIconPath}" Stretch="UniformToFill" ImageFailed="ProjectImage_ImageFailed" />
+                    </Border>
+
+                    <!-- 右侧文本信息 -->
+                    <StackPanel Grid.Column="1" Spacing="6" Margin="8,12,12,12" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Bind DisplayName}"
+                                   Style="{ThemeResource BodyStrongTextBlockStyle}"
+                                   FontSize="18"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{x:Bind EngineDisplayName}"
+                                   Style="{ThemeResource CaptionTextBlockStyle}"
+                                   Foreground="#CCFFFFFF" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="15" Spacing="15">
+                        <!-- 快速启动按钮 -->
+                        <Button Tag="{x:Bind}"
+                                Click="QuickLaunchFavoriteProject_Click">
+                            <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xEDD9;" />
+                        </Button>
+                        <Button Tag="{x:Bind}"
+                                Visibility="{x:Bind IsCPlusPlusProject, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Click="OpenWithIDE_OnClick">
+                            <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE70F;" />
+                        </Button>
+                    </StackPanel>
+
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <Style x:Key="ProjectItemContainerStyle" TargetType="ListViewItem">
+            <Setter Property="Margin" Value="4" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+    </Page.Resources>
+
+
     <Grid x:Name="ContentArea" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
 
         <Grid.Background>
@@ -22,13 +89,20 @@
                 Width="256" />
 
 
-            <StackPanel Spacing="25">
+            <StackPanel Orientation="Vertical"
+                        Margin="75,50,0,0">
 
                 <TextBlock
                     FontSize="50"
                     FontWeight="Bold"
-                    Margin="75,50,0,0"
-                    Text="Dream Unreal Manager" />
+                    Text="Dream Unreal Manager"
+                    Margin="0, 0, 0, 15" />
+
+                <TextBlock x:Name="CurrentVersionTextBlock" Foreground="{ThemeResource ApplicationSecondaryForegroundThemeBrush}" />
+                <TextBlock x:Name="GithubVersionTextBlock" Foreground="{ThemeResource ApplicationSecondaryForegroundThemeBrush}" Text="正在检查..." />
+                <HyperlinkButton x:Name="NewVersionHyperLinkButton" NavigateUri="https://github.com/TypeDreamMoon/DreamUnrealManager">
+                    <TextBlock Foreground="DeepSkyBlue">发现新版本</TextBlock>
+                </HyperlinkButton>
 
             </StackPanel>
 
@@ -85,5 +159,51 @@
                 </StackPanel>
             </Border>
         </Grid>
+
+        <Border HorizontalAlignment="Left"
+                VerticalAlignment="Bottom"
+                Width="500"
+                MinHeight="50"
+                MaxHeight="600"
+                Margin="25"
+                CornerRadius="8">
+
+            <Border.Background>
+                <AcrylicBrush TintColor="Black" TintOpacity="0.5" />
+            </Border.Background>
+
+            <Grid HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch"
+                  Padding="15">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="我的收藏"
+                               FontSize="22"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center" />
+                    <FontIcon FontFamily="Segoe Fluent Icons"
+                              Glyph="&#xE735;"
+                              HorizontalAlignment="Center" />
+
+                    <TextBlock VerticalAlignment="Center"
+                               HorizontalAlignment="Center"
+                               Visibility="{x:Bind FavoritesListView.ItemsSource, Mode=OneWay, Converter={StaticResource EmptyListToCollapsedConverter}}"
+                               Text="暂无收藏。要不去收藏一个?" />
+
+                </StackPanel>
+
+                <ListView Grid.Row="1" x:Name="FavoritesListView"
+                          ItemsSource="{x:Bind FavoritesProjects}"
+                          ItemTemplate="{StaticResource FavoriteProjectTemplate}"
+                          SelectionMode="None"
+                          Visibility="{x:Bind FavoritesListView.ItemsSource, Mode=OneWay, Converter={StaticResource ListToVisibilityConverter}}"
+                          IsItemClickEnabled="False" />
+            </Grid>
+        </Border>
     </Grid>
 </Page>

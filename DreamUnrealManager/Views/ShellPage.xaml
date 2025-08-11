@@ -34,21 +34,22 @@
             IsSettingsVisible="True"
             ExpandedModeThresholdWidth="1280"
             AlwaysShowHeader="False"
+            PaneDisplayMode="LeftCompact"
             DisplayModeChanged="NavigationViewControl_DisplayModeChanged">
             <NavigationView.MenuItems>
-                
+
                 <NavigationViewItem x:Uid="Shell_Main" helpers:NavigationHelper.NavigateTo="DreamUnrealManager.ViewModels.MainViewModel">
                     <NavigationViewItem.Icon>
                         <ImageIcon Source="../Assets/FluentMdl2Home.png" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
-                
+
                 <NavigationViewItem x:Uid="Shell_Launcher" helpers:NavigationHelper.NavigateTo="DreamUnrealManager.ViewModels.LauncherViewModel">
                     <NavigationViewItem.Icon>
                         <ImageIcon Source="../Assets/FluentMdl2AllApps.png" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
-                
+
                 <NavigationViewItem x:Name="PluginsBuildNavItem"
                                     x:Uid="Shell_PluginsBuild"
                                     helpers:NavigationHelper.NavigateTo="DreamUnrealManager.ViewModels.PluginsBuildViewModel">
@@ -87,9 +88,17 @@
                 </NavigationViewItem>
             </NavigationView.MenuItems>
             
-            <Grid >
+            <NavigationView.FooterMenuItems>
+                <NavigationViewItem x:Uid="Shell_Fab" helpers:NavigationHelper.NavigateTo="DreamUnrealManager.ViewModels.FabViewModel">
+                    <NavigationViewItem.Icon>
+                        <ImageIcon Source="../Assets/Fab.png"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.FooterMenuItems>
+
+            <Grid>
                 <Grid.Background>
-                    <SolidColorBrush Color="Black" Opacity="0.25"></SolidColorBrush>
+                    <AcrylicBrush TintColor="Black" TintOpacity="0.25" />
                 </Grid.Background>
                 <Frame x:Name="NavigationFrame" />
             </Grid>

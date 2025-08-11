@@ -37,6 +37,7 @@ namespace DreamUnrealManager.Views
         private readonly IIdeLauncher _ide;
         private readonly IEngineSwitchService _engineSwitch;
         private readonly IDialogService _dialogs;
+        private readonly IUnrealProjectService _uproj;
 
         // 进度
         private int _metaTotal;
@@ -53,6 +54,7 @@ namespace DreamUnrealManager.Views
             _ide = new IdeLauncher();
             _engineSwitch = new EngineSwitchService();
             _dialogs = new DialogService();
+            _uproj = new UnrealProjectService();
 
             InitializeComponent(); // 再加载 XAML
             Loaded += LauncherPage_Loaded;
@@ -67,6 +69,8 @@ namespace DreamUnrealManager.Views
                 _allProjects = await _repo.LoadAsync();
                 LoadEngineFilters();
                 ApplyFilters();
+
+                FavoriteFrontToggle.IsChecked = Settings.Get("Launcher.FavoriteFirst", true);
 
                 // 两阶段补全（元数据→体积）
                 _ = RehydrateProjectsAsync(_allProjects);
@@ -301,11 +305,11 @@ namespace DreamUnrealManager.Views
 
             var opts = new ProjectFilterOptions
             {
-                SearchText     = _currentSearchText ?? "",
-                EngineFilter   = _currentEngineFilter ?? "ALL_ENGINES",
-                SortOrder      = _currentSortOrder ?? "LastUsed",
-                OnlyFavorites  = FavoriteOnlyToggle?.IsChecked == true, // 工具栏开关
-                FavoriteFirst  = true                                   // 收藏置顶
+                SearchText = _currentSearchText ?? "",
+                EngineFilter = _currentEngineFilter ?? "ALL_ENGINES",
+                SortOrder = _currentSortOrder ?? "LastUsed",
+                OnlyFavorites = FavoriteOnlyToggle?.IsChecked == true, // 工具栏开关
+                FavoriteFirst = Settings.Get("Launcher.FavoriteFirst", true) // 收藏置顶
             };
 
             var result = _filter.FilterAndSort(_allProjects, opts)?.ToList() ?? new List<ProjectInfo>();
@@ -758,7 +762,7 @@ namespace DreamUnrealManager.Views
         {
             if (sender is Button btn && btn.Tag is ProjectInfo p)
             {
-                LaunchProject(p);
+                _uproj.LaunchProject(p);
             }
         }
 
@@ -783,7 +787,7 @@ namespace DreamUnrealManager.Views
         // 右键菜单
         private void ContextMenu_LaunchProject_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is MenuFlyoutItem item && item.Tag is ProjectInfo p) LaunchProject(p);
+            if (sender is MenuFlyoutItem item && item.Tag is ProjectInfo p) _uproj.LaunchProject(p);
         }
 
         private async void ContextMenu_OpenWithIDE_Click(object sender, RoutedEventArgs e)
@@ -898,25 +902,6 @@ namespace DreamUnrealManager.Views
             }
         }
 
-        private void LaunchProject(ProjectInfo project)
-        {
-            try
-            {
-                var psi = new ProcessStartInfo
-                {
-                    FileName = project.ProjectPath,
-                    UseShellExecute = true
-                };
-                Process.Start(psi);
-                project.LastUsed = DateTime.Now;
-                _ = _repo.SaveAsync(_allProjects);
-            }
-            catch (Exception ex)
-            {
-                _ = _dialogs.ShowMessageAsync("错误", $"启动项目失败：{ex.Message}");
-            }
-        }
-
         private void OpenProjectFolder_Click(object sender, RoutedEventArgs e)
         {
             SetStatus("请使用项目卡片上的“更多操作”或右键菜单打开文件夹");
@@ -1025,10 +1010,16 @@ namespace DreamUnrealManager.Views
                 ApplyFilters();
             }
         }
-        
+
         private void FavoriteOnlyToggle_Checked(object sender, RoutedEventArgs e)
         {
             _onlyFavorites = FavoriteOnlyToggle?.IsChecked == true;
+            ApplyFilters();
+        }
+
+        private void FavoriteFrontToggle_Checked(object sender, RoutedEventArgs e)
+        {
+            Settings.Set("Launcher.FavoriteFirst", FavoriteFrontToggle?.IsChecked == true);
             ApplyFilters();
         }
 
@@ -1042,7 +1033,8 @@ namespace DreamUnrealManager.Views
             {
                 if (sender is Image img)
                 {
-                    img.Source = new BitmapImage(new Uri("ms-appx:///Assets/MdiUnreal.png"));
+                    string path = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "MdiUnreal.png");
+                    img.Source = new BitmapImage(new Uri(path));
                 }
             }
             catch

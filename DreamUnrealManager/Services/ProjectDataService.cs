@@ -32,6 +32,7 @@ namespace DreamUnrealManager.Services
             public DateTime? LastUsed { get; set; }
             public long ProjectSize { get; set; }
             public Dictionary<string, object> AdditionalProperties { get; set; } = new();
+            public bool IsFavorite { get; set; }
         }
 
         public class ProjectsData
@@ -95,7 +96,8 @@ namespace DreamUnrealManager.Services
                         LastModified = p.LastModified,
                         LastUsed = p.LastUsed,
                         ProjectSize = p.ProjectSize,
-                        AdditionalProperties = new Dictionary<string, object>()
+                        AdditionalProperties = new Dictionary<string, object>(),
+                        IsFavorite = p.IsFavorite
                     }).ToList(),
                     LastSaved = DateTime.Now,
                     Version = 1
@@ -225,7 +227,8 @@ namespace DreamUnrealManager.Services
                             Category = dto.Category,
                             LastModified = dto.LastModified,
                             LastUsed = dto.LastUsed,
-                            ProjectSize = dto.ProjectSize
+                            ProjectSize = dto.ProjectSize,
+                            IsFavorite = dto.IsFavorite
                         };
 
                         // 更新文件修改时间（如果文件已更改）

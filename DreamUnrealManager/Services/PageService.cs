@@ -18,6 +18,7 @@ public class PageService : IPageService
         Configure<LauncherViewModel, LauncherPage>();
         Configure<PluginsBuildViewModel, PluginsBuildPage>();
         Configure<SettingsViewModel, SettingsPage>();
+        Configure<FabViewModel, FabPage>();
     }
 
     public Type GetPageType(string key)

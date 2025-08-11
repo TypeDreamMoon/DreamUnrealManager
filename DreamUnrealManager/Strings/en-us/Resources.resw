@@ -73,6 +73,9 @@
   <data name="Shell_PluginsBuild.Content" xml:space="preserve">
     <value>PluginsBuild</value>
   </data>
+  <data name="Shell_Fab.Content" xml:space="preserve">
+      <value>Fab</value>
+    </data>
   <data name="Settings_Personalization.Text" xml:space="preserve">
     <value>Personalization</value>
   </data>

@@ -2,27 +2,85 @@
 using System.IO;
 using System.Threading.Tasks;
 using DreamUnrealManager.Models;
+using Microsoft.UI.Xaml.Controls;
 
 namespace DreamUnrealManager.Services
 {
     public sealed class IdeLauncher : IIdeLauncher
     {
-        public Task LaunchAsync(ProjectInfo project)
+        public async Task LaunchAsync(ProjectInfo project)
         {
             if (project == null || string.IsNullOrEmpty(project.ProjectDirectory))
-                return Task.CompletedTask;
-
-            var slnPath = Path.Combine(project.ProjectDirectory, $"{project.DisplayName}.sln");
-            if (!File.Exists(slnPath)) return Task.CompletedTask;
-
-            // 假设使用默认VS打开
-            Process.Start(new ProcessStartInfo
             {
-                FileName = slnPath,
-                UseShellExecute = true
-            });
+                await ShowErrorDialog("启动失败", "项目目录无效。");
+                return;
+            }
 
-            return Task.CompletedTask;
+            var slnPath = Path.Combine(project.ProjectDirectory);
+
+            string ide = Settings.Get("Default.IDE", "VS"); // 默认 IDE
+            string idePath;
+
+            switch (ide)
+            {
+                case "VS":
+                {
+                    idePath = Settings.Get("IDE.Path.VS", "");
+                    slnPath = Path.Combine(slnPath, $"{project.ProjectName}.sln");
+                }
+                    break;
+                case "RD":
+                {
+                    idePath = Settings.Get("IDE.Path.RD", "");
+                    slnPath = Path.Combine(slnPath, $"{project.ProjectName}.sln");
+                }
+                    break;
+                case "VSCode":
+                {
+                    idePath = Settings.Get("IDE.Path.VSCode", "");
+                }
+                    break;
+                default:
+                {
+                    await ShowErrorDialog("启动失败", "未知的 IDE。");
+                    return;
+                }
+            }
+
+            if (string.IsNullOrEmpty(idePath))
+            {
+                // 如果没有设置 IDE 路径，弹出提示框引导用户设置
+                await ShowErrorDialog("IDE 路径未设置", "请设置 IDE 路径以启动项目。");
+                return;
+            }
+
+            try
+            {
+                var processStartInfo = new ProcessStartInfo
+                {
+                    FileName = idePath,
+                    Arguments = slnPath,
+                    UseShellExecute = true
+                };
+
+                Process.Start(processStartInfo);
+            }
+            catch (Exception ex)
+            {
+                await ShowErrorDialog("启动失败", $"启动 IDE 时发生错误: {ex.Message}");
+            }
+        }
+
+        private async Task ShowErrorDialog(string title, string message)
+        {
+            var dialog = new ContentDialog
+            {
+                Title = title,
+                Content = message,
+                CloseButtonText = "确定",
+                XamlRoot = App.MainWindow.Content.XamlRoot
+            };
+            await dialog.ShowAsync();
         }
     }
 }
