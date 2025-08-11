@@ -2,7 +2,7 @@
 using System;
 using Windows.UI;
 
-namespace DreamUnrealManager.Converters
+namespace DreamUnrealManager.Helpers
 {
     public class BoolToColorConverter : IValueConverter
     {

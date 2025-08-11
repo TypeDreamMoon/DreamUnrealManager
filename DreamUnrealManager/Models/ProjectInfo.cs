@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Collections.Generic;
 using System.Linq;
+using DreamUnrealManager.Services;
 
 namespace DreamUnrealManager.Models
 {
@@ -321,6 +322,9 @@ namespace DreamUnrealManager.Models
 
             return pluginsList.Length > 0 ? pluginsList : "无启用插件";
         }
+        
+        [JsonIgnore]
+        public Uri ThumbnailUri { get; set; }
 
         /// <summary>
         /// 检查缩略图是否存在并更新路径
@@ -329,7 +333,6 @@ namespace DreamUnrealManager.Models
         {
             if (!string.IsNullOrEmpty(ProjectDirectory))
             {
-                // 检查多个可能的缩略图路径
                 var possiblePaths = new[]
                 {
                     Path.Combine(ProjectDirectory, "Saved", "AutoScreenshot.png"),
@@ -340,10 +343,37 @@ namespace DreamUnrealManager.Models
                     Path.Combine(ProjectDirectory, "screenshot.png")
                 };
 
-                ThumbnailPath = possiblePaths.FirstOrDefault(File.Exists);
+                var physicalPath = possiblePaths.FirstOrDefault(File.Exists);
+
+                if (!string.IsNullOrEmpty(physicalPath))
+                {
+                    // Uri 会自动变成 file:///C:/... 这样的绝对 URI
+                    ThumbnailUri = new Uri(physicalPath, UriKind.Absolute);
+                }
+                else
+                {
+                    ThumbnailUri = null;
+                }
+
+                // 若你之前还用到了 string 路径，可以继续保留：
+                ThumbnailPath = physicalPath; // 可选：保留老字段但不再用于绑定
             }
-            
+
             CheckGitStatus();
+            OnPropertyChanged(nameof(ThumbnailUri));
+            OnPropertyChanged(nameof(ThumbnailPath)); // 如果你 UI 其他地方还绑定它
+        }
+        
+        public string GetIdeButtonText()
+        {
+            var defaultIde = Settings.Get("Default.IDE", "VS");
+            return defaultIde switch
+            {
+                "VS" => "用 VS 打开",
+                "RD" => "用 Rider 打开",
+                "VSCode" => "用 VS Code 打开",
+                _ => "用 IDE 打开"
+            };
         }
 
         /// <summary>
@@ -364,6 +394,23 @@ namespace DreamUnrealManager.Models
             OnPropertyChanged(nameof(IsValid));
         }
 
+        // 替代实现方式：基于文件系统检查
+        [JsonIgnore]
+        public bool IsCPlusPlusProject
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(ProjectDirectory))
+                    return false;
+
+                // 检查是否存在 Source 文件夹，这是 C++ 项目的典型特征
+                var sourcePath = Path.Combine(ProjectDirectory, "Source");
+                return Directory.Exists(sourcePath);
+            }
+        }
+
+        public string ProjectSolutionPath => Path.Combine(ProjectDirectory, ProjectName + ".sln");
+        
         public event PropertyChangedEventHandler PropertyChanged;
 
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)

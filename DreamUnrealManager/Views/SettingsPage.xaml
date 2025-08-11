@@ -122,6 +122,68 @@
 
                 </controls:SettingsCard>
 
+                <controls:SettingsCard x:Name="DefaultIdeSettingCard"
+                                       Description="默认启动IDE"
+                                       Header="默认启动IDE"
+                                       CornerRadius="8">
+                    <ComboBox x:Name="DefaultIdeComboBox"
+                              Header="默认启动IDE"
+                              PlaceholderText="请选择默认IDE"
+                              MinWidth="400"
+                              SelectionChanged="DefaultIdeComboBox_OnSelectionChanged">
+                        <ComboBoxItem Content="Visual Studio" Tag="VS"></ComboBoxItem>
+                        <ComboBoxItem Content="Rider" Tag="RD"></ComboBoxItem>
+                        <ComboBoxItem Content="Visual Studio Code" Tag="VSCode"></ComboBoxItem>
+                    </ComboBox>
+                </controls:SettingsCard>
+
+                <controls:SettingsCard x:Name="IdePathSettingCard"
+                                       Description="IDE路径设置"
+                                       Header="IDE路径"
+                                       CornerRadius="8">
+                    <StackPanel Orientation="Vertical" Spacing="10">
+                        <TextBlock x:Name="IdePathHeader"
+                                   Text="Visual Studio 路径:"
+                                   Style="{ThemeResource BaseTextBlockStyle}" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox x:Name="IdePathTextBox"
+                                     Grid.Column="0"
+                                     PlaceholderText="例如: C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\devenv.exe"
+                                     TextChanged="IdePathTextBox_TextChanged" />
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,0">
+                                <Button Content="浏览..."
+                                        Click="BrowseIdePath_Click" />
+                                <Button Content="自动检测"
+                                        Margin="10,0,0,0"
+                                        Click="AutoDetectIdeButton_Click" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock x:Name="IdePathDescription"
+                                   Text="根据选择的默认IDE，路径指向对应的可执行文件"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </controls:SettingsCard>
+
+                <controls:SettingsCard x:Name="OpenConfigFolderSettingCard"
+                                       Description="打开配置文件所在目录"
+                                       Header="配置文件目录"
+                                       IsClickEnabled="True"
+                                       CornerRadius="8"
+                                       Click="OpenConfigFolderButton_Click">
+                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                        查看
+                    </TextBlock>
+                </controls:SettingsCard>
 
             </StackPanel>
         </ScrollViewer>
