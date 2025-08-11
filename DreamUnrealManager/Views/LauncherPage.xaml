@@ -7,81 +7,134 @@
     xmlns:models="using:DreamUnrealManager.Models"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:helpers="using:DreamUnrealManager.Helpers"
-    mc:Ignorable="d"
-    x:Name="Root">
+    mc:Ignorable="d">
 
+    <!-- ========== 全局资源 ========== -->
     <Page.Resources>
-        <x:String x:Key="DefaultProjectPlaceholder">../Assets/MdiUnreal.png</x:String>
-        <helpers:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <!-- bool -> Visibility -->
+        <helpers:BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
-        <!-- 网格布局 ItemsPanelTemplate -->
+        <!-- ===== ItemsPanel（3种布局） ===== -->
+        <!-- 网格 -->
         <ItemsPanelTemplate x:Key="GridItemsPanel">
-            <ItemsWrapGrid Orientation="Horizontal" />
+            <ItemsWrapGrid Orientation="Horizontal"
+                           HorizontalAlignment="Stretch"
+                           VerticalAlignment="Top" />
         </ItemsPanelTemplate>
 
-        <!-- 网格布局 DataTemplate -->
+        <!-- 列表 -->
+        <ItemsPanelTemplate x:Key="ListItemsPanel">
+            <StackPanel Orientation="Vertical"
+                        Spacing="8"
+                        Margin="0,4,0,4" />
+        </ItemsPanelTemplate>
+
+        <!-- 紧凑 -->
+        <ItemsPanelTemplate x:Key="CompactItemsPanel">
+            <ItemsWrapGrid Orientation="Horizontal"
+                           HorizontalAlignment="Stretch"
+                           VerticalAlignment="Top" />
+        </ItemsPanelTemplate>
+
+        <!-- ===== DataTemplates（3种卡片） ===== -->
+
+        <!-- 网格卡片（图主导） -->
         <DataTemplate x:Key="GridProjectTemplate" x:DataType="models:ProjectInfo">
-            <Grid Width="300"
-                  Height="300"
-                  Margin="8"
-                  Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                  CornerRadius="12"
-                  BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                  BorderThickness="1"
-                  PointerEntered="ProjectCard_PointerEntered"
-                  PointerExited="ProjectCard_PointerExited">
+            <Border Width="360"
+                    Height="360"
+                    Margin="8"
+                    CornerRadius="12"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    PointerEntered="ProjectCard_PointerEntered"
+                    PointerExited="ProjectCard_PointerExited">
 
-                <Grid.Shadow>
-                    <ThemeShadow />
-                </Grid.Shadow>
+                <Grid>
+                    <!-- 缩略图 -->
+                    <Border CornerRadius="12">
+                        <Image Source="{x:Bind ProjectIconPath}"
+                               Stretch="UniformToFill"
+                               ImageFailed="ProjectImage_ImageFailed" />
+                    </Border>
 
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-
-
-                <!-- 缩略图 -->
-                <Border Grid.Row="0" CornerRadius="12,12,0,0">
-                    <Image Stretch="UniformToFill" Source="{x:Bind ProjectIconPath}" ImageFailed="ProjectImage_ImageFailed" />
-                </Border>
-
-                <!-- 底部信息 -->
-                <StackPanel Padding="8" Spacing="4" Height="100" VerticalAlignment="Bottom">
-                    <StackPanel.Background>
-                        <SolidColorBrush Color="Black" Opacity="0.5"></SolidColorBrush>
-                    </StackPanel.Background>
-                    <TextBlock Text="{x:Bind DisplayName}"
-                               Style="{ThemeResource BodyStrongTextBlockStyle}"
-                               TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{x:Bind GetEngineDisplayName()}"
-                               Style="{ThemeResource CaptionTextBlockStyle}"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                </StackPanel>
-
-
-                <!-- 悬浮操作层：默认隐藏；可见时可点击 -->
-                <Grid x:Name="HoverOverlay"
-                      Grid.RowSpan="2"
-                      Background="#5F000000"
-                      CornerRadius="12"
-                      Visibility="Collapsed"
-                      IsHitTestVisible="False">
-                    <StackPanel HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                Orientation="Horizontal"
-                                Spacing="8">
-                        <Button Content="启动"
-                                Style="{ThemeResource AccentButtonStyle}"
-                                Tag="{x:Bind}"
-                                Click="StartProjectButton_OnClick" />
-                        <Button Content="更多"
-                                Tag="{x:Bind}"
-                                Click="MoreCommandsButton_OnClick" />
+                    <!-- 底部信息条 -->
+                    <StackPanel Orientation="Vertical"
+                                Spacing="2"
+                                Padding="10"
+                                VerticalAlignment="Bottom">
+                        <StackPanel.Background>
+                            <SolidColorBrush Color="Black" Opacity="0.45" />
+                        </StackPanel.Background>
+                        <TextBlock Text="{x:Bind DisplayName}"
+                                   Style="{ThemeResource BodyStrongTextBlockStyle}"
+                                   Foreground="White"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{x:Bind EngineDisplayName}"
+                                   Style="{ThemeResource CaptionTextBlockStyle}"
+                                   Foreground="#CCFFFFFF"
+                                   TextTrimming="CharacterEllipsis" />
                     </StackPanel>
+
+                    <!-- 悬浮操作层 -->
+                    <Grid x:Name="HoverOverlay"
+                          Background="#5F000000"
+                          CornerRadius="12"
+                          Visibility="Collapsed"
+                          IsHitTestVisible="True">
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="8"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                            <Button Content="启动"
+                                    Tag="{x:Bind}"
+                                    Click="StartProjectButton_OnClick" />
+                            <Button Content="更多"
+                                    Tag="{x:Bind}">
+                                <Button.Flyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="启动" Tag="{x:Bind}" Click="ContextMenu_LaunchProject_Click" />
+                                        <MenuFlyoutItem Text="用 IDE 打开" Tag="{x:Bind}" Click="ContextMenu_OpenWithIDE_Click" />
+                                        <MenuFlyoutItem Text="打开项目文件夹" Tag="{x:Bind}" Click="ContextMenu_OpenFolder_Click" />
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem Text="生成 VS 项目文件" Tag="{x:Bind}" Click="ContextMenu_GenerateVSProject_Click" />
+                                        <MenuFlyoutItem Text="刷新项目" Tag="{x:Bind}" Click="ContextMenu_RefreshProject_Click" />
+                                        <MenuFlyoutItem Text="切换引擎版本" Tag="{x:Bind}" Click="ContextMenu_SwitchEngine_Click" />
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem Text="从列表中移除" Tag="{x:Bind}" Click="ContextMenu_RemoveProject_Click" />
+                                    </MenuFlyout>
+                                </Button.Flyout>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- 元数据加载遮罩 -->
+                    <Grid Background="#3F000000"
+                          CornerRadius="12"
+                          Visibility="{x:Bind IsLoadingMeta, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                        <ProgressRing IsActive="True"
+                                      Width="28" Height="28"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                    </Grid>
+
+                    <Button Tag="{x:Bind}"
+                            Click="ToggleFavorite_Click"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Margin="6"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="6">
+                        <FontIcon Glyph="{x:Bind FavoriteGlyph, Mode=OneWay}"
+                                  FontSize="14" />
+                    </Button>
                 </Grid>
 
-                <!-- 右键菜单直接挂在根元素上 -->
-                <Grid.ContextFlyout>
+                <!-- 右键菜单（挂在 Border 上） -->
+                <Border.ContextFlyout>
                     <MenuFlyout>
                         <MenuFlyoutItem Text="启动" Tag="{x:Bind}" Click="ContextMenu_LaunchProject_Click" />
                         <MenuFlyoutItem Text="用 IDE 打开" Tag="{x:Bind}" Click="ContextMenu_OpenWithIDE_Click" />
@@ -93,64 +146,36 @@
                         <MenuFlyoutSeparator />
                         <MenuFlyoutItem Text="从列表中移除" Tag="{x:Bind}" Click="ContextMenu_RemoveProject_Click" />
                     </MenuFlyout>
-                </Grid.ContextFlyout>
-
-            </Grid>
+                </Border.ContextFlyout>
+            </Border>
         </DataTemplate>
 
-        <!-- 列表布局 -->
-        <ItemsPanelTemplate x:Key="ListItemsPanel">
-            <StackPanel Orientation="Vertical"
-                        Margin="0,4,0,4"
-                        Spacing="8" />
-        </ItemsPanelTemplate>
 
-        <DataTemplate x:DataType="models:ProjectInfo" x:Key="ListProjectTemplate">
-            <Border
-                Margin="0,8"
-                CornerRadius="10"
-                MinHeight="140"
-                Padding="0"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1">
-
-                <Border.Resources>
-                    <MenuFlyout x:Key="ProjectContextMenu">
-                        <MenuFlyoutItem Text="启动项目" Tag="{x:Bind}" Click="ContextMenu_LaunchProject_Click" />
-                        <MenuFlyoutItem Text="{x:Bind GetIdeButtonText()}" Tag="{x:Bind}" Click="ContextMenu_OpenWithIDE_Click" />
-                        <MenuFlyoutSeparator />
-                        <MenuFlyoutItem Text="打开项目文件夹" Tag="{x:Bind}" Click="ContextMenu_OpenFolder_Click" />
-                        <MenuFlyoutItem Text="生成 Visual Studio 项目文件" Tag="{x:Bind}" Click="ContextMenu_GenerateVSProject_Click" />
-                        <MenuFlyoutItem Text="刷新项目" Tag="{x:Bind}" Click="ContextMenu_RefreshProject_Click" />
-                        <MenuFlyoutItem Text="切换引擎版本" Tag="{x:Bind}" Click="ContextMenu_SwitchEngine_Click" />
-                        <MenuFlyoutSeparator />
-                        <MenuFlyoutItem Text="从列表中移除" Tag="{x:Bind}" Click="ContextMenu_RemoveProject_Click" />
-                    </MenuFlyout>
-                </Border.Resources>
-
-                <Border.ContextFlyout>
-                    <StaticResource ResourceKey="ProjectContextMenu" />
-                </Border.ContextFlyout>
+        <!-- 列表卡片（信息丰富） -->
+        <DataTemplate x:Key="ListProjectTemplate" x:DataType="models:ProjectInfo">
+            <Border Margin="0,8"
+                    CornerRadius="10"
+                    MinHeight="140"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1">
 
                 <Grid>
-                    <Grid.Shadow>
-                        <ThemeShadow />
-                    </Grid.Shadow>
-
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
+                    <!-- 左：缩略图 -->
                     <Border Grid.Column="0"
-                            Width="150"
-                            Height="150"
+                            Width="120" Height="120"
                             Margin="12"
                             CornerRadius="8"
                             Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
-                        <Image Source="{x:Bind ProjectIconPath}" Stretch="UniformToFill" ImageFailed="ProjectImage_ImageFailed" />
+                        <Image Source="{x:Bind ProjectIconPath}"
+                               Stretch="UniformToFill"
+                               ImageFailed="ProjectImage_ImageFailed" />
                     </Border>
 
                     <!-- 中：文本信息 -->
@@ -159,7 +184,7 @@
                                 Margin="8,12,12,12"
                                 VerticalAlignment="Center">
 
-                        <!-- 标题行：名称 + Git 开关标签（若启用） -->
+                        <!-- 标题行：名称 + Git 标签 -->
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="{x:Bind DisplayName}"
                                        Style="{ThemeResource BodyStrongTextBlockStyle}"
@@ -169,7 +194,7 @@
                                     Padding="6,2"
                                     CornerRadius="6"
                                     VerticalAlignment="Center"
-                                    Visibility="{x:Bind IsGitEnabled, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    Visibility="{x:Bind IsGitEnabled, Converter={StaticResource BoolToVisibility}}">
                                 <TextBlock Text="Git"
                                            Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
                                            Style="{ThemeResource CaptionTextBlockStyle}" />
@@ -177,47 +202,42 @@
                         </StackPanel>
 
                         <!-- 描述 -->
-                        <TextBlock Text="{x:Bind GetDescription()}"
+                        <TextBlock Text="{x:Bind DescriptionDisplay}"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                   TextWrapping="NoWrap"
                                    TextTrimming="CharacterEllipsis" />
 
-                        <!-- 元信息行：引擎 / 修改时间 / 大小 / 模块 / 插件 -->
-                        <StackPanel Orientation="Horizontal" Spacing="10">
+                        <!-- 元信息行 -->
+                        <StackPanel Orientation="Horizontal" Spacing="12">
                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                <FontIcon Glyph="&#xE7F8;" /><!-- Cube -->
-                                <TextBlock Text="{x:Bind GetEngineDisplayName()}"
+                                <FontIcon Glyph="&#xE7F8;" />
+                                <TextBlock Text="{x:Bind EngineDisplayName}"
                                            Style="{ThemeResource CaptionTextBlockStyle}"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
-
                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                <FontIcon Glyph="&#xE823;" /><!-- Clock -->
-                                <TextBlock Text="{x:Bind GetLastModifiedString()}"
+                                <FontIcon Glyph="&#xE823;" />
+                                <TextBlock Text="{x:Bind LastModifiedString}"
                                            Style="{ThemeResource CaptionTextBlockStyle}"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
-
                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                <FontIcon Glyph="&#xE81E;" /><!-- Database -->
+                                <FontIcon Glyph="&#xE81E;" />
                                 <TextBlock Text="{x:Bind ProjectSizeString}"
                                            Style="{ThemeResource CaptionTextBlockStyle}"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
-
                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                <FontIcon Glyph="&#xE8FA;" /><!-- Puzzle -->
-                                <TextBlock Text="{x:Bind GetModulesCount()}"
+                                <FontIcon Glyph="&#xE8FA;" />
+                                <TextBlock Text="{x:Bind ModulesCount}"
                                            Style="{ThemeResource CaptionTextBlockStyle}"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <TextBlock Text=" 模块"
                                            Style="{ThemeResource CaptionTextBlockStyle}"
                                            Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                             </StackPanel>
-
                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                <FontIcon Glyph="&#xE90F;" /><!-- Plug -->
-                                <TextBlock Text="{x:Bind GetEnabledPluginsCount()}"
+                                <FontIcon Glyph="&#xE90F;" />
+                                <TextBlock Text="{x:Bind EnabledPluginsCount}"
                                            Style="{ThemeResource CaptionTextBlockStyle}"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <TextBlock Text=" 插件"
@@ -226,160 +246,218 @@
                             </StackPanel>
                         </StackPanel>
 
-                        <!-- Git 信息（次要） -->
-                        <TextBlock Text="{x:Bind GetGitInfoString()}"
+                        <!-- Git 信息 -->
+                        <TextBlock Text="{x:Bind GitInfoString}"
                                    Style="{ThemeResource CaptionTextBlockStyle}"
                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                     </StackPanel>
 
-                    <!-- 右：操作（带图标） -->
+                    <!-- 右：操作 -->
                     <StackPanel Grid.Column="2"
                                 Orientation="Horizontal"
                                 Spacing="8"
                                 VerticalAlignment="Center"
                                 Margin="8,12,12,12">
-
+                        <Button Tag="{x:Bind}"
+                                Click="ToggleFavorite_Click"
+                                Padding="4"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                ToolTipService.ToolTip="{x:Bind IsFavorite, Mode=OneWay}">
+                            <FontIcon Glyph="{x:Bind FavoriteGlyph, Mode=OneWay}" />
+                        </Button>
                         <Button MinWidth="110"
                                 Tag="{x:Bind}"
-                                Click="StartProjectButton_OnClick"
-                                ToolTipService.ToolTip="启动项目">
+                                Click="StartProjectButton_OnClick">
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon Glyph="&#xE768;" /><!-- Play -->
+                                <FontIcon Glyph="&#xE768;" />
                                 <TextBlock Text="启动项目" />
                             </StackPanel>
                         </Button>
 
                         <Button MinWidth="110"
                                 Tag="{x:Bind}"
-                                Click="StartWithIdeButton_OnClick"
-                                ToolTipService.ToolTip="{x:Bind GetIdeButtonText()}">
+                                Click="StartWithIdeButton_OnClick">
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon Glyph="&#xEC7A;" /><!-- Code -->
+                                <FontIcon Glyph="&#xEC7A;" />
                                 <TextBlock Text="{x:Bind GetIdeButtonText()}" />
                             </StackPanel>
                         </Button>
 
-                        <Button MinWidth="110"
-                                Tag="{x:Bind}"
-                                Click="MoreCommandsButton_OnClick"
-                                ToolTipService.ToolTip="更多操作">
+                        <Button MinWidth="110" Tag="{x:Bind}" ToolTipService.ToolTip="更多操作">
+                            <Button.Flyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="启动" Tag="{x:Bind}" Click="ContextMenu_LaunchProject_Click" />
+                                    <MenuFlyoutItem Text="{x:Bind GetIdeButtonText()}" Tag="{x:Bind}" Click="ContextMenu_OpenWithIDE_Click" />
+                                    <MenuFlyoutItem Text="打开项目文件夹" Tag="{x:Bind}" Click="ContextMenu_OpenFolder_Click" />
+                                    <MenuFlyoutItem Text="查看详情"
+                                                    Tag="{x:Bind}"
+                                                    Click="ContextMenu_ShowDetails_Click" />
+                                    <MenuFlyoutItem Text="收藏/取消收藏"
+                                                    Tag="{x:Bind}"
+                                                    Click="ContextMenu_ToggleFavorite_Click" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem Text="生成 VS 项目文件" Tag="{x:Bind}" Click="ContextMenu_GenerateVSProject_Click" />
+                                    <MenuFlyoutItem Text="刷新项目" Tag="{x:Bind}" Click="ContextMenu_RefreshProject_Click" />
+                                    <MenuFlyoutItem Text="切换引擎版本" Tag="{x:Bind}" Click="ContextMenu_SwitchEngine_Click" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem Text="从列表中移除" Tag="{x:Bind}" Click="ContextMenu_RemoveProject_Click" />
+
+                                </MenuFlyout>
+                            </Button.Flyout>
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon Glyph="&#xE712;" /><!-- More -->
+                                <FontIcon Glyph="&#xE712;" />
                                 <TextBlock Text="其他操作" />
                             </StackPanel>
                         </Button>
                     </StackPanel>
+
+                    <!-- 加载遮罩（元数据阶段） -->
+                    <Grid Grid.ColumnSpan="3"
+                          Background="#3F000000"
+                          Visibility="{x:Bind IsLoadingMeta, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
+                          CornerRadius="10">
+                        <ProgressRing IsActive="True"
+                                      Width="28" Height="28"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                    </Grid>
+
+                    <!-- 右键菜单（挂在根） -->
+                    <Grid.ContextFlyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Text="启动" Tag="{x:Bind}" Click="ContextMenu_LaunchProject_Click" />
+                            <MenuFlyoutItem Text="{x:Bind GetIdeButtonText()}" Tag="{x:Bind}" Click="ContextMenu_OpenWithIDE_Click" />
+                            <MenuFlyoutItem Text="打开项目文件夹" Tag="{x:Bind}" Click="ContextMenu_OpenFolder_Click" />
+                            <MenuFlyoutItem Text="查看详情"
+                                            Tag="{x:Bind}"
+                                            Click="ContextMenu_ShowDetails_Click" />
+                            <MenuFlyoutItem Text="收藏/取消收藏"
+                                            Tag="{x:Bind}"
+                                            Click="ContextMenu_ToggleFavorite_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="生成 VS 项目文件" Tag="{x:Bind}" Click="ContextMenu_GenerateVSProject_Click" />
+                            <MenuFlyoutItem Text="刷新项目" Tag="{x:Bind}" Click="ContextMenu_RefreshProject_Click" />
+                            <MenuFlyoutItem Text="切换引擎版本" Tag="{x:Bind}" Click="ContextMenu_SwitchEngine_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="从列表中移除" Tag="{x:Bind}" Click="ContextMenu_RemoveProject_Click" />
+                        </MenuFlyout>
+                    </Grid.ContextFlyout>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- 紧凑卡片（高密度） -->
+        <DataTemplate x:Key="CompactProjectTemplate" x:DataType="models:ProjectInfo">
+            <Border Height="88"
+                    Margin="6"
+                    CornerRadius="10"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 缩略图 -->
+                    <Border Width="88" Height="88" CornerRadius="10,0,0,10">
+                        <Image Source="{x:Bind ProjectIconPath}"
+                               Stretch="UniformToFill"
+                               ImageFailed="ProjectImage_ImageFailed" />
+                    </Border>
+
+                    <!-- 文本区 -->
+                    <StackPanel Grid.Column="1" Padding="10,8,8,8" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Bind DisplayName}"
+                                   Style="{ThemeResource BodyStrongTextBlockStyle}"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{x:Bind DetailedInfo}"
+                                   Style="{ThemeResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+
+                    <!-- 操作（图标按钮） -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" Padding="6" VerticalAlignment="Center">
+                        <Button ToolTipService.ToolTip="收藏/取消收藏"
+                                Tag="{x:Bind}"
+                                Click="ToggleFavorite_Click">
+                            <FontIcon Glyph="{x:Bind FavoriteGlyph, Mode=OneWay}" />
+                        </Button>
+                        <Button ToolTipService.ToolTip="启动" Tag="{x:Bind}" Click="StartProjectButton_OnClick">
+                            <FontIcon Glyph="&#xE768;" />
+                        </Button>
+                        <Button ToolTipService.ToolTip="更多" Tag="{x:Bind}">
+                            <Button.Flyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="启动" Tag="{x:Bind}" Click="ContextMenu_LaunchProject_Click" />
+                                    <MenuFlyoutItem Text="用 IDE 打开" Tag="{x:Bind}" Click="ContextMenu_OpenWithIDE_Click" />
+                                    <MenuFlyoutItem Text="打开项目文件夹" Tag="{x:Bind}" Click="ContextMenu_OpenFolder_Click" />
+                                    <MenuFlyoutItem Text="查看详情"
+                                                    Tag="{x:Bind}"
+                                                    Click="ContextMenu_ShowDetails_Click" />
+                                    <MenuFlyoutItem Text="收藏/取消收藏"
+                                                    Tag="{x:Bind}"
+                                                    Click="ContextMenu_ToggleFavorite_Click" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem Text="生成 VS 项目文件" Tag="{x:Bind}" Click="ContextMenu_GenerateVSProject_Click" />
+                                    <MenuFlyoutItem Text="刷新项目" Tag="{x:Bind}" Click="ContextMenu_RefreshProject_Click" />
+                                    <MenuFlyoutItem Text="切换引擎版本" Tag="{x:Bind}" Click="ContextMenu_SwitchEngine_Click" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem Text="从列表中移除" Tag="{x:Bind}" Click="ContextMenu_RemoveProject_Click" />
+                                </MenuFlyout>
+                            </Button.Flyout>
+                            <FontIcon Glyph="&#xE712;" />
+                        </Button>
+                    </StackPanel>
+
+                    <!-- 加载遮罩 -->
+                    <Grid Grid.ColumnSpan="3"
+                          Background="#3F000000"
+                          Visibility="{x:Bind IsLoadingMeta, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
+                          CornerRadius="10">
+                        <ProgressRing IsActive="True"
+                                      Width="24" Height="24"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                    </Grid>
                 </Grid>
             </Border>
         </DataTemplate>
 
 
-        <!-- 紧凑布局 ItemsPanel：横向排布，自动换行 -->
-        <ItemsPanelTemplate x:Key="CompactItemsPanel">
-            <ItemsWrapGrid Orientation="Horizontal"
-                           MaximumRowsOrColumns="0"
-                           HorizontalAlignment="Stretch"
-                           VerticalAlignment="Top" />
-        </ItemsPanelTemplate>
-
-        <!-- 紧凑布局 DataTemplate -->
-        <DataTemplate x:Key="CompactProjectTemplate" x:DataType="models:ProjectInfo">
-            <Grid MinWidth="260"
-                  MaxWidth="520"
-                  Height="88"
-                  Margin="6"
-                  Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                  CornerRadius="10"
-                  BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                  BorderThickness="1">
-
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <!-- 缩略图（小图） -->
-                <Border Width="96" Height="88" CornerRadius="10,0,0,10">
-                    <Image Stretch="UniformToFill" Source="{x:Bind ProjectIconPath}" ImageFailed="ProjectImage_ImageFailed" />
-                </Border>
-
-                <!-- 文本区：名称 + 一行信息 -->
-                <StackPanel Grid.Column="1" Padding="10,8,8,8" Spacing="2" VerticalAlignment="Center">
-                    <TextBlock Text="{x:Bind DisplayName}"
-                               Style="{ThemeResource BodyStrongTextBlockStyle}"
-                               TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{x:Bind GetDetailedInfo()}"
-                               Style="{ThemeResource CaptionTextBlockStyle}"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               TextTrimming="CharacterEllipsis" />
-                </StackPanel>
-
-                <!-- 右侧操作（紧凑为图标按钮） -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" Padding="6" VerticalAlignment="Center">
-                    <Button ToolTipService.ToolTip="启动"
-                            Tag="{x:Bind}"
-                            Click="StartProjectButton_OnClick">
-                        <FontIcon Glyph="&#xE768;" /> <!-- Play -->
-                    </Button>
-                    <Button ToolTipService.ToolTip="更多操作"
-                            Tag="{x:Bind}"
-                            Click="MoreCommandsButton_OnClick">
-                        <FontIcon Glyph="&#xE712;" /> <!-- More -->
-                    </Button>
-                </StackPanel>
-
-                <!-- 右键菜单直接挂在根元素 -->
-                <Grid.ContextFlyout>
-                    <MenuFlyout>
-                        <MenuFlyoutItem Text="启动" Tag="{x:Bind}" Click="ContextMenu_LaunchProject_Click" />
-                        <MenuFlyoutItem Text="用 IDE 打开" Tag="{x:Bind}" Click="ContextMenu_OpenWithIDE_Click" />
-                        <MenuFlyoutItem Text="打开项目文件夹" Tag="{x:Bind}" Click="ContextMenu_OpenFolder_Click" />
-                        <MenuFlyoutSeparator />
-                        <MenuFlyoutItem Text="生成 VS 项目文件" Tag="{x:Bind}" Click="ContextMenu_GenerateVSProject_Click" />
-                        <MenuFlyoutItem Text="刷新项目" Tag="{x:Bind}" Click="ContextMenu_RefreshProject_Click" />
-                        <MenuFlyoutItem Text="切换引擎版本" Tag="{x:Bind}" Click="ContextMenu_SwitchEngine_Click" />
-                        <MenuFlyoutSeparator />
-                        <MenuFlyoutItem Text="从列表中移除" Tag="{x:Bind}" Click="ContextMenu_RemoveProject_Click" />
-                    </MenuFlyout>
-                </Grid.ContextFlyout>
-
-            </Grid>
-        </DataTemplate>
-
+        <!-- ListViewItem 容器样式 -->
         <Style x:Key="ProjectItemContainerStyle" TargetType="ListViewItem">
             <Setter Property="Margin" Value="4" />
-            <Setter Property="IsHoldingEnabled" Value="False" />
-            <Setter Property="IsRightTapEnabled" Value="True" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="VerticalContentAlignment" Value="Stretch" />
             <Setter Property="Background" Value="Transparent" />
         </Style>
-
     </Page.Resources>
 
+    <!-- ========== 页面布局 ========== -->
     <Grid x:Name="ContentArea">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />     <!-- 页面标题 -->
-            <RowDefinition Height="Auto" />     <!-- 工具栏 -->
-            <RowDefinition Height="Auto" />     <!-- 筛选工具栏 -->
-            <RowDefinition Height="*" />        <!-- 项目列表区域 -->
-            <RowDefinition Height="Auto" />     <!-- 状态栏 -->
+            <RowDefinition Height="Auto" />   <!-- 标题 -->
+            <RowDefinition Height="Auto" />   <!-- 工具栏 -->
+            <RowDefinition Height="Auto" />   <!-- 筛选栏 -->
+            <RowDefinition Height="*" />      <!-- 列表 -->
+            <RowDefinition Height="Auto" />   <!-- 状态栏 -->
         </Grid.RowDefinitions>
 
-        <!-- 页面标题 -->
+        <!-- 标题 -->
         <StackPanel Grid.Row="0" Margin="20,20,20,10">
-            <TextBlock Text="项目启动器"
-                       FontSize="28"
-                       FontWeight="SemiBold" />
+            <TextBlock Text="项目启动器" FontSize="28" FontWeight="SemiBold" />
             <TextBlock Text="选择并启动你的 Unreal Engine 项目"
                        FontSize="14"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                        Margin="0,5,0,0" />
         </StackPanel>
 
-
-        <!-- 工具栏：搜索 / 筛选 / 排序 / 清除 / 布局切换 -->
+        <!-- 工具栏 -->
         <Border Grid.Row="1"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
@@ -391,55 +469,47 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <!-- 左侧：搜索 -->
+                <!-- 搜索 -->
                 <AutoSuggestBox x:Name="ProjectSearchBox"
                                 PlaceholderText="搜索项目..."
-                                Width="300"
+                                Width="320"
                                 HorizontalAlignment="Left"
                                 QueryIcon="Find"
                                 TextChanged="ProjectSearchBox_TextChanged" />
 
-                <!-- 右侧: 排序 + 清除 + 布局切换 -->
+                <!-- 右侧按钮 + 布局切换 -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
-
                     <controls:Segmented x:Name="LayoutSegmented"
-                                        SelectionChanged="LayoutSegmented_SelectionChanged"
-                                        Margin="0,0,0,0">
+                                        SelectionChanged="LayoutSegmented_SelectionChanged">
                         <controls:SegmentedItem>
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon Glyph="&#xE80A;" />      <!-- 网格 -->
+                                <FontIcon Glyph="&#xE80A;" />
                                 <TextBlock Text="网格" />
                             </StackPanel>
                         </controls:SegmentedItem>
                         <controls:SegmentedItem>
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon Glyph="&#xE8FD;" />      <!-- 列表 -->
+                                <FontIcon Glyph="&#xE8FD;" />
                                 <TextBlock Text="列表" />
                             </StackPanel>
                         </controls:SegmentedItem>
                         <controls:SegmentedItem>
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon Glyph="&#xE8FD;" />      <!-- 列表 -->
+                                <FontIcon Glyph="&#xE8FD;" />
                                 <TextBlock Text="紧凑" />
                             </StackPanel>
                         </controls:SegmentedItem>
                     </controls:Segmented>
 
-                    <Button Content="添加项目"
-                            Click="AddProject_Click"
-                            Style="{ThemeResource AccentButtonStyle}" />
-                    <Button Content="自动搜索"
-                            Click="AutoSearchProjects_Click"
-                            Style="{ThemeResource AccentButtonStyle}" />
-                    <Button Content="刷新列表"
-                            Click="RefreshProjects_Click" />
-                    <Button Content="打开项目文件夹"
-                            Click="OpenProjectFolder_Click" />
+                    <Button Content="添加项目" Click="AddProject_Click" />
+                    <Button Content="自动搜索" Click="AutoSearchProjects_Click" />
+                    <Button Content="刷新列表" Click="RefreshProjects_Click" />
+                    <Button Content="打开项目文件夹" Click="OpenProjectFolder_Click" />
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- 筛选工具栏 -->
+        <!-- 筛选栏 -->
         <Border Grid.Row="2"
                 Background="{ThemeResource LayerFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
@@ -451,17 +521,14 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <!-- 筛选标签 -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <FontIcon Glyph="&#xE71C;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <TextBlock Text="筛选:"
-                               FontWeight="SemiBold"
-                               VerticalAlignment="Center" />
+                    <TextBlock Text="筛选:" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </StackPanel>
 
-                <!-- 引擎版本筛选 -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="15" Margin="15,0,0,0">
                     <ComboBox x:Name="EngineFilterComboBox"
                               PlaceholderText="选择引擎版本"
@@ -473,7 +540,7 @@
                     </ComboBox>
 
                     <ComboBox x:Name="SortOrderComboBox"
-                              MinWidth="120"
+                              MinWidth="140"
                               SelectionChanged="SortOrderComboBox_SelectionChanged">
                         <ComboBox.Header>
                             <TextBlock Text="排序方式" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -486,8 +553,13 @@
                     </ComboBox>
                 </StackPanel>
 
-                <!-- 筛选统计和清除按钮 -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <ToggleButton Grid.Column="2" x:Name="FavoriteOnlyToggle"
+                              Content="只看收藏"
+                              Checked="FavoriteOnlyToggle_Checked"
+                              Unchecked="FavoriteOnlyToggle_Checked"
+                              VerticalAlignment="Center" />
+
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <TextBlock x:Name="FilterStatsText"
                                Text="显示 0 个项目"
                                FontSize="12"
@@ -495,30 +567,24 @@
                                VerticalAlignment="Center" />
                 </StackPanel>
 
-                <Button Grid.Column="3"
+                <Button Grid.Column="4"
                         Content="清除筛选"
                         Click="ClearFilters_Click"
-                        Style="{ThemeResource DefaultButtonStyle }"
                         Margin="10,0,0,0" />
             </Grid>
         </Border>
 
-        <!-- 内容区：Empty State + 列表 -->
+        <!-- 内容区 -->
         <Grid Grid.Row="3" Margin="15,0,15,10">
             <!-- 空状态 -->
             <StackPanel x:Name="EmptyStatePanel"
-                        Grid.Row="0"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Spacing="20"
                         Visibility="Collapsed">
-                <!-- 空状态插图 -->
-                <FontIcon Glyph="&#xE7C3;"
-                          FontSize="80"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Center"
-                          Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-
+                <FontIcon Glyph="&#xE7C3;" FontSize="80"
+                          Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                          HorizontalAlignment="Center" />
                 <StackPanel Spacing="8" HorizontalAlignment="Center">
                     <TextBlock x:Name="EmptyStateTitle"
                                Text="暂无项目"
@@ -531,17 +597,11 @@
                                FontSize="14"
                                HorizontalAlignment="Center"
                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                               TextWrapping="Wrap"
                                TextAlignment="Center"
-                               MaxWidth="400" />
+                               MaxWidth="400"
+                               TextWrapping="Wrap" />
                 </StackPanel>
-
-                <Button Style="{ThemeResource AccentButtonStyle}"
-                        MinWidth="120"
-                        FontSize="16"
-                        Padding="20,12"
-                        HorizontalAlignment="Center"
-                        Click="AddProject_Click">
+                <Button MinWidth="120" FontSize="16" Padding="20,12" Click="AddProject_Click">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE710;" FontSize="16" />
                         <TextBlock Text="添加项目" />
@@ -556,8 +616,7 @@
                       IsItemClickEnabled="False"
                       SelectionMode="None"
                       ItemsPanel="{StaticResource GridItemsPanel}"
-                      ItemTemplate="{StaticResource GridProjectTemplate}">
-            </ListView>
+                      ItemTemplate="{StaticResource GridProjectTemplate}" />
         </Grid>
 
         <!-- 底部状态条 -->
@@ -574,6 +633,18 @@
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
         </Border>
 
+        <Grid x:Name="GlobalOverlay"
+              Background="#80000000"
+              Visibility="Collapsed">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                <ProgressRing IsActive="True" Width="40" Height="40" />
+                <TextBlock x:Name="GlobalOverlayText"
+                           Text="正在加载项目信息..."
+                           Foreground="White"
+                           FontSize="16"
+                           TextAlignment="Center" />
+            </StackPanel>
+        </Grid>
 
     </Grid>
 </Page>

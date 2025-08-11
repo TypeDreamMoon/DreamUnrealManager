@@ -1,46 +1,13 @@
-﻿using System;
-using System.ComponentModel;
-using System.IO;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Collections.Generic;
-using System.Linq;
 using DreamUnrealManager.Services;
 
 namespace DreamUnrealManager.Models
 {
     public class ProjectInfo : INotifyPropertyChanged
     {
-        private bool _isGitEnabled;
-        private long _gitFolderSize;
-
-        [JsonIgnore]
-        public bool IsGitEnabled
-        {
-            get => _isGitEnabled;
-            set
-            {
-                _isGitEnabled = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(GitInfoString));
-            }
-        }
-
-        [JsonIgnore]
-        public long GitFolderSize
-        {
-            get => _gitFolderSize;
-            set
-            {
-                _gitFolderSize = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(GitInfoString));
-            }
-        }
-
-        [JsonIgnore] public string GitInfoString => GetGitInfoString();
-
+        // ╭─ 基础数据（可序列化） ─────────────────────────────────────────────╮
         [JsonPropertyName("FileVersion")]
         public int FileVersion
         {
@@ -81,14 +48,14 @@ namespace DreamUnrealManager.Models
         {
             get;
             set;
-        } = new List<ProjectModule>();
+        } = new();
 
         [JsonPropertyName("Plugins")]
         public List<ProjectPlugin> Plugins
         {
             get;
             set;
-        } = new List<ProjectPlugin>();
+        } = new();
 
         [JsonPropertyName("TargetPlatforms")]
         public string[] TargetPlatforms
@@ -97,34 +64,54 @@ namespace DreamUnrealManager.Models
             set;
         }
 
-        // 项目路径信息
+        [JsonPropertyName("IsFavorite")]
+        public bool IsFavorite
+        {
+            get => _isFavorite;
+            set
+            {
+                if (_isFavorite != value)
+                {
+                    _isFavorite = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(FavoriteGlyph));
+                }
+            }
+        }
+
+        private bool _isFavorite;
+
+        // 路径信息
         public string ProjectPath
         {
             get;
             set;
         }
 
-        public string ProjectIconPath =>
-            Path.Combine(ProjectDirectory, "Saved", "AutoScreenshot.png");
-
-
-        public string ProjectName => Path.GetFileNameWithoutExtension(ProjectPath);
-
-        // 修改为可读写属性
-        private string _displayName;
-
-        public string DisplayName
-        {
-            get => !string.IsNullOrEmpty(_displayName) ? _displayName : (!string.IsNullOrEmpty(FriendlyName) ? FriendlyName : ProjectName);
-            set => _displayName = value;
-        }
-
-        private string _projectDirectory;
-
         public string ProjectDirectory
         {
             get => !string.IsNullOrEmpty(_projectDirectory) ? _projectDirectory : Path.GetDirectoryName(ProjectPath);
             set => _projectDirectory = value;
+        }
+
+        private string _projectDirectory;
+
+        public string ProjectName => Path.GetFileNameWithoutExtension(ProjectPath);
+
+        // 可编辑显示名（优先级：显式设置 > FriendlyName > 文件名）
+        private string _displayName;
+
+        public string DisplayName
+        {
+            get => !string.IsNullOrEmpty(_displayName)
+                ? _displayName
+                : (!string.IsNullOrEmpty(FriendlyName) ? FriendlyName : ProjectName);
+            set
+            {
+                _displayName = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(DisplayName));
+            }
         }
 
         public DateTime LastModified
@@ -133,24 +120,13 @@ namespace DreamUnrealManager.Models
             set;
         }
 
-        public string GetLastModifiedString()
-        {
-            return LastModified.ToString("yyyy年MM月dd日 HH:mm:ss");
-        }
-
-        // 添加 LastUsed 属性
         public DateTime? LastUsed
         {
             get;
             set;
         }
 
-        public string ThumbnailPath
-        {
-            get;
-            set;
-        }
-
+        // 项目体积（字节）
         private long _projectSize;
 
         public long ProjectSize
@@ -170,7 +146,10 @@ namespace DreamUnrealManager.Models
             set;
         } = true;
 
-        // 引擎信息
+        // ╭─ 运行期/UI 专用（不序列化） ───────────────────────────────────────╮
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        // 引擎对象（运行期注入）
         [JsonIgnore]
         public UnrealEngineInfo AssociatedEngine
         {
@@ -178,32 +157,116 @@ namespace DreamUnrealManager.Models
             set;
         }
 
-        // 添加项目大小字符串属性
-        public string ProjectSizeString => GetProjectSizeString();
+        // UI 状态：阶段 A（元数据）、阶段 B（体积）
+        [JsonIgnore]
+        public bool IsLoadingMeta
+        {
+            get => _isLoadingMeta;
+            set
+            {
+                _isLoadingMeta = value;
+                OnPropertyChanged();
+            }
+        }
 
-        // 公共方法用于绑定
+        private bool _isLoadingMeta;
+
+        [JsonIgnore]
+        public bool IsSizing
+        {
+            get => _isSizing;
+            set
+            {
+                _isSizing = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private bool _isSizing;
+
+        // Git 状态
+        [JsonIgnore]
+        public bool IsGitEnabled
+        {
+            get => _isGitEnabled;
+            set
+            {
+                _isGitEnabled = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(GitInfoString));
+            }
+        }
+
+        private bool _isGitEnabled;
+
+        [JsonIgnore]
+        public long GitFolderSize
+        {
+            get => _gitFolderSize;
+            set
+            {
+                _gitFolderSize = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(GitInfoString));
+            }
+        }
+
+        private long _gitFolderSize;
+
+        // 缩略图：Unpackaged 友好（file:///...）
+        [JsonIgnore]
+        public Uri ThumbnailUri
+        {
+            get;
+            private set;
+        }
+
+        [JsonIgnore]
+        public string ThumbnailPath
+        {
+            get;
+            private set;
+        } // 可选，保留兼容
+
+        // 旧接口：仍可用（默认取 Saved/AutoScreenshot.png）
+        [JsonIgnore] public string ProjectIconPath => Path.Combine(ProjectDirectory, "Saved", "AutoScreenshot.png");
+
+        // ╭─ 显示用派生属性（只读，配合 NotifyDerived 一次性刷新） ───────────╮
+        [JsonIgnore] public string EngineDisplayName => GetEngineDisplayName();
+        [JsonIgnore] public string DescriptionDisplay => GetDescription();
+        [JsonIgnore] public string LastModifiedString => LastModified.ToString("yyyy年MM月dd日 HH:mm:ss");
+        [JsonIgnore] public string ProjectSizeString => GetProjectSizeString();
+        [JsonIgnore] public string DetailedInfo => GetDetailedInfo();
+        [JsonIgnore] public int ModulesCount => Modules?.Count ?? 0;
+        [JsonIgnore] public int EnabledPluginsCount => Plugins?.Count(p => p.Enabled) ?? 0;
+        [JsonIgnore] public string GitInfoString => GetGitInfoString();
+        [JsonIgnore] public bool IsLoading => IsLoadingMeta || IsSizing;
+
+        [JsonIgnore] public string FavoriteGlyph => IsFavorite ? "\uE735" /* FavoriteStarFill */ : "\uE734" /* FavoriteStar */;
+
+        public void ToggleFavorite()
+        {
+            IsFavorite = !IsFavorite;
+        }
+
+        // ╭─ 派生文本实现 ───────────────────────────────────────────────────╮
         public string GetEngineDisplayName()
         {
-            if (AssociatedEngine != null)
-                return AssociatedEngine.DisplayName;
-
-            if (!string.IsNullOrEmpty(EngineAssociation))
-                return $"UE {EngineAssociation}";
-
+            if (AssociatedEngine != null) return AssociatedEngine.DisplayName;
+            if (!string.IsNullOrEmpty(EngineAssociation)) return $"UE {EngineAssociation}";
             return "未知引擎";
         }
 
         public string GetProjectSizeString()
         {
-            if (ProjectSize == 0) return "计算中...";
-
+            if (ProjectSize <= 0) return "计算中...";
             string[] sizes = { "B", "KB", "MB", "GB", "TB" };
             double len = ProjectSize;
             int order = 0;
             while (len >= 1024 && order < sizes.Length - 1)
             {
                 order++;
-                len = len / 1024;
+                len /= 1024;
             }
 
             return $"{len:0.##} {sizes[order]}";
@@ -211,129 +274,80 @@ namespace DreamUnrealManager.Models
 
         public string GetDescription()
         {
-            if (!string.IsNullOrEmpty(Description))
-                return Description;
+            if (!string.IsNullOrWhiteSpace(Description)) return Description;
 
-            // 如果没有描述，生成基于项目信息的描述
-            var descriptionParts = new List<string>();
-
-            // 添加引擎版本信息
-            if (!string.IsNullOrEmpty(EngineAssociation))
-            {
-                descriptionParts.Add($"UE {EngineAssociation} 项目");
-            }
-
-            // 添加模块信息
-            if (Modules != null && Modules.Count > 0)
-            {
-                descriptionParts.Add($"包含 {Modules.Count} 个模块");
-            }
-
-            // 添加插件信息
-            if (Plugins != null && Plugins.Count > 0)
-            {
-                var enabledPlugins = Plugins.Where(p => p.Enabled).Count();
-                if (enabledPlugins > 0)
-                {
-                    descriptionParts.Add($"启用 {enabledPlugins} 个插件");
-                }
-            }
-
-            return descriptionParts.Any() ? string.Join(" · ", descriptionParts) : "Unreal Engine 项目";
+            var parts = new List<string>();
+            if (!string.IsNullOrEmpty(EngineAssociation)) parts.Add($"UE {EngineAssociation} 项目");
+            if (Modules?.Count > 0) parts.Add($"包含 {Modules.Count} 个模块");
+            if (Plugins?.Any(p => p.Enabled) == true) parts.Add($"启用 {Plugins.Count(p => p.Enabled)} 个插件");
+            return parts.Count > 0 ? string.Join(" · ", parts) : "Unreal Engine 项目";
         }
 
-        /// <summary>
-        /// 获取启用的插件数量 - 公共方法用于绑定
-        /// </summary>
-        public int GetEnabledPluginsCount()
-        {
-            return Plugins?.Count(p => p.Enabled) ?? 0;
-        }
-
-        /// <summary>
-        /// 获取模块数量 - 公共方法用于绑定
-        /// </summary>
-        public int GetModulesCount()
-        {
-            return Modules?.Count ?? 0;
-        }
-
-        /// <summary>
-        /// 获取格式化的最后使用时间
-        /// </summary>
-        public string GetLastUsedString()
-        {
-            if (!LastUsed.HasValue)
-                return "从未使用";
-
-            var timeSpan = DateTime.Now - LastUsed.Value;
-
-            if (timeSpan.TotalDays < 1)
-                return $"{(int)timeSpan.TotalHours} 小时前";
-            else if (timeSpan.TotalDays < 7)
-                return $"{(int)timeSpan.TotalDays} 天前";
-            else if (timeSpan.TotalDays < 30)
-                return $"{(int)(timeSpan.TotalDays / 7)} 周前";
-            else
-                return LastUsed.Value.ToString("yyyy年MM月dd日");
-        }
-
-        /// <summary>
-        /// 获取项目的详细信息字符串
-        /// </summary>
         public string GetDetailedInfo()
         {
             var info = new List<string>();
-
-            if (!string.IsNullOrEmpty(EngineAssociation))
-                info.Add($"引擎版本: UE {EngineAssociation}");
-
-            if (FileVersion > 0)
-                info.Add($"文件版本: {FileVersion}");
-
-            var modulesCount = GetModulesCount();
-            if (modulesCount > 0)
-                info.Add($"模块数量: {modulesCount}");
-
-            var pluginsCount = GetEnabledPluginsCount();
-            if (pluginsCount > 0)
-                info.Add($"启用插件: {pluginsCount}");
-
-            if (TargetPlatforms?.Length > 0)
-                info.Add($"目标平台: {string.Join(", ", TargetPlatforms)}");
-
+            if (!string.IsNullOrEmpty(EngineAssociation)) info.Add($"引擎版本: UE {EngineAssociation}");
+            if (FileVersion > 0) info.Add($"文件版本: {FileVersion}");
+            if (ModulesCount > 0) info.Add($"模块数量: {ModulesCount}");
+            if (EnabledPluginsCount > 0) info.Add($"启用插件: {EnabledPluginsCount}");
+            if (TargetPlatforms?.Length > 0) info.Add($"目标平台: {string.Join(", ", TargetPlatforms)}");
             return string.Join(" | ", info);
         }
 
-        /// <summary>
-        /// 获取主要插件列表（仅显示名称）
-        /// </summary>
+        public string GetLastUsedString()
+        {
+            if (!LastUsed.HasValue) return "从未使用";
+            var ts = DateTime.Now - LastUsed.Value;
+            if (ts.TotalDays < 1) return $"{(int)ts.TotalHours} 小时前";
+            if (ts.TotalDays < 7) return $"{(int)ts.TotalDays} 天前";
+            if (ts.TotalDays < 30) return $"{(int)(ts.TotalDays / 7)} 周前";
+            return LastUsed.Value.ToString("yyyy年MM月dd日");
+        }
+
         public string GetMainPluginsList()
         {
-            if (Plugins == null || Plugins.Count == 0)
-                return "无插件";
-
-            var enabledPlugins = Plugins.Where(p => p.Enabled).Select(p => p.Name).Take(3);
-            var pluginsList = string.Join(", ", enabledPlugins);
-
-            var totalEnabledCount = Plugins.Count(p => p.Enabled);
-            if (totalEnabledCount > 3)
-                pluginsList += $" 等 {totalEnabledCount} 个插件";
-
-            return pluginsList.Length > 0 ? pluginsList : "无启用插件";
+            if (Plugins == null || Plugins.Count == 0) return "无插件";
+            var names = Plugins.Where(p => p.Enabled).Select(p => p.Name).Take(3);
+            var txt = string.Join(", ", names);
+            var total = Plugins.Count(p => p.Enabled);
+            if (total > 3) txt += $" 等 {total} 个插件";
+            return string.IsNullOrEmpty(txt) ? "无启用插件" : txt;
         }
-        
-        [JsonIgnore]
-        public Uri ThumbnailUri { get; set; }
 
-        /// <summary>
-        /// 检查缩略图是否存在并更新路径
-        /// </summary>
+        public string GetGitInfoString()
+        {
+            if (!IsGitEnabled) return "未启用Git";
+            if (GitFolderSize <= 0) return "Git已启用 (大小计算中...)";
+            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+            double len = GitFolderSize;
+            int order = 0;
+            while (len >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                len /= 1024;
+            }
+
+            return $"Git已启用 ({len:0.##} {sizes[order]})";
+        }
+
+        // ╭─ 行为 ───────────────────────────────────────────────────────────╮
+        public void UpdateLastUsed()
+        {
+            LastUsed = DateTime.Now;
+            OnPropertyChanged(nameof(LastUsed));
+        }
+
+        public void ValidateProject()
+        {
+            IsValid = !string.IsNullOrEmpty(ProjectPath) && File.Exists(ProjectPath);
+            OnPropertyChanged(nameof(IsValid));
+        }
+
         public void RefreshThumbnail()
         {
             if (!string.IsNullOrEmpty(ProjectDirectory))
             {
-                var possiblePaths = new[]
+                var candidates = new[]
                 {
                     Path.Combine(ProjectDirectory, "Saved", "AutoScreenshot.png"),
                     Path.Combine(ProjectDirectory, "Saved", "Screenshots", "Screenshot.png"),
@@ -342,28 +356,133 @@ namespace DreamUnrealManager.Models
                     Path.Combine(ProjectDirectory, "thumbnail.png"),
                     Path.Combine(ProjectDirectory, "screenshot.png")
                 };
-
-                var physicalPath = possiblePaths.FirstOrDefault(File.Exists);
-
-                if (!string.IsNullOrEmpty(physicalPath))
-                {
-                    // Uri 会自动变成 file:///C:/... 这样的绝对 URI
-                    ThumbnailUri = new Uri(physicalPath, UriKind.Absolute);
-                }
-                else
-                {
-                    ThumbnailUri = null;
-                }
-
-                // 若你之前还用到了 string 路径，可以继续保留：
-                ThumbnailPath = physicalPath; // 可选：保留老字段但不再用于绑定
+                var physical = candidates.FirstOrDefault(File.Exists);
+                ThumbnailUri = !string.IsNullOrEmpty(physical) ? new Uri(physical, UriKind.Absolute) : null;
+                ThumbnailPath = physical;
+                OnPropertyChanged(nameof(ThumbnailUri));
+                OnPropertyChanged(nameof(ThumbnailPath));
             }
 
             CheckGitStatus();
-            OnPropertyChanged(nameof(ThumbnailUri));
-            OnPropertyChanged(nameof(ThumbnailPath)); // 如果你 UI 其他地方还绑定它
         }
-        
+
+        public void CheckGitStatus()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(ProjectDirectory))
+                {
+                    IsGitEnabled = false;
+                    GitFolderSize = 0;
+                    return;
+                }
+
+                var git = Path.Combine(ProjectDirectory, ".git");
+                bool exists;
+                try
+                {
+                    exists = new DirectoryInfo(git).Exists;
+                }
+                catch
+                {
+                    exists = Directory.Exists(git);
+                }
+
+                IsGitEnabled = exists;
+
+                if (IsGitEnabled)
+                {
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            SetGitFolderSize(CalculateDirectorySize(git));
+                        }
+                        catch
+                        {
+                            SetGitFolderSize(0);
+                        }
+                    });
+                }
+                else
+                {
+                    SetGitFolderSize(0);
+                }
+            }
+            catch
+            {
+                IsGitEnabled = false;
+                SetGitFolderSize(0);
+            }
+        }
+
+        // ╭─ “集中通知”工具 ─────────────────────────────────────────────────╮
+        public void NotifyDerived()
+        {
+            OnPropertyChanged(nameof(EngineDisplayName));
+            OnPropertyChanged(nameof(DescriptionDisplay));
+            OnPropertyChanged(nameof(LastModifiedString));
+            OnPropertyChanged(nameof(ProjectSizeString));
+            OnPropertyChanged(nameof(DetailedInfo));
+            OnPropertyChanged(nameof(ModulesCount));
+            OnPropertyChanged(nameof(EnabledPluginsCount));
+            OnPropertyChanged(nameof(GitInfoString));
+        }
+
+        public void UpdateFrom(ProjectInfo fresh)
+        {
+            // 把解析得到的新数据拷回当前实例
+            EngineAssociation = fresh.EngineAssociation;
+            Description = fresh.Description;
+            Category = fresh.Category;
+            Modules = fresh.Modules ?? new List<ProjectModule>();
+            Plugins = fresh.Plugins ?? new List<ProjectPlugin>();
+            LastModified = fresh.LastModified;
+            AssociatedEngine = fresh.AssociatedEngine;
+
+            // 通知派生属性刷新
+            NotifyDerived();
+        }
+
+        public void SetProjectSize(long bytes)
+        {
+            ProjectSize = bytes; // 会触发 ProjectSizeString
+        }
+
+        public void SetGitFolderSize(long bytes)
+        {
+            GitFolderSize = bytes; // 会触发 GitInfoString
+        }
+
+        // ╭─ 私用 ───────────────────────────────────────────────────────────╮
+        protected virtual void OnPropertyChanged([CallerMemberName] string name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+        private static long CalculateDirectorySize(string root)
+        {
+            long total = 0;
+            try
+            {
+                foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+                {
+                    try
+                    {
+                        total += new FileInfo(file).Length;
+                    }
+                    catch
+                    {
+                        /* ignore */
+                    }
+                }
+            }
+            catch
+            {
+                /* ignore */
+            }
+
+            return total;
+        }
+
         public string GetIdeButtonText()
         {
             var defaultIde = Settings.Get("Default.IDE", "VS");
@@ -376,209 +495,18 @@ namespace DreamUnrealManager.Models
             };
         }
 
-        /// <summary>
-        /// 更新最后使用时间
-        /// </summary>
-        public void UpdateLastUsed()
-        {
-            LastUsed = DateTime.Now;
-            OnPropertyChanged(nameof(LastUsed));
-        }
-
-        /// <summary>
-        /// 验证项目文件的有效性
-        /// </summary>
-        public void ValidateProject()
-        {
-            IsValid = !string.IsNullOrEmpty(ProjectPath) && File.Exists(ProjectPath);
-            OnPropertyChanged(nameof(IsValid));
-        }
-
-        // 替代实现方式：基于文件系统检查
         [JsonIgnore]
         public bool IsCPlusPlusProject
         {
             get
             {
-                if (string.IsNullOrEmpty(ProjectDirectory))
-                    return false;
-
-                // 检查是否存在 Source 文件夹，这是 C++ 项目的典型特征
-                var sourcePath = Path.Combine(ProjectDirectory, "Source");
-                return Directory.Exists(sourcePath);
+                if (string.IsNullOrEmpty(ProjectDirectory)) return false;
+                var src = Path.Combine(ProjectDirectory, "Source");
+                return Directory.Exists(src);
             }
         }
 
-        public string ProjectSolutionPath => Path.Combine(ProjectDirectory, ProjectName + ".sln");
-        
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        /// <summary>
-        /// 获取Git信息字符串
-        /// </summary>
-        public string GetGitInfoString()
-        {
-            if (!IsGitEnabled)
-                return "未启用Git";
-
-            if (GitFolderSize == 0)
-                return "Git已启用 (大小计算中...)";
-
-            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
-            double len = GitFolderSize;
-            int order = 0;
-            while (len >= 1024 && order < sizes.Length - 1)
-            {
-                order++;
-                len = len / 1024;
-            }
-
-            return $"Git已启用 ({len:0.##} {sizes[order]})";
-        }
-
-        /// <summary>
-        /// 检查项目是否启用了Git并计算.git文件夹大小
-        /// </summary>
-        public void CheckGitStatus()
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(ProjectDirectory))
-                {
-                    IsGitEnabled = false;
-                    GitFolderSize = 0;
-                    return;
-                }
-
-                var gitPath = Path.Combine(ProjectDirectory, ".git");
-
-                // 检查.git文件夹是否存在（包括隐藏文件夹）
-                var gitDirectoryExists = false;
-                try
-                {
-                    var gitDirInfo = new DirectoryInfo(gitPath);
-                    gitDirectoryExists = gitDirInfo.Exists;
-                }
-                catch
-                {
-                    // 如果无法直接访问，尝试使用Directory.Exists
-                    gitDirectoryExists = Directory.Exists(gitPath);
-                }
-
-                IsGitEnabled = gitDirectoryExists;
-
-                if (IsGitEnabled)
-                {
-                    // 在后台线程计算.git文件夹大小，避免阻塞UI
-                    Task.Run(() =>
-                    {
-                        try
-                        {
-                            var size = CalculateDirectorySize(gitPath);
-                            GitFolderSize = size;
-                        }
-                        catch
-                        {
-                            GitFolderSize = 0;
-                        }
-                    });
-                }
-                else
-                {
-                    GitFolderSize = 0;
-                }
-            }
-            catch
-            {
-                IsGitEnabled = false;
-                GitFolderSize = 0;
-            }
-        }
-
-        /// <summary>
-        /// 获取详细的Git信息，包括分支等
-        /// </summary>
-        public string GetDetailedGitInfo()
-        {
-            if (!IsGitEnabled)
-                return "未启用Git版本控制";
-
-            var gitPath = Path.Combine(ProjectDirectory, ".git");
-            var details = new List<string>();
-
-            try
-            {
-                // 尝试读取当前分支信息
-                var headPath = Path.Combine(gitPath, "HEAD");
-                if (File.Exists(headPath))
-                {
-                    var headContent = File.ReadAllText(headPath).Trim();
-                    if (headContent.StartsWith("ref: refs/heads/"))
-                    {
-                        var branch = headContent.Substring("ref: refs/heads/".Length);
-                        details.Add($"分支: {branch}");
-                    }
-                }
-            }
-            catch
-            {
-                // 忽略读取分支信息时的错误
-            }
-
-            if (GitFolderSize > 0)
-            {
-                string[] sizes = { "B", "KB", "MB", "GB", "TB" };
-                double len = GitFolderSize;
-                int order = 0;
-                while (len >= 1024 && order < sizes.Length - 1)
-                {
-                    order++;
-                    len = len / 1024;
-                }
-
-                details.Add($"仓库大小: {len:0.##} {sizes[order]}");
-            }
-
-            return details.Count > 0 ? string.Join(", ", details) : "Git已启用";
-        }
-
-
-        /// <summary>
-        /// 递归计算目录大小
-        /// </summary>
-        private long CalculateDirectorySize(string directoryPath)
-        {
-            long size = 0;
-
-            try
-            {
-                // 获取目录下所有文件大小
-                var files = Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories);
-                foreach (var file in files)
-                {
-                    try
-                    {
-                        var fileInfo = new FileInfo(file);
-                        size += fileInfo.Length;
-                    }
-                    catch
-                    {
-                        // 忽略无法访问的文件
-                    }
-                }
-            }
-            catch
-            {
-                // 忽略无法访问的目录
-            }
-
-            return size;
-        }
+        [JsonIgnore] public string ProjectSolutionPath => Path.Combine(ProjectDirectory, ProjectName + ".sln");
     }
 
     public class ProjectModule
