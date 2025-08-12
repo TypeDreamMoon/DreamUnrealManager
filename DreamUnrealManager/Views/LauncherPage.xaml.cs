@@ -803,15 +803,74 @@ namespace DreamUnrealManager.Views
                     Process.Start("explorer.exe", p.ProjectDirectory);
             }
         }
+        
+        private async Task GenerateVSWithLogAsync(ProjectInfo p)
+        {
+            // ProgressLogDialog 是我们前面加的那个“日志+进度”对话框类
+            var dlg = new ProgressLogDialog($"正在为「{p.DisplayName}」生成 VS 项目文件", this.XamlRoot);
+            var log = new Progress<string>(s => dlg.AppendLine(s));
+            var pct = new Progress<int>(v => dlg.SetProgress(v));
+
+            // 打开对话框（异步展示，不阻塞）
+            var _ = dlg.ShowAsync();
+
+            try
+            {
+                SetStatus("正在生成 VS 项目文件…");
+                var ok = await _build.GenerateProjectFilesAsync(p.ProjectPath, log, pct, dlg.Token);
+                dlg.Complete(ok);
+                SetStatus(ok ? "生成成功" : "生成失败");
+
+                if (!ok)
+                    await _dialogs.ShowMessageAsync("提示", "生成 VS 项目文件失败，请检查引擎路径与 UBT。");
+            }
+            catch (OperationCanceledException)
+            {
+                dlg.AppendLine("[已取消]");
+                dlg.Complete(false);
+                SetStatus("已取消生成");
+            }
+            catch (Exception ex)
+            {
+                dlg.AppendLine("[异常] " + ex.Message);
+                dlg.Complete(false);
+                SetStatus("生成失败");
+                await _dialogs.ShowMessageAsync("错误", $"生成失败：{ex.Message}");
+            }
+        }
 
         private async void ContextMenu_GenerateVSProject_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is MenuFlyoutItem item && item.Tag is ProjectInfo p)
+            if (sender is not MenuFlyoutItem item || item.Tag is not ProjectInfo p) return;
+
+            var dlg = new ProgressLogDialog($"正在为「{p.DisplayName}」生成 VS 项目文件", this.XamlRoot);
+            var log = new Progress<string>(s => dlg.AppendLine(s));
+            var pct = new Progress<int>(v => dlg.SetProgress(v));
+
+            // 展示对话框（非阻塞 UI）
+            var _ = dlg.ShowAsync();
+
+            try
             {
                 SetStatus("正在生成 VS 项目文件...");
-                var ok = await _build.GenerateProjectFilesAsync(p.ProjectPath);
+                var ok = await _build.GenerateProjectFilesAsync(p.ProjectPath, log, pct, dlg.Token);
+                dlg.Complete(ok);
                 SetStatus(ok ? "生成成功" : "生成失败");
-                if (!ok) await _dialogs.ShowMessageAsync("提示", "生成 VS 项目文件失败，请检查引擎路径与 UBT。");
+                if (!ok)
+                    await _dialogs.ShowMessageAsync("提示", "生成 VS 项目文件失败，请检查引擎路径与 UBT。");
+            }
+            catch (OperationCanceledException)
+            {
+                dlg.AppendLine("[已取消]");
+                dlg.Complete(false);
+                SetStatus("已取消生成");
+            }
+            catch (Exception ex)
+            {
+                dlg.AppendLine("[异常] " + ex.Message);
+                dlg.Complete(false);
+                SetStatus("生成失败");
+                await _dialogs.ShowMessageAsync("错误", $"生成失败：{ex.Message}");
             }
         }
 
@@ -822,56 +881,79 @@ namespace DreamUnrealManager.Views
 
         private async void ContextMenu_SwitchEngine_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is MenuFlyoutItem item && item.Tag is ProjectInfo p)
+            if (sender is not MenuFlyoutItem item || item.Tag is not ProjectInfo p) return;
+
+            try
             {
-                try
+                var mgr = EngineManagerService.Instance;
+                await mgr.LoadEngines();
+                var engines = mgr.GetValidEngines() ?? Enumerable.Empty<UnrealEngineInfo>();
+
+                var dialog = new ContentDialog
                 {
-                    var mgr = EngineManagerService.Instance;
-                    await mgr.LoadEngines();
-                    var engines = mgr.GetValidEngines() ?? Enumerable.Empty<UnrealEngineInfo>();
+                    Title = $"切换 {p.DisplayName} 的引擎版本",
+                    PrimaryButtonText = "确定",
+                    CloseButtonText = "取消",
+                    XamlRoot = this.XamlRoot
+                };
 
-                    var dialog = new ContentDialog
-                    {
-                        Title = $"切换 {p.DisplayName} 的引擎版本",
-                        PrimaryButtonText = "确定",
-                        CloseButtonText = "取消",
-                        XamlRoot = this.XamlRoot
-                    };
+                var combo = new ComboBox { MinWidth = 300, Margin = new Thickness(0, 10, 0, 0) };
+                foreach (var eng in engines)
+                {
+                    var text = !string.IsNullOrEmpty(eng.FullVersion) ? eng.FullVersion :
+                        !string.IsNullOrEmpty(eng.Version) ? eng.Version :
+                        eng.DisplayName;
+                    combo.Items.Add(new ComboBoxItem { Content = $"{eng.DisplayName} ({text})", Tag = eng });
+                }
 
-                    var combo = new ComboBox { MinWidth = 300, Margin = new Thickness(0, 10, 0, 0) };
-                    foreach (var eng in engines)
+                if (combo.Items.Count > 0) combo.SelectedIndex = 0;
+                dialog.Content = combo;
+                
+                // 第一次：醒目警告
+                var warned = await _dialogs.ShowWarningConfirmAsync(
+                    "切换引擎版本警告",
+                    $"此操作将修改「{p.DisplayName}」的引擎版本，可能导致项目无法打开或需要重新编译。\n\n是否继续？",
+                    primaryText: "继续",
+                    closeText: "取消");
+                if (!warned) return;
+
+                // 第二次：输入确认
+                var input = await _dialogs.ShowInputAsync(
+                    "确认切换引擎版本",
+                    $"为防误操作，请输入项目名称以继续：\n「{p.DisplayName}」",
+                    placeholder: "输入项目名称",
+                    primaryText: "确认",
+                    closeText: "取消");
+
+                if (!string.Equals(input?.Trim(), p.DisplayName, System.StringComparison.Ordinal))
+                {
+                    await _dialogs.ShowMessageAsync("提示", "输入的项目名称不匹配，已取消切换。");
+                    return;
+                }
+
+                var result = await dialog.ShowAsync();
+                if (result == ContentDialogResult.Primary && combo.SelectedItem is ComboBoxItem cb && cb.Tag is UnrealEngineInfo selected)
+                {
+                    var ok = await _engineSwitch.SwitchAsync(p, selected.Version);
+                    if (ok)
                     {
-                        var text = !string.IsNullOrEmpty(eng.FullVersion) ? eng.FullVersion :
-                            !string.IsNullOrEmpty(eng.Version) ? eng.Version :
-                            eng.DisplayName;
-                        combo.Items.Add(new ComboBoxItem { Content = $"{eng.DisplayName} ({text})", Tag = eng });
+                        p.EngineAssociation = selected.Version;
+                        p.AssociatedEngine = selected;
+                        p.NotifyDerived();
+                        await _repo.SaveAsync(_allProjects);
+                        SetStatus($"已切换到 {selected.DisplayName}");
+
+                        await GenerateVSWithLogAsync(p);
                     }
-
-                    if (combo.Items.Count > 0) combo.SelectedIndex = 0;
-                    dialog.Content = combo;
-
-                    var result = await dialog.ShowAsync();
-                    if (result == ContentDialogResult.Primary && combo.SelectedItem is ComboBoxItem cb && cb.Tag is UnrealEngineInfo selected)
+                    else
                     {
-                        var ok = await _engineSwitch.SwitchAsync(p, selected.Version);
-                        if (ok)
-                        {
-                            p.EngineAssociation = selected.Version;
-                            p.AssociatedEngine = selected;
-                            p.NotifyDerived();
-                            await _repo.SaveAsync(_allProjects);
-                            SetStatus($"已切换到 {selected.DisplayName}");
-                        }
-                        else
-                        {
-                            await _dialogs.ShowMessageAsync("提示", "切换失败：无法写入 .uproject。");
-                        }
+                        await _dialogs.ShowMessageAsync("提示", "切换失败：无法写入 .uproject。");
                     }
                 }
-                catch (Exception ex)
-                {
-                    await _dialogs.ShowMessageAsync("错误", $"切换失败：{ex.Message}");
-                }
+            }
+            catch (Exception ex)
+            {
+                await _dialogs.ShowMessageAsync("错误", $"切换失败：{ex.Message}");
             }
         }
 

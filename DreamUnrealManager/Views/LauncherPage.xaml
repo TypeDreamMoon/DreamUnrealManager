@@ -92,7 +92,7 @@
                                    Style="{ThemeResource BodyStrongTextBlockStyle}"
                                    Foreground="White"
                                    TextTrimming="CharacterEllipsis" />
-                        <TextBlock Text="{x:Bind EngineDisplayName}"
+                        <TextBlock Text="{x:Bind EngineDisplayName, Mode=OneWay}"
                                    Style="{ThemeResource CaptionTextBlockStyle}"
                                    Foreground="#CCFFFFFF"
                                    TextTrimming="CharacterEllipsis" />
