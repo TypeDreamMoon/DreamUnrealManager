@@ -11,6 +11,7 @@ using Windows.Storage.Pickers;
 using DreamUnrealManager.Models;
 using DreamUnrealManager.Services;
 using Windows.UI;
+using DreamUnrealManager.Helpers;
 using Microsoft.UI;
 using Path = ABI.Microsoft.UI.Xaml.Shapes.Path;
 
@@ -26,6 +27,7 @@ namespace DreamUnrealManager.Views
         } = new();
 
         private bool _fontInitDone;
+        private const string ThemeSettingsKey = "AppTheme";
 
         public SettingsPage()
         {
@@ -45,6 +47,19 @@ namespace DreamUnrealManager.Views
             UpdateIdePathUI();
 
             AutoDetectIdePaths();
+            OnLoaded_SyncThemeSelection();
+        }
+
+        private void OnLoaded_SyncThemeSelection()
+        {
+            var current = ThemeService.Load(); // System/Light/Dark
+            var tag = current switch
+            {
+                AppThemeOption.Light => "Light",
+                AppThemeOption.Dark => "Dark",
+                _ => "Default"
+            };
+            SelectComboItemByTag(tag);
         }
 
         private void CreateEngineItem(UnrealEngineInfo engine)
@@ -790,6 +805,38 @@ namespace DreamUnrealManager.Views
                 };
 
                 _ = dialog.ShowAsync();
+            }
+        }
+
+        private void ThemeMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ThemeModeComboBox?.SelectedItem is not ComboBoxItem item) return;
+            var tag = item.Tag as string;
+            if (string.IsNullOrWhiteSpace(tag)) return;
+
+            var opt = tag switch
+            {
+                "Light" => AppThemeOption.Light,
+                "Dark" => AppThemeOption.Dark,
+                _ => AppThemeOption.System, // "Default"
+            };
+
+            // 保存并全局应用
+            ThemeService.Save(opt);
+            ThemeService.ApplyToWindow(App.MainWindow, opt);
+        }
+
+        private void SelectComboItemByTag(string tag)
+        {
+            if (ThemeModeComboBox is null) return;
+            foreach (var obj in ThemeModeComboBox.Items)
+            {
+                if (obj is ComboBoxItem cbi &&
+                    string.Equals(cbi.Tag as string, tag, StringComparison.OrdinalIgnoreCase))
+                {
+                    ThemeModeComboBox.SelectedItem = cbi;
+                    break;
+                }
             }
         }
     }

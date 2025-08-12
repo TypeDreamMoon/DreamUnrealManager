@@ -111,5 +111,8 @@ public partial class App : Application
         // App.GetService<IAppNotificationService>().Show(string.Format("AppNotificationSamplePayload".GetLocalized(), AppContext.BaseDirectory));
 
         await App.GetService<IActivationService>().ActivateAsync(args);
+
+        var opt = ThemeService.Load();
+        ThemeService.ApplyToWindow(App.MainWindow, opt);
     }
 }

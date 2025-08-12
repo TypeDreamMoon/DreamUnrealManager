@@ -184,6 +184,20 @@
                         查看
                     </TextBlock>
                 </controls:SettingsCard>
+                
+                <controls:SettingsCard Description="主题设置" Header="主题">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE790;" />
+                    </controls:SettingsCard.HeaderIcon>
+                    <ComboBox
+                        x:Name="ThemeModeComboBox"
+                        AutomationProperties.AutomationId="ThemeModeComboBox"
+                        SelectionChanged="ThemeMode_SelectionChanged">
+                        <ComboBoxItem Content="亮色" Tag="Light" />
+                        <ComboBoxItem Content="暗色" Tag="Dark" />
+                        <ComboBoxItem Content="系统设置" Tag="Default" />
+                    </ComboBox>
+                </controls:SettingsCard>
 
             </StackPanel>
         </ScrollViewer>

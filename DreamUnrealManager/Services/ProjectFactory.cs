@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Text.RegularExpressions;
 using DreamUnrealManager.Models;
 
 namespace DreamUnrealManager.Services
@@ -25,6 +26,7 @@ namespace DreamUnrealManager.Services
                 LastModified = File.GetLastWriteTime(uprojectPath)
             };
 
+            // 读取 .uproject 元数据
             try
             {
                 var json = await File.ReadAllTextAsync(uprojectPath, ct).ConfigureAwait(false);
@@ -49,8 +51,7 @@ namespace DreamUnrealManager.Services
                         if (m.TryGetProperty("Name", out var n)) mod.Name = n.GetString();
                         if (m.TryGetProperty("Type", out var t)) mod.Type = t.GetString();
                         if (m.TryGetProperty("LoadingPhase", out var lp)) mod.LoadingPhase = lp.GetString();
-                        if (m.TryGetProperty("AdditionalDependencies", out var deps) &&
-                            deps.ValueKind == JsonValueKind.Array)
+                        if (m.TryGetProperty("AdditionalDependencies", out var deps) && deps.ValueKind == JsonValueKind.Array)
                         {
                             mod.AdditionalDependencies = deps.EnumerateArray()
                                 .Select(x => x.GetString())
@@ -88,12 +89,31 @@ namespace DreamUnrealManager.Services
                 project.Description ??= "无法读取项目描述";
             }
 
+            // 解析引擎（支持 GUID → 注册表 → 引擎路径 → Build.version → 版本号）
             try
             {
                 if (!string.IsNullOrEmpty(project.EngineAssociation))
                 {
                     var engine = await _resolver.ResolveAsync(project.EngineAssociation, ct).ConfigureAwait(false);
                     project.AssociatedEngine = engine;
+
+                    if (engine != null)
+                    {
+                        var readable = !string.IsNullOrEmpty(engine.FullVersion)
+                            ? engine.FullVersion
+                            : engine.Version;
+
+                        if (!string.IsNullOrWhiteSpace(readable))
+                            project.EngineAssociation = readable;
+                    }
+                    else
+                    {
+                        // 如果是 GUID 但没找到，就显示“无法解析”
+                        if (Regex.IsMatch(project.EngineAssociation.Trim(), @"^\{?[0-9a-fA-F\-]{36}\}?$"))
+                            project.EngineAssociation = "无法解析";
+                    }
+
+                    project.NotifyDerived();
                 }
             }
             catch

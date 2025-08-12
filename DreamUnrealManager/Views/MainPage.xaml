@@ -50,12 +50,12 @@
                         <!-- 快速启动按钮 -->
                         <Button Tag="{x:Bind}"
                                 Click="QuickLaunchFavoriteProject_Click">
-                            <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xEDD9;" />
+                            <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xEDDA;" />
                         </Button>
                         <Button Tag="{x:Bind}"
                                 Visibility="{x:Bind IsCPlusPlusProject, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                 Click="OpenWithIDE_OnClick">
-                            <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE70F;" />
+                            <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xEDDA;" />
                         </Button>
                     </StackPanel>
 
@@ -120,13 +120,7 @@
                         Name="QuickLaunchButton"
                         Click="QuickLaunchButton_OnClick">
                         <Grid ColumnDefinitions="Auto, *" ColumnSpacing="5">
-                            <Image
-                                Grid.Column="0"
-                                Height="25"
-                                HorizontalAlignment="Left"
-                                Margin="0,0,5,0"
-                                Source="../Assets/BxsLeftArrow.png"
-                                Width="25" />
+                            <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xEDDA;" />
                             <TextBlock
                                 FontSize="20"
                                 Grid.Column="1"
@@ -142,12 +136,7 @@
                         Name="QuickBuildingButton"
                         Click="QuickBuildingButton_OnClick">
                         <Grid ColumnDefinitions="Auto, *" ColumnSpacing="5">
-                            <Image
-                                Grid.Column="0"
-                                Height="25"
-                                Margin="0,0,5,0"
-                                Source="../Assets/BxsLeftArrow.png"
-                                Width="25" />
+                            <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xEDDA;" />
                             <TextBlock
                                 FontSize="20"
                                 Grid.Column="1"
