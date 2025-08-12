@@ -6,7 +6,8 @@
     Loaded="OnLoaded">
 
     <Page.Background>
-        <ImageBrush ImageSource="../Assets/wallhaven-x6vkvd.png" Opacity="0.5"></ImageBrush>
+        <ImageBrush ImageSource="../Assets/wallhaven-x6vkvd.png"
+                    Opacity="{x:Bind ViewModel.BackgroundSettings.BackgroundOpacity, Mode=OneWay}" />
     </Page.Background>
 
     <Grid>
@@ -44,9 +45,11 @@
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
 
-                <NavigationViewItem x:Uid="Shell_Launcher" helpers:NavigationHelper.NavigateTo="DreamUnrealManager.ViewModels.LauncherViewModel">
+                <NavigationViewItem
+                    x:Uid="Shell_Launcher"
+                    helpers:NavigationHelper.NavigateTo="DreamUnrealManager.ViewModels.LauncherViewModel">
                     <NavigationViewItem.Icon>
-                        <ImageIcon Source="../Assets/FluentMdl2AllApps.png" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" />
+                        <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE9A4;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
 
@@ -54,7 +57,7 @@
                                     x:Uid="Shell_PluginsBuild"
                                     helpers:NavigationHelper.NavigateTo="DreamUnrealManager.ViewModels.PluginsBuildViewModel">
                     <NavigationViewItem.Icon>
-                        <ImageIcon Source="../Assets/FluentMdl2Build.png" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" />
+                        <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xF156;" />
                     </NavigationViewItem.Icon>
                     <!-- 自定义内容模板，显示标题和InfoBadge -->
                     <NavigationViewItem.Content>
@@ -87,18 +90,19 @@
                     </NavigationViewItem.Content>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
-            
+
             <NavigationView.FooterMenuItems>
                 <NavigationViewItem x:Uid="Shell_Fab" helpers:NavigationHelper.NavigateTo="DreamUnrealManager.ViewModels.FabViewModel">
                     <NavigationViewItem.Icon>
-                        <ImageIcon Source="../Assets/Fab.png" Foreground="{ThemeResource SystemControlForegroundAccentBrush}"/>
+                        <ImageIcon Source="../Assets/Fab.png" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.FooterMenuItems>
 
             <Grid>
                 <Grid.Background>
-                    <AcrylicBrush TintColor="Black" TintOpacity="0.25" />
+                    <AcrylicBrush TintOpacity="{x:Bind ViewModel.AcrylicSettings.TintOpacity, Mode=OneWay}"
+                                  TintLuminosityOpacity="{x:Bind ViewModel.AcrylicSettings.TintLuminosityOpacity, Mode=OneWay}" />
                 </Grid.Background>
                 <Frame x:Name="NavigationFrame" />
             </Grid>

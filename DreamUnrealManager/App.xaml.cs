@@ -114,5 +114,7 @@ public partial class App : Application
 
         var opt = ThemeService.Load();
         ThemeService.ApplyToWindow(App.MainWindow, opt);
+
+        UiDispatcher.Initialize(MainWindow);
     }
 }

@@ -184,7 +184,7 @@
                         查看
                     </TextBlock>
                 </controls:SettingsCard>
-                
+
                 <controls:SettingsCard Description="主题设置" Header="主题">
                     <controls:SettingsCard.HeaderIcon>
                         <FontIcon Glyph="&#xE790;" />
@@ -197,6 +197,28 @@
                         <ComboBoxItem Content="暗色" Tag="Dark" />
                         <ComboBoxItem Content="系统设置" Tag="Default" />
                     </ComboBox>
+                </controls:SettingsCard>
+
+                <controls:SettingsCard Description="亚克力透明度" Header="亚克力透明度">
+                    <Slider x:Name="AcrylicTintOpacitySettingSlider"
+                            TickFrequency="10"
+                            TickPlacement="Inline"
+                            SnapsTo="StepValues"
+                            ValueChanged="AcrylicTintOpacitySettingSlider_OnValueChanged" />
+                </controls:SettingsCard>
+
+                <controls:SettingsCard Description="亚克力亮度不透明度" Header="亚克力亮度不透明度">
+                    <Slider x:Name="AcrylicTintLuminosityOpacitySettingSlider"
+                            TickFrequency="10"
+                            TickPlacement="Inline"
+                            SnapsTo="StepValues"
+                            ValueChanged="AcrylicTintLuminosityOpacitySettingSlider_OnValueChanged" />
+                </controls:SettingsCard>
+
+                <controls:SettingsCard Description="关掉背景图片" Header="二刺猿蒸鹅心" ContentAlignment="Right">
+                    <CheckBox x:Name="CloseBackgroundImageButton"
+                              Checked="CloseBackgroundImageButton_OnChanged"
+                              Unchecked="CloseBackgroundImageButton_OnChanged" />
                 </controls:SettingsCard>
 
             </StackPanel>

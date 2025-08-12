@@ -173,7 +173,7 @@
                     <Border Grid.Column="0"
                             Width="120" Height="120"
                             Margin="12"
-                            CornerRadius="8"
+                            CornerRadius="8, 0, 8, 0"
                             Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
                         <Image Source="{x:Bind ProjectIconPath}"
                                Stretch="UniformToFill"
@@ -318,15 +318,14 @@
 
         <!-- 紧凑卡片（高密度） -->
         <DataTemplate x:Key="CompactProjectTemplate" x:DataType="models:ProjectInfo">
-            <Border Height="88"
-                    Margin="6"
-                    CornerRadius="10"
-                    MinWidth="400"
-                    MaxWidth="1000"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1">
-                <Grid>
+            <Border>
+                <Grid Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                      CornerRadius="8"
+                      Height="80"
+                      MinWidth="400"
+                      MaxWidth="800"
+                      Padding="0, 0, 15, 0"
+                      ColumnSpacing="5">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
@@ -334,55 +333,108 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- 缩略图 -->
-                    <Border Width="88" Height="88" CornerRadius="10,0,0,10">
-                        <Image Source="{x:Bind ProjectIconPath}"
+                    <Border Grid.Column="0" Width="80"
+                            Height="80"
+                            CornerRadius="8, 0, 0, 8"
+                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                        <Image Grid.Column="0"
+                               Width="80"
+                               Height="80"
                                Stretch="UniformToFill"
-                               ImageFailed="ProjectImage_ImageFailed" />
+                               Source="{Binding ThumbnailUri}"
+                               ImageFailed="ProjectImage_ImageFailed"
+                               AutomationProperties.Name="{Binding DisplayName}" />
                     </Border>
 
                     <!-- 文本区 -->
-                    <StackPanel Grid.Column="1" Padding="10,8,8,8" Spacing="2" VerticalAlignment="Center">
-                        <TextBlock Text="{x:Bind DisplayName}"
-                                   Style="{ThemeResource BodyStrongTextBlockStyle}"
-                                   TextTrimming="CharacterEllipsis" />
-                        <TextBlock Text="{x:Bind DetailedInfo}"
-                                   Style="{ThemeResource CaptionTextBlockStyle}"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                   TextTrimming="CharacterEllipsis" />
+                    <!--
+                    1. Project Name
+                    2. Engine Tab
+                    3. Information
+                    -->
+                    <StackPanel Grid.Column="1" Spacing="4">
+                        <!-- 标题行：收藏星 + 名称 + 引擎标签 -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <!-- 收藏星（填充/空心由后端 Glyph 提供） -->
+                                <Button Tag="{x:Bind}"
+                                        Click="ToggleFavorite_Click"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Top"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="12">
+                                    <FontIcon Glyph="{x:Bind FavoriteGlyph, Mode=OneWay}"
+                                              FontSize="10" />
+                                </Button>
+
+                                <TextBlock Text="{Binding DisplayName}"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTipService.ToolTip="{Binding DisplayName}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 引擎版本标签 -->
+                        <Border Padding="6,2"
+                                Background="{ThemeResource SystemControlHighlightListLowBrush}"
+                                CornerRadius="4"
+                                VerticalAlignment="Center">
+                            <TextBlock Text="{Binding EngineDisplayName}"
+                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                       Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}" />
+                        </Border>
+
+                        <!-- 元信息（更轻的次要行） -->
+                        <StackPanel Orientation="Horizontal" Spacing="14">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="上次打开时间 : "
+                                           Style="{StaticResource CaptionTextBlockStyle}"
+                                           Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                                <TextBlock Text="{x:Bind GetLastUsedString()}"
+                                           Style="{StaticResource CaptionTextBlockStyle}"
+                                           Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="磁盘大小 : "
+                                           Style="{StaticResource CaptionTextBlockStyle}"
+                                           Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                                <TextBlock Text="{x:Bind ProjectSizeString}"
+                                           Style="{StaticResource CaptionTextBlockStyle}"
+                                           Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                            </StackPanel>
+                        </StackPanel>
                     </StackPanel>
 
-                    <!-- 操作（图标按钮） -->
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" Padding="6" VerticalAlignment="Center">
-                        <Button ToolTipService.ToolTip="收藏/取消收藏"
-                                Tag="{x:Bind}"
-                                Click="ToggleFavorite_Click">
-                            <FontIcon Glyph="{x:Bind FavoriteGlyph, Mode=OneWay}" />
-                        </Button>
-                        <Button ToolTipService.ToolTip="启动" Tag="{x:Bind}" Click="StartProjectButton_OnClick">
-                            <FontIcon Glyph="&#xE768;" />
-                        </Button>
-                        <Button ToolTipService.ToolTip="使用IDE启动" Tag="{x:Bind}" Click="StartWithIdeButton_OnClick"
-                                Visibility="{x:Bind IsCPlusPlusProject, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
-                            <FontIcon Glyph="&#xEC7A;" />
-                        </Button>
-                        <Button ToolTipService.ToolTip="更多" Tag="{x:Bind}">
-                            <Button.Flyout>
-                                <StaticResource ResourceKey="ProjectMenuFlyoutTemplate" />
-                            </Button.Flyout>
+                    <!-- 操作区 -->
+                    <StackPanel Grid.Column="2"
+                                Orientation="Horizontal"
+                                Spacing="8"
+                                VerticalAlignment="Center">
+                        <Button x:Name="StartProjectButton"
+                                Content="启动"
+                                Tag="{Binding}"
+                                Click="StartProjectButton_OnClick" />
+
+                        <Button x:Name="StartWithIdeButton"
+                                Content="用 IDE 打开"
+                                Tag="{Binding}"
+                                Click="StartWithIdeButton_OnClick" />
+
+                        <Button x:Name="MoreCommandsButton"
+                                Tag="{Binding}"
+                                Click="MoreCommandsButton_OnClick" Flyout="{StaticResource ProjectMenuFlyoutTemplate}">
                             <FontIcon Glyph="&#xE712;" />
                         </Button>
                     </StackPanel>
 
-                    <!-- 加载遮罩 -->
-                    <Grid Grid.ColumnSpan="3"
-                          Background="#3F000000"
-                          Visibility="{x:Bind IsLoadingMeta, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
-                          CornerRadius="10">
-                        <ProgressRing IsActive="True"
-                                      Width="24" Height="24"
-                                      HorizontalAlignment="Center"
-                                      VerticalAlignment="Center" />
-                    </Grid>
                 </Grid>
                 <Border.ContextFlyout>
                     <StaticResource ResourceKey="ProjectMenuFlyoutTemplate" />

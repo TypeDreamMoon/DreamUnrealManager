@@ -1,7 +1,9 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
+using Windows.System;
 using DreamUnrealManager.Services;
+using Microsoft.UI.Xaml;
 
 namespace DreamUnrealManager.Models
 {
@@ -419,6 +421,12 @@ namespace DreamUnrealManager.Models
         // ╭─ “集中通知”工具 ─────────────────────────────────────────────────╮
         public void NotifyDerived()
         {
+            if (UiDispatcher.Queue != null && !UiDispatcher.Queue.HasThreadAccess)
+            {
+                UiDispatcher.Queue.TryEnqueue(NotifyDerived);
+                return;
+            }
+
             OnPropertyChanged(nameof(EngineDisplayName));
             OnPropertyChanged(nameof(DescriptionDisplay));
             OnPropertyChanged(nameof(LastModifiedString));
@@ -428,6 +436,7 @@ namespace DreamUnrealManager.Models
             OnPropertyChanged(nameof(EnabledPluginsCount));
             OnPropertyChanged(nameof(GitInfoString));
         }
+
 
         public void UpdateFrom(ProjectInfo fresh)
         {
@@ -455,8 +464,20 @@ namespace DreamUnrealManager.Models
         }
 
         // ╭─ 私用 ───────────────────────────────────────────────────────────╮
+        // protected virtual void OnPropertyChanged([CallerMemberName] string name = null)
+        //     => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
         protected virtual void OnPropertyChanged([CallerMemberName] string name = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        {
+            if (UiDispatcher.Queue != null && !UiDispatcher.Queue.HasThreadAccess)
+            {
+                UiDispatcher.Queue.TryEnqueue(() =>
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name)));
+                return;
+            }
+
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
 
         private static long CalculateDirectorySize(string root)
         {

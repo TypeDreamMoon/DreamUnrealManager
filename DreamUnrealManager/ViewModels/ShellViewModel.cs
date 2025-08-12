@@ -1,19 +1,16 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-
 using DreamUnrealManager.Contracts.Services;
+using DreamUnrealManager.Services;
 using DreamUnrealManager.Views;
-
 using Microsoft.UI.Xaml.Navigation;
 
 namespace DreamUnrealManager.ViewModels;
 
 public partial class ShellViewModel : ObservableRecipient
 {
-    [ObservableProperty]
-    private bool isBackEnabled;
+    [ObservableProperty] private bool isBackEnabled;
 
-    [ObservableProperty]
-    private object? selected;
+    [ObservableProperty] private object? selected;
 
     public INavigationService NavigationService
     {
@@ -48,4 +45,14 @@ public partial class ShellViewModel : ObservableRecipient
             Selected = selectedItem;
         }
     }
+
+    public AcrylicSettingsService AcrylicSettings
+    {
+        get;
+    } = AcrylicSettingsService.Instance;
+
+    public BackgroundSettingsService BackgroundSettings
+    {
+        get;
+    } = BackgroundSettingsService.Instance;
 }

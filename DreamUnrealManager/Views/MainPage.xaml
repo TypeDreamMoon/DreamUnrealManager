@@ -42,8 +42,7 @@
                                    FontSize="18"
                                    TextTrimming="CharacterEllipsis" />
                         <TextBlock Text="{x:Bind EngineDisplayName}"
-                                   Style="{ThemeResource CaptionTextBlockStyle}"
-                                   Foreground="#CCFFFFFF" />
+                                   Style="{ThemeResource CaptionTextBlockStyle}" />
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="15" Spacing="15">
@@ -96,11 +95,14 @@
                     FontSize="50"
                     FontWeight="Bold"
                     Text="Dream Unreal Manager"
-                    Margin="0, 0, 0, 15" />
+                    Margin="0, 0, 0, 15"
+                    Foreground="White" />
 
-                <TextBlock x:Name="CurrentVersionTextBlock" Foreground="{ThemeResource ApplicationSecondaryForegroundThemeBrush}" />
-                <TextBlock x:Name="GithubVersionTextBlock" Foreground="{ThemeResource ApplicationSecondaryForegroundThemeBrush}" Text="正在检查..." />
-                <HyperlinkButton x:Name="NewVersionHyperLinkButton" NavigateUri="https://github.com/TypeDreamMoon/DreamUnrealManager">
+                <TextBlock x:Name="CurrentVersionTextBlock" Foreground="Gray" />
+                <TextBlock x:Name="GithubVersionTextBlock" Foreground="Gray" Text="正在检查..." />
+                <HyperlinkButton x:Name="NewVersionHyperLinkButton"
+                                 NavigateUri="https://github.com/TypeDreamMoon/DreamUnrealManager"
+                                 Visibility="Collapsed">
                     <TextBlock Foreground="DeepSkyBlue">发现新版本</TextBlock>
                 </HyperlinkButton>
 
@@ -158,7 +160,9 @@
                 CornerRadius="8">
 
             <Border.Background>
-                <AcrylicBrush TintColor="Black" TintOpacity="0.5" />
+                <AcrylicBrush TintColor="{ThemeResource  SystemRevealChromeMediumColor}"
+                              TintOpacity="{x:Bind ViewModel.AcrylicSettings.TintOpacity, Mode=OneWay}"
+                              TintLuminosityOpacity="{x:Bind ViewModel.AcrylicSettings.TintLuminosityOpacity, Mode=OneWay}" />
             </Border.Background>
 
             <Grid HorizontalAlignment="Stretch"
@@ -194,5 +198,13 @@
                           IsItemClickEnabled="False" />
             </Grid>
         </Border>
+
+        <HyperlinkButton NavigateUri="https://pns.kurogames.com/"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Bottom"
+                         Padding="15"
+                         Opacity="0.5">
+            <TextBlock Text="图片出处: 战双帕弥什官方 角色: 赛琳娜·希声" FontSize="15" />
+        </HyperlinkButton>
     </Grid>
 </Page>

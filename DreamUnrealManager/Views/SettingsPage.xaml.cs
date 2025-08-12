@@ -13,6 +13,7 @@ using DreamUnrealManager.Services;
 using Windows.UI;
 using DreamUnrealManager.Helpers;
 using Microsoft.UI;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Path = ABI.Microsoft.UI.Xaml.Shapes.Path;
 
 namespace DreamUnrealManager.Views
@@ -27,7 +28,10 @@ namespace DreamUnrealManager.Views
         } = new();
 
         private bool _fontInitDone;
-        private const string ThemeSettingsKey = "AppTheme";
+        private AcrylicSettingsService acrylicSettings
+        {
+            get;
+        } = AcrylicSettingsService.Instance;
 
         public SettingsPage()
         {
@@ -48,6 +52,11 @@ namespace DreamUnrealManager.Views
 
             AutoDetectIdePaths();
             OnLoaded_SyncThemeSelection();
+
+            AcrylicTintOpacitySettingSlider.Value = acrylicSettings.TintOpacity * 100;
+            AcrylicTintLuminosityOpacitySettingSlider.Value = acrylicSettings.TintLuminosityOpacity * 100;
+
+            CloseBackgroundImageButton.IsChecked = BackgroundSettingsService.Instance.BackgroundOpacity == 0;
         }
 
         private void OnLoaded_SyncThemeSelection()
@@ -66,17 +75,17 @@ namespace DreamUnrealManager.Views
         {
             var border = new Border
             {
-                BorderBrush = new SolidColorBrush(Color.FromArgb(255, 211, 211, 211)), // LightGray
+                BorderBrush = new SolidColorBrush(Colors.LightGray),
                 CornerRadius = new CornerRadius(4.0),
                 Margin = new Thickness(2.0),
                 Padding = new Thickness(15.0, 10.0, 15.0, 10.0)
             };
 
-            border.Background = new AcrylicBrush()
-            {
-                TintColor = Colors.Black,
-                TintOpacity = 0.5
-            };
+            // border.Background = new AcrylicBrush()
+            // {
+            //     TintColor = (Color)Application.Current.Resources["SystemRevealChromeMediumColor"],
+            //     TintOpacity = 0.5
+            // };
 
             var grid = new Grid();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -837,6 +846,28 @@ namespace DreamUnrealManager.Views
                     ThemeModeComboBox.SelectedItem = cbi;
                     break;
                 }
+            }
+        }
+
+        private void AcrylicTintOpacitySettingSlider_OnValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        {
+            acrylicSettings.TintOpacity = e.NewValue / 100.0f;
+        }
+
+        private void AcrylicTintLuminosityOpacitySettingSlider_OnValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        {
+            acrylicSettings.TintLuminosityOpacity = e.NewValue / 100.0f;
+        }
+
+        private void CloseBackgroundImageButton_OnChanged(object sender, RoutedEventArgs e)
+        {
+            if (CloseBackgroundImageButton?.IsChecked ?? false)
+            {
+                BackgroundSettingsService.Instance.BackgroundOpacity = 0.0f;
+            }
+            else
+            {
+                BackgroundSettingsService.Instance.BackgroundOpacity = 0.5f;
             }
         }
     }
