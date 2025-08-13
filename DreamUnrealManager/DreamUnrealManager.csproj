@@ -15,7 +15,7 @@
     <EnableMsixTooling>true</EnableMsixTooling>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <WindowsPackageType>None</WindowsPackageType>
-    <Version>0.2.2</Version>
+    <Version>0.2.3</Version>
     <Title>Dream Unreal Manager</Title>
     <PlatformTarget>x64</PlatformTarget>
     <Company>64HzGames</Company>
