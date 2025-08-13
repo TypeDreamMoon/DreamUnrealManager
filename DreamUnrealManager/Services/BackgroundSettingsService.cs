@@ -7,7 +7,7 @@ namespace DreamUnrealManager.Services
     {
         BackgroundSettingsService()
         {
-            _backgroundOpacity = Clamp(Settings.Get("App.Theme.Background.Opacity", 0.5));
+            _backgroundOpacity = Clamp(SettingsService.Get("App.Theme.Background.Opacity", 0.5));
         }
         public static BackgroundSettingsService Instance
         {
@@ -25,7 +25,7 @@ namespace DreamUnrealManager.Services
                 if (Math.Abs(_backgroundOpacity - v) > double.Epsilon)
                 {
                     _backgroundOpacity = v;
-                    Settings.Set("App.Theme.Background.Opacity", v);
+                    SettingsService.Set("App.Theme.Background.Opacity", v);
                     OnPropertyChanged();
                 }
             }

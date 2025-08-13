@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml;
 
 namespace DreamUnrealManager.Services
 {
-    public static class UiDispatcher
+    public static class UiDispatcherService
     {
         public static DispatcherQueue Queue
         {

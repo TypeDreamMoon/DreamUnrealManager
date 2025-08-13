@@ -2,12 +2,13 @@
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using DreamUnrealManager.Contracts.Services;
 using DreamUnrealManager.Models;
 using Microsoft.Win32;
 
 namespace DreamUnrealManager.Services
 {
-    public sealed class EngineResolver : IEngineResolver
+    public sealed class EngineResolverService : IEngineResolverService
     {
         private const string HKCU_Builds = @"Software\Epic Games\Unreal Engine\Builds";
         private const string HKLM_Builds = @"SOFTWARE\Epic Games\Unreal Engine\Builds";

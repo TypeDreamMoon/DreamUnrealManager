@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using DreamUnrealManager.Models;
 
-namespace DreamUnrealManager.Services
+namespace DreamUnrealManager.Contracts.Services
 {
     public interface IEngineSwitchService
     {

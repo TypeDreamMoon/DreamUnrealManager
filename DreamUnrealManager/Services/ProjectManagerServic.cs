@@ -9,10 +9,10 @@ using DreamUnrealManager.Models;
 
 namespace DreamUnrealManager.Services
 {
-    public class ProjectManagerService
+    public class ProjectManagerServic
     {
-        private static ProjectManagerService _instance;
-        public static ProjectManagerService Instance => _instance ??= new ProjectManagerService();
+        private static ProjectManagerServic _instance;
+        public static ProjectManagerServic Instance => _instance ??= new ProjectManagerServic();
 
         private readonly string _configFilePath;
 
@@ -22,7 +22,7 @@ namespace DreamUnrealManager.Services
             private set;
         }
 
-        private ProjectManagerService()
+        private ProjectManagerServic()
         {
             var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             var appFolder = Path.Combine(appDataPath, "DreamUnrealManager");

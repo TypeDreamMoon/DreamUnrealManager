@@ -6,6 +6,7 @@ using System.Diagnostics;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage.Pickers;
 using CommunityToolkit.WinUI.Controls;
+using DreamUnrealManager.Contracts.Services;
 using DreamUnrealManager.Models;
 using DreamUnrealManager.Services;
 using Microsoft.UI;
@@ -29,12 +30,12 @@ namespace DreamUnrealManager.Views
         private bool _onlyFavorites = false;
 
         // 服务
-        private readonly IProjectRepository _repo;
-        private readonly IProjectFactory _factory;
-        private readonly IProjectFilter _filter;
+        private readonly IProjectRepositoryService _repo;
+        private readonly IProjectFactoryService _factoryService;
+        private readonly IProjectFilterService _filterService;
         private readonly IProjectSearchService _search;
         private readonly IBuildService _build;
-        private readonly IIdeLauncher _ide;
+        private readonly IIdeLauncherService _ide;
         private readonly IEngineSwitchService _engineSwitch;
         private readonly IDialogService _dialogs;
         private readonly IUnrealProjectService _uproj;
@@ -46,12 +47,12 @@ namespace DreamUnrealManager.Views
         public LauncherPage()
         {
             // 先初始化服务（避免 XAML 初始化期间触发的事件用到空引用）
-            _repo = new ProjectRepository();
-            _filter = new ProjectFilter();
-            _factory = new ProjectFactory(new EngineResolver());
-            _search = new ProjectSearchService(_factory);
+            _repo = new ProjectRepositoryService();
+            _filterService = new ProjectFilterService();
+            _factoryService = new ProjectFactoryService(new EngineResolverService());
+            _search = new ProjectSearchService(_factoryService);
             _build = new BuildService();
-            _ide = new IdeLauncher();
+            _ide = new IdeLauncherService();
             _engineSwitch = new EngineSwitchService();
             _dialogs = new DialogService();
             _uproj = new UnrealProjectService();
@@ -70,7 +71,10 @@ namespace DreamUnrealManager.Views
                 LoadEngineFilters();
                 ApplyFilters();
 
-                FavoriteFrontToggle.IsChecked = Settings.Get("Launcher.FavoriteFirst", true);
+                if (FavoriteFrontToggle != null)
+                {
+                    FavoriteFrontToggle.IsChecked = SettingsService.Get("Launcher.FavoriteFirst", true);
+                }
 
                 // 两阶段补全（元数据→体积）
                 _ = RehydrateProjectsAsync(_allProjects);
@@ -159,7 +163,7 @@ namespace DreamUnrealManager.Views
 
                     if (File.Exists(p.ProjectPath))
                     {
-                        var fresh = await _factory.CreateAsync(p.ProjectPath);
+                        var fresh = await _factoryService.CreateAsync(p.ProjectPath);
                         if (fresh != null)
                         {
                             // 回填关键字段并统一刷新派生属性
@@ -269,7 +273,7 @@ namespace DreamUnrealManager.Views
 
         private void EngineFilterComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_filter == null) return; // 保险
+            if (_filterService == null) return; // 保险
             if (sender is ComboBox cb && cb.SelectedItem is ComboBoxItem item)
             {
                 _currentEngineFilter = item.Tag?.ToString() ?? "ALL_ENGINES";
@@ -279,7 +283,7 @@ namespace DreamUnrealManager.Views
 
         private void SortOrderComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_filter == null) return; // 保险
+            if (_filterService == null) return; // 保险
             if (sender is ComboBox cb && cb.SelectedItem is ComboBoxItem item)
             {
                 _currentSortOrder = item.Tag?.ToString() ?? "LastUsed";
@@ -301,7 +305,7 @@ namespace DreamUnrealManager.Views
         private void ApplyFilters()
         {
             if (_allProjects == null) _allProjects = new List<ProjectInfo>();
-            if (_filter == null) return;
+            if (_filterService == null) return;
 
             var opts = new ProjectFilterOptions
             {
@@ -309,10 +313,10 @@ namespace DreamUnrealManager.Views
                 EngineFilter = _currentEngineFilter ?? "ALL_ENGINES",
                 SortOrder = _currentSortOrder ?? "LastUsed",
                 OnlyFavorites = FavoriteOnlyToggle?.IsChecked == true, // 工具栏开关
-                FavoriteFirst = Settings.Get("Launcher.FavoriteFirst", true) // 收藏置顶
+                FavoriteFirst = SettingsService.Get("Launcher.FavoriteFirst", true) // 收藏置顶
             };
 
-            var result = _filter.FilterAndSort(_allProjects, opts)?.ToList() ?? new List<ProjectInfo>();
+            var result = _filterService.FilterAndSort(_allProjects, opts)?.ToList() ?? new List<ProjectInfo>();
 
             _filteredProjects.Clear();
             foreach (var p in result) _filteredProjects.Add(p);
@@ -326,6 +330,7 @@ namespace DreamUnrealManager.Views
         {
             try
             {
+                if (EngineFilterComboBox == null) return;
                 EngineFilterComboBox.Items.Clear();
                 EngineFilterComboBox.Items.Add(new ComboBoxItem { Content = "所有引擎版本", Tag = "ALL_ENGINES" });
 
@@ -443,7 +448,7 @@ namespace DreamUnrealManager.Views
                 var file = await picker.PickSingleFileAsync();
                 if (file == null) return;
 
-                var created = await _factory.CreateAsync(file.Path);
+                var created = await _factoryService.CreateAsync(file.Path);
                 if (created != null && !_allProjects.Any(p => p.ProjectPath == created.ProjectPath))
                 {
                     _allProjects.Add(created);
@@ -467,7 +472,7 @@ namespace DreamUnrealManager.Views
                 foreach (var p in _allProjects.ToList())
                 {
                     if (!File.Exists(p.ProjectPath)) continue;
-                    var fresh = await _factory.CreateAsync(p.ProjectPath);
+                    var fresh = await _factoryService.CreateAsync(p.ProjectPath);
                     if (fresh != null)
                     {
                         fresh.LastUsed = p.LastUsed;
@@ -695,7 +700,9 @@ namespace DreamUnrealManager.Views
             if (p.AssociatedEngine != null)
             {
                 Add("引擎路径", p.AssociatedEngine.EnginePath);
-                var ver = !string.IsNullOrEmpty(p.AssociatedEngine.FullVersion) ? p.AssociatedEngine.FullVersion : p.AssociatedEngine.Version;
+                var ver = !string.IsNullOrEmpty(p.AssociatedEngine.FullVersion)
+                    ? p.AssociatedEngine.FullVersion
+                    : p.AssociatedEngine.Version;
                 Add("引擎版本", ver);
             }
 
@@ -724,7 +731,8 @@ namespace DreamUnrealManager.Views
 
         private FrameworkElement CreatePathButtons(ProjectInfo p)
         {
-            var sp = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 4, 0, 0) };
+            var sp = new StackPanel
+                { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 4, 0, 0) };
 
             var openBtn = new Button { Content = "打开文件夹" };
             openBtn.Click += (_, __) =>
@@ -803,11 +811,11 @@ namespace DreamUnrealManager.Views
                     Process.Start("explorer.exe", p.ProjectDirectory);
             }
         }
-        
+
         private async Task GenerateVSWithLogAsync(ProjectInfo p)
         {
             // ProgressLogDialog 是我们前面加的那个“日志+进度”对话框类
-            var dlg = new ProgressLogDialog($"正在为「{p.DisplayName}」生成 VS 项目文件", this.XamlRoot);
+            var dlg = new ProgressLogDialogService($"正在为「{p.DisplayName}」生成 VS 项目文件", this.XamlRoot);
             var log = new Progress<string>(s => dlg.AppendLine(s));
             var pct = new Progress<int>(v => dlg.SetProgress(v));
 
@@ -843,7 +851,7 @@ namespace DreamUnrealManager.Views
         {
             if (sender is not MenuFlyoutItem item || item.Tag is not ProjectInfo p) return;
 
-            var dlg = new ProgressLogDialog($"正在为「{p.DisplayName}」生成 VS 项目文件", this.XamlRoot);
+            var dlg = new ProgressLogDialogService($"正在为「{p.DisplayName}」生成 VS 项目文件", this.XamlRoot);
             var log = new Progress<string>(s => dlg.AppendLine(s));
             var pct = new Progress<int>(v => dlg.SetProgress(v));
 
@@ -908,7 +916,7 @@ namespace DreamUnrealManager.Views
 
                 if (combo.Items.Count > 0) combo.SelectedIndex = 0;
                 dialog.Content = combo;
-                
+
                 // 第一次：醒目警告
                 var warned = await _dialogs.ShowWarningConfirmAsync(
                     "切换引擎版本警告",
@@ -932,7 +940,8 @@ namespace DreamUnrealManager.Views
                 }
 
                 var result = await dialog.ShowAsync();
-                if (result == ContentDialogResult.Primary && combo.SelectedItem is ComboBoxItem cb && cb.Tag is UnrealEngineInfo selected)
+                if (result == ContentDialogResult.Primary && combo.SelectedItem is ComboBoxItem cb &&
+                    cb.Tag is UnrealEngineInfo selected)
                 {
                     var ok = await _engineSwitch.SwitchAsync(p, selected.Version);
                     if (ok)
@@ -1101,7 +1110,7 @@ namespace DreamUnrealManager.Views
 
         private void FavoriteFrontToggle_Checked(object sender, RoutedEventArgs e)
         {
-            Settings.Set("Launcher.FavoriteFirst", FavoriteFrontToggle?.IsChecked == true);
+            SettingsService.Set("Launcher.FavoriteFirst", FavoriteFrontToggle?.IsChecked == true);
             ApplyFilters();
         }
 

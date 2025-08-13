@@ -7,6 +7,7 @@
 
     <Page.Background>
         <ImageBrush ImageSource="../Assets/wallhaven-x6vkvd.png"
+                    Stretch="UniformToFill"
                     Opacity="{x:Bind ViewModel.BackgroundSettings.BackgroundOpacity, Mode=OneWay}" />
     </Page.Background>
 
@@ -52,6 +53,14 @@
                         <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE9A4;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+                
+                <NavigationViewItem x:Name="UnrealLauncherNavItem"
+                                    x:Uid="Shell_UnrealLauncher"
+                                    helpers:NavigationHelper.NavigateTo="DreamUnrealManager.ViewModels.UnrealLauncherViewModel">
+                    <NavigationViewItem.Icon>
+                        <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xEA40;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
 
                 <NavigationViewItem x:Name="PluginsBuildNavItem"
                                     x:Uid="Shell_PluginsBuild"
@@ -59,35 +68,6 @@
                     <NavigationViewItem.Icon>
                         <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xF156;" />
                     </NavigationViewItem.Icon>
-                    <!-- 自定义内容模板，显示标题和InfoBadge -->
-                    <NavigationViewItem.Content>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <TextBlock Grid.Column="0"
-                                       VerticalAlignment="Center" Text="Plugins Build" />
-
-                            <InfoBadge x:Name="PluginsBuildStatusBadge"
-                                       Grid.Column="1"
-                                       Value="1"
-                                       Visibility="Collapsed"
-                                       Margin="8,0,0,0"
-                                       VerticalAlignment="Center">
-                                <InfoBadge.IconSource>
-                                    <FontIconSource x:Name="PluginsBuildStatusIcon"
-                                                    Glyph="&#xE9F3;"
-                                                    FontSize="12" />
-                                </InfoBadge.IconSource>
-                                <ToolTipService.ToolTip>
-                                    <ToolTip x:Name="PluginsBuildStatusTooltip"
-                                             Content="插件构建状态" />
-                                </ToolTipService.ToolTip>
-                            </InfoBadge>
-                        </Grid>
-                    </NavigationViewItem.Content>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
 

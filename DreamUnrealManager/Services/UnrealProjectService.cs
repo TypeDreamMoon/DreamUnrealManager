@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using DreamUnrealManager.Contracts.Services;
 using DreamUnrealManager.Models;
 
 namespace DreamUnrealManager.Services
@@ -6,12 +7,12 @@ namespace DreamUnrealManager.Services
     public sealed class UnrealProjectService : IUnrealProjectService
     {
         private IDialogService _dlg;
-        private IProjectRepository _repo;
+        private IProjectRepositoryService _repo;
 
         public UnrealProjectService()
         {
             _dlg = new DialogService();
-            _repo = new ProjectRepository();
+            _repo = new ProjectRepositoryService();
         }
 
         public async Task LaunchProject(ProjectInfo project)

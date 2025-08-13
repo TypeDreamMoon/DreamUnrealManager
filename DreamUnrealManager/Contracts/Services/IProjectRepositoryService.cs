@@ -1,8 +1,8 @@
 ﻿using DreamUnrealManager.Models;
 
-namespace DreamUnrealManager.Services
+namespace DreamUnrealManager.Contracts.Services
 {
-    public interface IProjectRepository
+    public interface IProjectRepositoryService
     {
         Task<List<ProjectInfo>> LoadAsync();
         Task SaveAsync(IEnumerable<ProjectInfo> projects);

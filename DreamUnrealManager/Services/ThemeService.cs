@@ -19,7 +19,7 @@ namespace DreamUnrealManager.Services
         {
             try
             {
-                return Settings.Get("App.Theme", AppThemeOption.System);
+                return SettingsService.Get("App.Theme", AppThemeOption.System);
             }
             catch (Exception ex)
             {
@@ -32,7 +32,7 @@ namespace DreamUnrealManager.Services
         {
             try
             {
-                Settings.Set("App.Theme", option);
+                SettingsService.Set("App.Theme", option);
                 return;
             }
             catch (Exception ex)

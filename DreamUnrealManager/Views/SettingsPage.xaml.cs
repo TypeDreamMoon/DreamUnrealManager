@@ -314,9 +314,9 @@ namespace DreamUnrealManager.Views
         {
             if (sender is TextBox textBox)
             {
-                var defaultIde = Settings.Get("Default.IDE", "VS");
+                var defaultIde = SettingsService.Get("Default.IDE", "VS");
                 var idePathKey = $"IDE.Path.{defaultIde}";
-                Settings.Set(idePathKey, textBox.Text);
+                SettingsService.Set(idePathKey, textBox.Text);
             }
         }
 
@@ -329,7 +329,7 @@ namespace DreamUnrealManager.Views
                     IdePathDescription.Text = "正在自动检测IDE路径...";
                 }
 
-                var defaultIde = Settings.Get("Default.IDE", "VS");
+                var defaultIde = SettingsService.Get("Default.IDE", "VS");
                 var detectedPath = await DetectIdePath(defaultIde);
 
                 if (!string.IsNullOrEmpty(detectedPath) && File.Exists(detectedPath))
@@ -361,7 +361,7 @@ namespace DreamUnrealManager.Views
                 filePicker.SuggestedStartLocation = PickerLocationId.ComputerFolder;
 
                 // 根据当前选择的IDE类型设置特定的文件过滤器
-                var defaultIde = Settings.Get("Default.IDE", "VS");
+                var defaultIde = SettingsService.Get("Default.IDE", "VS");
                 switch (defaultIde)
                 {
                     case "VS":
@@ -424,7 +424,7 @@ namespace DreamUnrealManager.Views
             if (FontCombo.SelectedItem is FontOption opt)
             {
                 // 仅保存到设置；不改页面字体
-                Settings.Set("Console.Font", opt.Name);
+                SettingsService.Set("Console.Font", opt.Name);
             }
         }
 
@@ -433,7 +433,7 @@ namespace DreamUnrealManager.Views
             if (sender is ComboBox comboBox && comboBox.SelectedItem is ComboBoxItem item)
             {
                 var ideTag = item.Tag?.ToString() ?? "VS";
-                Settings.Set("Default.IDE", ideTag);
+                SettingsService.Set("Default.IDE", ideTag);
 
                 // 更新IDE路径设置的UI显示
                 UpdateIdePathUI();
@@ -518,26 +518,26 @@ namespace DreamUnrealManager.Views
 
         private void UpdateIdePathUI()
         {
-            var defaultIde = Settings.Get("Default.IDE", "VS");
+            var defaultIde = SettingsService.Get("Default.IDE", "VS");
 
             switch (defaultIde)
             {
                 case "VS":
                     IdePathHeader.Text = "Visual Studio 路径:";
                     IdePathTextBox.PlaceholderText = "例如: C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\devenv.exe";
-                    IdePathTextBox.Text = Settings.Get("IDE.Path.VS", "");
+                    IdePathTextBox.Text = SettingsService.Get("IDE.Path.VS", "");
                     IdePathDescription.Text = "设置 Visual Studio 的可执行文件路径";
                     break;
                 case "RD":
                     IdePathHeader.Text = "Rider 路径:";
                     IdePathTextBox.PlaceholderText = "例如: C:\\Program Files\\JetBrains\\JetBrains Rider\\bin\\rider64.exe";
-                    IdePathTextBox.Text = Settings.Get("IDE.Path.RD", "");
+                    IdePathTextBox.Text = SettingsService.Get("IDE.Path.RD", "");
                     IdePathDescription.Text = "设置 Rider 的可执行文件路径";
                     break;
                 case "VSCode":
                     IdePathHeader.Text = "VS Code 路径:";
                     IdePathTextBox.PlaceholderText = "例如: C:\\Users\\{用户名}\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe";
-                    IdePathTextBox.Text = Settings.Get("IDE.Path.VSCode", "");
+                    IdePathTextBox.Text = SettingsService.Get("IDE.Path.VSCode", "");
                     IdePathDescription.Text = "设置 Visual Studio Code 的可执行文件路径";
                     break;
                 default:
@@ -552,7 +552,7 @@ namespace DreamUnrealManager.Views
         private void LoadFonts()
         {
             // 从设置读取；若无则用 Consolas
-            var desiredName = Settings.Get("Console.Font", "Consolas");
+            var desiredName = SettingsService.Get("Console.Font", "Consolas");
 
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -588,9 +588,9 @@ namespace DreamUnrealManager.Views
 
         private void LoadIdeSettings()
         {
-            var defaultIde = Settings.Get("Default.IDE", "VS");
+            var defaultIde = SettingsService.Get("Default.IDE", "VS");
             var idePathKey = $"IDE.Path.{defaultIde}";
-            var idePath = Settings.Get(idePathKey, "");
+            var idePath = SettingsService.Get(idePathKey, "");
             if (!string.IsNullOrEmpty(idePath))
             {
                 IdePathTextBox.Text = idePath;
@@ -600,7 +600,7 @@ namespace DreamUnrealManager.Views
         private void LoadDefaultIdeSetting()
         {
             // 加载已保存的默认 IDE 设置
-            var defaultIde = Settings.Get("Default.IDE", "VS");
+            var defaultIde = SettingsService.Get("Default.IDE", "VS");
 
             // 根据保存的值设置选中项
             switch (defaultIde)
@@ -625,9 +625,9 @@ namespace DreamUnrealManager.Views
             try
             {
                 // 检查是否已经设置过IDE路径，如果设置过则跳过自动检测
-                var defaultIde = Settings.Get("Default.IDE", "VS");
+                var defaultIde = SettingsService.Get("Default.IDE", "VS");
                 var idePathKey = $"IDE.Path.{defaultIde}";
-                var existingPath = Settings.Get(idePathKey, "");
+                var existingPath = SettingsService.Get(idePathKey, "");
 
                 // 如果当前IDE类型已经有设置的路径，则不进行自动检测
                 if (!string.IsNullOrEmpty(existingPath) && File.Exists(existingPath))
@@ -646,7 +646,7 @@ namespace DreamUnrealManager.Views
                 if (!string.IsNullOrEmpty(detectedPath) && File.Exists(detectedPath))
                 {
                     // 保存检测到的路径
-                    Settings.Set(idePathKey, detectedPath);
+                    SettingsService.Set(idePathKey, detectedPath);
 
                     // 更新UI
                     if (IdePathTextBox != null)

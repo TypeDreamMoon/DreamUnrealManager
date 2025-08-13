@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using DreamUnrealManager.Contracts.Services;
 using DreamUnrealManager.Models;
 
 namespace DreamUnrealManager.Services
 {
-    public sealed class ProjectRepository : IProjectRepository
+    public sealed class ProjectRepositoryService : IProjectRepositoryService
     {
         public async Task<List<ProjectInfo>> LoadAsync()
         {

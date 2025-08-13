@@ -5,7 +5,7 @@ using System.Text.Json.Nodes;
 
 namespace DreamUnrealManager.Services
 {
-    public static class Settings
+    public static class SettingsService
     {
         private static readonly string Dir =
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -14,7 +14,7 @@ namespace DreamUnrealManager.Services
         private static readonly object _lock = new();
         private static JsonObject _json = new();
 
-        static Settings()
+        static SettingsService()
         {
             try
             {

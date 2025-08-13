@@ -101,7 +101,7 @@ namespace DreamUnrealManager.Views
                 // 页面加载完成后显示欢迎消息
                 WriteToTerminal("插件构建页面已就绪", TerminalMessageType.Success);
 
-                TerminalOutput.FontFamily = new FontFamily(Settings.Get("Console.Font", "Consolas"));
+                TerminalOutput.FontFamily = new FontFamily(SettingsService.Get("Console.Font", "Consolas"));
 
                 WriteToTerminal("Powered by Dream Moon. © 2025", TerminalMessageType.Info);
             }

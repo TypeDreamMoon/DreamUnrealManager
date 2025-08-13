@@ -1,4 +1,4 @@
-﻿namespace DreamUnrealManager.Services
+﻿namespace DreamUnrealManager.Contracts.Services
 {
     public interface IBuildService
     {

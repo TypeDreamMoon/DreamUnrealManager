@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using DreamUnrealManager.Contracts.Services;
 using DreamUnrealManager.Models;
 
 namespace DreamUnrealManager.Services
@@ -39,7 +40,7 @@ namespace DreamUnrealManager.Services
     }
 
     // ⬇️ 实现接口
-    public sealed class ProjectFilter : IProjectFilter
+    public sealed class ProjectFilterService : IProjectFilterService
     {
         public IEnumerable<ProjectInfo> FilterAndSort(IEnumerable<ProjectInfo> projects, ProjectFilterOptions opt)
         {

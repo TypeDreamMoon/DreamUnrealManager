@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace DreamUnrealManager.Services
+namespace DreamUnrealManager.Contracts.Services
 {
     public interface IDialogService
     {

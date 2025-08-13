@@ -1,9 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-
 using DreamUnrealManager.Contracts.Services;
 using DreamUnrealManager.ViewModels;
 using DreamUnrealManager.Views;
-
 using Microsoft.UI.Xaml.Controls;
 
 namespace DreamUnrealManager.Services;
@@ -16,6 +14,7 @@ public class PageService : IPageService
     {
         Configure<MainViewModel, MainPage>();
         Configure<LauncherViewModel, LauncherPage>();
+        Configure<UnrealLauncherViewModel, UnrealLauncherPage>();
         Configure<PluginsBuildViewModel, PluginsBuildPage>();
         Configure<SettingsViewModel, SettingsPage>();
         Configure<FabViewModel, FabPage>();

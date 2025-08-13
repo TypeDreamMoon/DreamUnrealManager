@@ -63,7 +63,6 @@ public partial class App : Application
 
             // Services
             services.AddSingleton<IAppNotificationService, AppNotificationService>();
-            services.AddSingleton<ILocalSettingsService, LocalSettingsService>();
             services.AddSingleton<IThemeSelectorService, ThemeSelectorService>();
             services.AddTransient<INavigationViewService, NavigationViewService>();
 
@@ -88,6 +87,9 @@ public partial class App : Application
 
             services.AddTransient<FabPage>();
             services.AddTransient<FabViewModel>();
+
+            services.AddTransient<UnrealLauncherPage>();
+            services.AddTransient<UnrealLauncherViewModel>();
 
             // Configuration
             services.Configure<LocalSettingsOptions>(context.Configuration.GetSection(nameof(LocalSettingsOptions)));
@@ -115,6 +117,6 @@ public partial class App : Application
         var opt = ThemeService.Load();
         ThemeService.ApplyToWindow(App.MainWindow, opt);
 
-        UiDispatcher.Initialize(MainWindow);
+        UiDispatcherService.Initialize(MainWindow);
     }
 }

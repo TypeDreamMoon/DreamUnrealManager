@@ -1,8 +1,8 @@
 ﻿using DreamUnrealManager.Models;
 
-namespace DreamUnrealManager.Services
+namespace DreamUnrealManager.Contracts.Services
 {
-    public interface IProjectFactory
+    public interface IProjectFactoryService
     {
         Task<ProjectInfo?> CreateAsync(string uprojectPath, CancellationToken ct = default);
     }

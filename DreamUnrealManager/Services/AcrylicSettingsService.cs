@@ -11,8 +11,8 @@ namespace DreamUnrealManager.Services
         private AcrylicSettingsService()
         {
             // 从你的 Settings 里读取（你项目里已有 Settings.Get/Save）
-            _tintOpacity = Clamp(Settings.Get("App.Theme.Acrylic.TintOpacity", 0.6));
-            _tintLuminosityOpacity = Clamp(Settings.Get("App.Theme.Acrylic.TintLuminosityOpacity", 0.0));
+            _tintOpacity = Clamp(SettingsService.Get("App.Theme.Acrylic.TintOpacity", 0.6));
+            _tintLuminosityOpacity = Clamp(SettingsService.Get("App.Theme.Acrylic.TintLuminosityOpacity", 0.0));
         }
 
         private double _tintOpacity;
@@ -25,7 +25,7 @@ namespace DreamUnrealManager.Services
                 if (Math.Abs(_tintOpacity - v) > double.Epsilon)
                 {
                     _tintOpacity = v;
-                    Settings.Set("App.Theme.Acrylic.TintOpacity", v);
+                    SettingsService.Set("App.Theme.Acrylic.TintOpacity", v);
                     OnPropertyChanged();
                 }
             }
@@ -41,7 +41,7 @@ namespace DreamUnrealManager.Services
                 if (Math.Abs(_tintLuminosityOpacity - v) > double.Epsilon)
                 {
                     _tintLuminosityOpacity = v;
-                    Settings.Set("App.Theme.Acrylic.TintLuminosityOpacity", v);
+                    SettingsService.Set("App.Theme.Acrylic.TintLuminosityOpacity", v);
                     OnPropertyChanged();
                 }
             }

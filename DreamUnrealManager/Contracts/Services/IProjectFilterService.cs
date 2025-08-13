@@ -1,8 +1,9 @@
 ﻿using DreamUnrealManager.Models;
+using DreamUnrealManager.Services;
 
-namespace DreamUnrealManager.Services
+namespace DreamUnrealManager.Contracts.Services
 {
-    public interface IProjectFilter
+    public interface IProjectFilterService
     {
         IEnumerable<ProjectInfo> FilterAndSort(IEnumerable<ProjectInfo> projects, ProjectFilterOptions opt);
     }

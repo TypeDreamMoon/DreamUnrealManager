@@ -421,9 +421,9 @@ namespace DreamUnrealManager.Models
         // ╭─ “集中通知”工具 ─────────────────────────────────────────────────╮
         public void NotifyDerived()
         {
-            if (UiDispatcher.Queue != null && !UiDispatcher.Queue.HasThreadAccess)
+            if (UiDispatcherService.Queue != null && !UiDispatcherService.Queue.HasThreadAccess)
             {
-                UiDispatcher.Queue.TryEnqueue(NotifyDerived);
+                UiDispatcherService.Queue.TryEnqueue(NotifyDerived);
                 return;
             }
 
@@ -469,14 +469,22 @@ namespace DreamUnrealManager.Models
 
         protected virtual void OnPropertyChanged([CallerMemberName] string name = null)
         {
-            if (UiDispatcher.Queue != null && !UiDispatcher.Queue.HasThreadAccess)
+            try
             {
-                UiDispatcher.Queue.TryEnqueue(() =>
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name)));
-                return;
-            }
+                if (UiDispatcherService.Queue != null && !UiDispatcherService.Queue.HasThreadAccess)
+                {
+                    UiDispatcherService.Queue.TryEnqueue(() =>
+                        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name)));
+                    return;
+                }
 
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                throw;
+            }
         }
 
         private static long CalculateDirectorySize(string root)
@@ -506,7 +514,7 @@ namespace DreamUnrealManager.Models
 
         public string GetIdeButtonText()
         {
-            var defaultIde = Settings.Get("Default.IDE", "VS");
+            var defaultIde = SettingsService.Get("Default.IDE", "VS");
             return defaultIde switch
             {
                 "VS" => "用 VS 打开",

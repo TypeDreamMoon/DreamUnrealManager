@@ -1,6 +1,5 @@
 ﻿using DreamUnrealManager.Contracts.Services;
 using DreamUnrealManager.Helpers;
-
 using Microsoft.UI.Xaml;
 
 namespace DreamUnrealManager.Services;
@@ -9,18 +8,20 @@ public class ThemeSelectorService : IThemeSelectorService
 {
     private const string SettingsKey = "AppBackgroundRequestedTheme";
 
-    public ElementTheme Theme { get; set; } = ElementTheme.Default;
-
-    private readonly ILocalSettingsService _localSettingsService;
-
-    public ThemeSelectorService(ILocalSettingsService localSettingsService)
+    public ElementTheme Theme
     {
-        _localSettingsService = localSettingsService;
+        get;
+        set;
+    } = ElementTheme.Default;
+
+
+    public ThemeSelectorService()
+    {
     }
 
     public async Task InitializeAsync()
     {
-        Theme = await LoadThemeFromSettingsAsync();
+        Theme = LoadThemeFromSettingsAsync();
         await Task.CompletedTask;
     }
 
@@ -29,7 +30,7 @@ public class ThemeSelectorService : IThemeSelectorService
         Theme = theme;
 
         await SetRequestedThemeAsync();
-        await SaveThemeInSettingsAsync(Theme);
+        SaveThemeInSettingsAsync(Theme);
     }
 
     public async Task SetRequestedThemeAsync()
@@ -44,9 +45,9 @@ public class ThemeSelectorService : IThemeSelectorService
         await Task.CompletedTask;
     }
 
-    private async Task<ElementTheme> LoadThemeFromSettingsAsync()
+    private ElementTheme LoadThemeFromSettingsAsync()
     {
-        var themeName = await _localSettingsService.ReadSettingAsync<string>(SettingsKey);
+        var themeName = SettingsService.Get<string>(SettingsKey);
 
         if (Enum.TryParse(themeName, out ElementTheme cacheTheme))
         {
@@ -56,8 +57,8 @@ public class ThemeSelectorService : IThemeSelectorService
         return ElementTheme.Default;
     }
 
-    private async Task SaveThemeInSettingsAsync(ElementTheme theme)
+    private void SaveThemeInSettingsAsync(ElementTheme theme)
     {
-        await _localSettingsService.SaveSettingAsync(SettingsKey, theme.ToString());
+        SettingsService.Set(SettingsKey, theme.ToString());
     }
 }

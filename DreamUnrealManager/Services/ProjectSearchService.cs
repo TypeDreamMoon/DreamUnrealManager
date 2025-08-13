@@ -1,11 +1,12 @@
-﻿using DreamUnrealManager.Models;
+﻿using DreamUnrealManager.Contracts.Services;
+using DreamUnrealManager.Models;
 
 namespace DreamUnrealManager.Services
 {
     public sealed class ProjectSearchService : IProjectSearchService
     {
-        private readonly IProjectFactory _factory;
-        public ProjectSearchService(IProjectFactory factory) => _factory = factory;
+        private readonly IProjectFactoryService _factoryService;
+        public ProjectSearchService(IProjectFactoryService factoryService) => _factoryService = factoryService;
 
         public async Task<List<ProjectInfo>> SearchAsync(string rootFolder, IProgress<int>? progress = null, CancellationToken ct = default)
         {
@@ -19,7 +20,7 @@ namespace DreamUnrealManager.Services
             foreach (var path in uprojects)
             {
                 ct.ThrowIfCancellationRequested();
-                var proj = await _factory.CreateAsync(path, ct);
+                var proj = await _factoryService.CreateAsync(path, ct);
                 if (proj != null) results.Add(proj);
 
                 count++;

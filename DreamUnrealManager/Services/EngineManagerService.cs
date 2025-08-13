@@ -40,13 +40,16 @@ namespace DreamUnrealManager.Services
                 if (File.Exists(_configFilePath))
                 {
                     var json = await File.ReadAllTextAsync(_configFilePath);
-                    var engines = JsonSerializer.Deserialize<List<UnrealEngineInfo>>(json);
+                    var engines = JsonSerializer.Deserialize<List<UnrealEngineInfo>>(json) ?? new List<UnrealEngineInfo>();
+
+                    // 过滤掉历史数据里的 null 项
+                    engines = engines.Where(e => e != null).ToList();
 
                     Engines.Clear();
-                    foreach (var engine in engines ?? new List<UnrealEngineInfo>())
+                    foreach (var engine in engines)
                     {
-                        // 刷新版本信息以确保最新
-                        engine.RefreshVersionInfo();
+                        // 防御式刷新，单个失败不影响整体
+                        try { engine.RefreshVersionInfo(); } catch { }
                         Engines.Add(engine);
                     }
                 }
@@ -63,14 +66,16 @@ namespace DreamUnrealManager.Services
             }
         }
 
+
         public async Task SaveEngines()
         {
             try
             {
-                var json = JsonSerializer.Serialize(Engines.ToList(), new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
+                // 写盘前再次过滤 null
+                var json = JsonSerializer.Serialize(
+                    Engines.Where(e => e != null).ToList(),
+                    new JsonSerializerOptions { WriteIndented = true }
+                );
                 await File.WriteAllTextAsync(_configFilePath, json);
             }
             catch (Exception ex)
@@ -79,19 +84,24 @@ namespace DreamUnrealManager.Services
             }
         }
 
+
         public async Task<UnrealEngineInfo> AddEngine(string displayName, string enginePath)
         {
+            if (string.IsNullOrWhiteSpace(enginePath))
+                throw new Exception("引擎路径不能为空");
+
+            // 去重前先排除 null
+            if (Engines.Any(e => e != null &&
+                                 string.Equals(e.EnginePath, enginePath, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new Exception("此引擎路径已存在");
+            }
+
             var engineInfo = new UnrealEngineInfo
             {
                 DisplayName = displayName,
                 EnginePath = enginePath
             };
-
-            // 检查是否已存在相同路径的引擎
-            if (Engines.Any(e => string.Equals(e.EnginePath, enginePath, StringComparison.OrdinalIgnoreCase)))
-            {
-                throw new Exception("此引擎路径已存在");
-            }
 
             Engines.Add(engineInfo);
             await SaveEngines();
@@ -116,60 +126,61 @@ namespace DreamUnrealManager.Services
         {
             var detectedEngines = new List<UnrealEngineInfo>();
 
-            var drives = DriveInfo.GetDrives().Where(d => d.IsReady && d.DriveType == DriveType.Fixed).ToArray();
+            var drives = DriveInfo.GetDrives()
+                .Where(d => d.IsReady && d.DriveType == DriveType.Fixed)
+                .ToArray();
 
             var relativePaths = new[]
             {
-                @"Program Files\Epic Games",
-                @"Program Files\Unreal Engine",
-                @"Program Files\UnrealEngine",
-                @"Program Files\UE",
-                @"Unreal Engine",
-                @"UE",
-                @"UnrealEngine",
-                @"Unreal",
-            };
-            
-            var otherPaths = drives.SelectMany(drive => relativePaths.Select(relativePath => Path.Combine(drive.RootDirectory.FullName, relativePath)));
+        @"Program Files\Epic Games",
+        @"Program Files\Unreal Engine",
+        @"Program Files\UnrealEngine",
+        @"Program Files\UE",
+        @"Unreal Engine",
+        @"UE",
+        @"UnrealEngine",
+        @"Unreal",
+    };
+
+            var otherPaths = drives.SelectMany(drive =>
+                relativePaths.Select(relativePath => Path.Combine(drive.RootDirectory.FullName, relativePath)));
 
             foreach (var basePath in otherPaths)
             {
-                if (Directory.Exists(basePath))
-                {
-                    var engineDirs = Directory.GetDirectories(basePath)
-                        .Where(dir =>
-                        {
-                            var folderName = Path.GetFileName(dir);
-                            return folderName.StartsWith("UE_") ||
-                                   folderName.StartsWith("UnrealEngine") ||
-                                   folderName.Contains("Unreal");
-                        })
-                        .ToList();
+                if (!Directory.Exists(basePath)) continue;
 
-                    foreach (var engineDir in engineDirs)
+                var engineDirs = Directory.GetDirectories(basePath)
+                    .Where(dir =>
                     {
-                        var engine = new UnrealEngineInfo
-                        {
-                            EnginePath = engineDir
-                        };
+                        var folderName = Path.GetFileName(dir);
+                        return folderName.StartsWith("UE_", StringComparison.OrdinalIgnoreCase) ||
+                               folderName.StartsWith("UnrealEngine", StringComparison.OrdinalIgnoreCase) ||
+                               folderName.Contains("Unreal", StringComparison.OrdinalIgnoreCase);
+                    })
+                    .ToList();
 
-                        if (engine.IsValid &&
-                            !detectedEngines.Any(e => string.Equals(e.EnginePath, engineDir, StringComparison.OrdinalIgnoreCase)) &&
-                            !Engines.Any(e => string.Equals(e.EnginePath, engineDir, StringComparison.OrdinalIgnoreCase)))
-                        {
-                            detectedEngines.Add(engine);
-                        }
+                foreach (var engineDir in engineDirs)
+                {
+                    var engine = new UnrealEngineInfo { EnginePath = engineDir };
+
+                    if (engine != null && engine.IsValid &&
+                        !detectedEngines.Any(e => e != null &&
+                                                  string.Equals(e.EnginePath, engineDir, StringComparison.OrdinalIgnoreCase)) &&
+                        !Engines.Any(e => e != null &&
+                                          string.Equals(e.EnginePath, engineDir, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        detectedEngines.Add(engine);
                     }
                 }
             }
 
             // 添加检测到的引擎
-            foreach (var engine in detectedEngines)
+            foreach (var engine in detectedEngines.Where(e => e != null))
             {
                 Engines.Add(engine);
             }
 
-            if (detectedEngines.Any())
+            if (detectedEngines.Any(e => e != null))
             {
                 await SaveEngines();
             }
@@ -177,12 +188,13 @@ namespace DreamUnrealManager.Services
 
         public UnrealEngineInfo GetEngineByDisplayName(string displayName)
         {
-            return Engines.FirstOrDefault(e => e.DisplayName == displayName);
+            return Engines.FirstOrDefault(e => e != null && e.DisplayName == displayName);
         }
 
         public UnrealEngineInfo GetEngineByVersion(string version)
         {
-            return Engines.FirstOrDefault(e => e.Version == version || e.FullVersion == version);
+            return Engines.FirstOrDefault(e => e != null &&
+                                               (e.Version == version || e.FullVersion == version));
         }
 
         public List<UnrealEngineInfo> GetValidEngines()
@@ -192,7 +204,9 @@ namespace DreamUnrealManager.Services
 
         public List<UnrealEngineInfo> GetEnginesByMajorVersion(int majorVersion)
         {
-            return Engines.Where(e => e.IsValid && e.BuildVersionInfo?.MajorVersion == majorVersion).ToList();
+            return Engines
+                .Where(e => e != null && e.IsValid && (e.BuildVersionInfo?.MajorVersion == majorVersion))
+                .ToList();
         }
 
         /// <summary>
@@ -200,12 +214,13 @@ namespace DreamUnrealManager.Services
         /// </summary>
         public async Task RefreshAllEngines()
         {
-            foreach (var engine in Engines)
+            foreach (var engine in Engines.Where(e => e != null))
             {
-                engine.RefreshVersionInfo();
+                try { engine.RefreshVersionInfo(); } catch { }
             }
 
             await SaveEngines();
         }
+
     }
 }

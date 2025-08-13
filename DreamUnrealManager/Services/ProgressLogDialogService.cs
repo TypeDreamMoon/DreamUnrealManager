@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace DreamUnrealManager.Services
 {
-    public sealed class ProgressLogDialog
+    public sealed class ProgressLogDialogService
     {
         private readonly ContentDialog _dlg;
         private readonly ProgressBar _bar;
@@ -18,7 +18,7 @@ namespace DreamUnrealManager.Services
         private readonly CancellationTokenSource _cts;
         public CancellationToken Token => _cts.Token;
 
-        public ProgressLogDialog(string title, XamlRoot xamlRoot)
+        public ProgressLogDialogService(string title, XamlRoot xamlRoot)
         {
             _cts = new CancellationTokenSource();
 

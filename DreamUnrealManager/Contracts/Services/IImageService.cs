@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DreamUnrealManager.Services
+namespace DreamUnrealManager.Contracts.Services
 {
     public interface IImageService
     {

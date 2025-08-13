@@ -21,10 +21,10 @@ namespace DreamUnrealManager.Views;
 
 public sealed partial class MainPage : Page
 {
-    private readonly IProjectRepository _repo;
-    private readonly IProjectFilter _projectFilter;
+    private readonly IProjectRepositoryService _repo;
+    private readonly IProjectFilterService _projectFilterService;
     private readonly IBuildService _build;
-    private readonly IIdeLauncher _ide;
+    private readonly IIdeLauncherService _ide;
     private readonly IDialogService _dialogs;
     private readonly IUnrealProjectService _uproj;
 
@@ -45,10 +45,10 @@ public sealed partial class MainPage : Page
     {
         ViewModel = App.GetService<MainViewModel>();
 
-        _repo = new ProjectRepository();
-        _projectFilter = new ProjectFilter();
+        _repo = new ProjectRepositoryService();
+        _projectFilterService = new ProjectFilterService();
         _build = new BuildService();
-        _ide = new IdeLauncher();
+        _ide = new IdeLauncherService();
         _dialogs = new DialogService();
         _uproj = new UnrealProjectService();
 
@@ -99,7 +99,7 @@ public sealed partial class MainPage : Page
         var allProjects = await _repo.LoadAsync();
 
         // 使用过滤器筛选收藏项目
-        var filteredProjects = _projectFilter.FilterAndSort(allProjects, new ProjectFilterOptions { OnlyFavorites = true });
+        var filteredProjects = _projectFilterService.FilterAndSort(allProjects, new ProjectFilterOptions { OnlyFavorites = true });
 
         // 清空并加载筛选后的收藏项目
         FavoritesProjects.Clear();

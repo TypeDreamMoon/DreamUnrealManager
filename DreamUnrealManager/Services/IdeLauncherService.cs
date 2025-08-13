@@ -1,12 +1,13 @@
 ﻿using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
+using DreamUnrealManager.Contracts.Services;
 using DreamUnrealManager.Models;
 using Microsoft.UI.Xaml.Controls;
 
 namespace DreamUnrealManager.Services
 {
-    public sealed class IdeLauncher : IIdeLauncher
+    public sealed class IdeLauncherService : IIdeLauncherService
     {
         public async Task LaunchAsync(ProjectInfo project)
         {
@@ -18,26 +19,26 @@ namespace DreamUnrealManager.Services
 
             var slnPath = Path.Combine(project.ProjectDirectory);
 
-            string ide = Settings.Get("Default.IDE", "VS"); // 默认 IDE
+            string ide = SettingsService.Get("Default.IDE", "VS"); // 默认 IDE
             string idePath;
 
             switch (ide)
             {
                 case "VS":
                 {
-                    idePath = Settings.Get("IDE.Path.VS", "");
+                    idePath = SettingsService.Get("IDE.Path.VS", "");
                     slnPath = Path.Combine(slnPath, $"{project.ProjectName}.sln");
                 }
                     break;
                 case "RD":
                 {
-                    idePath = Settings.Get("IDE.Path.RD", "");
+                    idePath = SettingsService.Get("IDE.Path.RD", "");
                     slnPath = Path.Combine(slnPath, $"{project.ProjectName}.sln");
                 }
                     break;
                 case "VSCode":
                 {
-                    idePath = Settings.Get("IDE.Path.VSCode", "");
+                    idePath = SettingsService.Get("IDE.Path.VSCode", "");
                 }
                     break;
                 default:

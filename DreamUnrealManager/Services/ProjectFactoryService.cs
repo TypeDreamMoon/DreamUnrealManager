@@ -1,16 +1,17 @@
 ﻿using System.Text.Json;
 using System.Text.RegularExpressions;
+using DreamUnrealManager.Contracts.Services;
 using DreamUnrealManager.Models;
 
 namespace DreamUnrealManager.Services
 {
-    public sealed class ProjectFactory : IProjectFactory
+    public sealed class ProjectFactoryService : IProjectFactoryService
     {
-        private readonly IEngineResolver _resolver;
+        private readonly IEngineResolverService _resolverService;
 
-        public ProjectFactory(IEngineResolver resolver)
+        public ProjectFactoryService(IEngineResolverService resolverService)
         {
-            _resolver = resolver;
+            _resolverService = resolverService;
         }
 
         public async Task<ProjectInfo?> CreateAsync(string uprojectPath, CancellationToken ct = default)
@@ -94,7 +95,7 @@ namespace DreamUnrealManager.Services
             {
                 if (!string.IsNullOrEmpty(project.EngineAssociation))
                 {
-                    var engine = await _resolver.ResolveAsync(project.EngineAssociation, ct).ConfigureAwait(false);
+                    var engine = await _resolverService.ResolveAsync(project.EngineAssociation, ct).ConfigureAwait(false);
                     project.AssociatedEngine = engine;
 
                     if (engine != null)

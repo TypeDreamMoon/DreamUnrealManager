@@ -1,8 +1,8 @@
 ﻿using DreamUnrealManager.Models;
 
-namespace DreamUnrealManager.Services
+namespace DreamUnrealManager.Contracts.Services
 {
-    public interface IEngineResolver
+    public interface IEngineResolverService
     {
         Task<UnrealEngineInfo?> ResolveAsync(string engineAssociation, CancellationToken ct = default);
     }
