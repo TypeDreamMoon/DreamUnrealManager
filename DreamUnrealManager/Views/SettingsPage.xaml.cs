@@ -13,6 +13,7 @@ using DreamUnrealManager.Services;
 using Windows.UI;
 using DreamUnrealManager.Contracts.Services;
 using DreamUnrealManager.Helpers;
+using DreamUnrealManager.ViewModels;
 using Microsoft.UI;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Path = ABI.Microsoft.UI.Xaml.Shapes.Path;
@@ -21,6 +22,11 @@ namespace DreamUnrealManager.Views
 {
     public sealed partial class SettingsPage : Page
     {
+        public SettingsViewModel ViewModel
+        {
+            get;
+        }
+
         private readonly EngineManagerService _engineManager;
 
         public ObservableCollection<FontOption> AvailableFonts
@@ -29,6 +35,7 @@ namespace DreamUnrealManager.Views
         } = new();
 
         private bool _fontInitDone;
+
         private AcrylicSettingsService acrylicSettings
         {
             get;
@@ -36,7 +43,10 @@ namespace DreamUnrealManager.Views
 
         public SettingsPage()
         {
+            ViewModel = App.GetService<SettingsViewModel>();
+
             this.InitializeComponent();
+
             _engineManager = EngineManagerService.Instance;
 
             Loaded += SettingsPage_Loaded;
@@ -45,7 +55,6 @@ namespace DreamUnrealManager.Views
 
         private async void SettingsPage_Loaded(object sender, RoutedEventArgs e)
         {
-            await LoadEngines();
             LoadFonts();
             LoadIdeSettings();
             LoadDefaultIdeSetting();
@@ -56,8 +65,6 @@ namespace DreamUnrealManager.Views
 
             AcrylicTintOpacitySettingSlider.Value = acrylicSettings.TintOpacity * 100;
             AcrylicTintLuminosityOpacitySettingSlider.Value = acrylicSettings.TintLuminosityOpacity * 100;
-
-            CloseBackgroundImageButton.IsChecked = BackgroundSettingsService.Instance.BackgroundOpacity == 0;
         }
 
         private void OnLoaded_SyncThemeSelection()
@@ -70,245 +77,6 @@ namespace DreamUnrealManager.Views
                 _ => "Default"
             };
             SelectComboItemByTag(tag);
-        }
-
-        private void CreateEngineItem(UnrealEngineInfo engine)
-        {
-            var border = new Border
-            {
-                BorderBrush = new SolidColorBrush(Colors.LightGray),
-                CornerRadius = new CornerRadius(4.0),
-                Margin = new Thickness(2.0),
-                Padding = new Thickness(15.0, 10.0, 15.0, 10.0)
-            };
-
-            // border.Background = new AcrylicBrush()
-            // {
-            //     TintColor = (Color)Application.Current.Resources["SystemRevealChromeMediumColor"],
-            //     TintOpacity = 0.5
-            // };
-
-            var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-            // 引擎信息
-            var infoPanel = new StackPanel { Spacing = 5 };
-
-            var nameText = new TextBlock
-            {
-                Text = engine.DisplayName,
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                FontSize = 16
-            };
-            infoPanel.Children.Add(nameText);
-
-            var pathText = new TextBlock
-            {
-                Text = engine.EnginePath,
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 128, 128, 128)), // Gray
-                FontSize = 12
-            };
-            infoPanel.Children.Add(pathText);
-
-            var detailsPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 15 };
-
-            var versionText = new TextBlock
-            {
-                Text = !string.IsNullOrEmpty(engine.FullVersion) ? $"版本: {engine.FullVersion}" : $"版本: {engine.Version ?? "未知"}",
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 128, 128, 128)), // Gray
-                FontSize = 12
-            };
-            detailsPanel.Children.Add(versionText);
-
-            // 如果有构建信息，显示更详细的信息
-            if (engine.BuildVersionInfo != null)
-            {
-                var changelistText = new TextBlock
-                {
-                    Text = $"CL: {engine.BuildVersionInfo.Changelist}",
-                    Foreground = new SolidColorBrush(Color.FromArgb(255, 128, 128, 128)), // Gray
-                    FontSize = 12
-                };
-                detailsPanel.Children.Add(changelistText);
-            }
-
-            var statusColor = engine.IsValid
-                ? Color.FromArgb(255, 0, 128, 0)
-                : // Green
-                Color.FromArgb(255, 255, 0, 0); // Red
-
-            var statusText = new TextBlock
-            {
-                Text = engine.StatusText,
-                Foreground = new SolidColorBrush(statusColor),
-                FontSize = 12
-            };
-            detailsPanel.Children.Add(statusText);
-
-            infoPanel.Children.Add(detailsPanel);
-            Grid.SetColumn(infoPanel, 0);
-            grid.Children.Add(infoPanel);
-
-            // 状态指示器
-            var indicator = new Ellipse
-            {
-                Width = 10,
-                Height = 10,
-                Fill = new SolidColorBrush(statusColor),
-                Margin = new Thickness(10.0, 0, 10.0, 0),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            Grid.SetColumn(indicator, 1);
-            grid.Children.Add(indicator);
-
-            // 操作按钮
-            var buttonPanel = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Spacing = 5,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-
-            var editButton = new Button
-            {
-                Content = "编辑",
-                FontSize = 12,
-                Padding = new Thickness(12.0, 6.0, 12.0, 6.0),
-                Tag = engine
-            };
-            editButton.Click += EditEngine_Click;
-            buttonPanel.Children.Add(editButton);
-
-            var deleteButton = new Button
-            {
-                Content = "删除",
-                FontSize = 12,
-                Padding = new Thickness(12.0, 6.0, 12.0, 6.0),
-                Tag = engine
-            };
-            deleteButton.Click += DeleteEngine_Click;
-            buttonPanel.Children.Add(deleteButton);
-
-            Grid.SetColumn(buttonPanel, 2);
-            grid.Children.Add(buttonPanel);
-
-            border.Child = grid;
-            EnginesStackPanel.Children.Add(border);
-        }
-
-        private async void AddEngine_Click(object sender, RoutedEventArgs e)
-        {
-            var dialog = new AddEngineDialog();
-            dialog.XamlRoot = this.XamlRoot;
-
-            var result = await dialog.ShowAsync();
-            if (result == ContentDialogResult.Primary)
-            {
-                try
-                {
-                    if (string.IsNullOrWhiteSpace(dialog.EngineDisplayName))
-                    {
-                        await App.GetService<IDialogService>().ShowErrorDialog("添加引擎失败", "请输入显示名称");
-                        return;
-                    }
-
-                    if (string.IsNullOrWhiteSpace(dialog.EnginePath))
-                    {
-                        await App.GetService<IDialogService>().ShowErrorDialog("添加引擎失败", "请选择引擎路径");
-                        return;
-                    }
-
-                    await _engineManager.AddEngine(dialog.EngineDisplayName, dialog.EnginePath);
-                    await LoadEngines();
-                }
-                catch (Exception ex)
-                {
-                    await App.GetService<IDialogService>().ShowErrorDialog("添加引擎失败", ex.Message);
-                }
-            }
-        }
-
-        private async void EditEngine_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button button && button.Tag is UnrealEngineInfo engine)
-            {
-                var dialog = new AddEngineDialog(engine);
-                dialog.XamlRoot = this.XamlRoot;
-
-                var result = await dialog.ShowAsync();
-                if (result == ContentDialogResult.Primary)
-                {
-                    try
-                    {
-                        engine.DisplayName = dialog.EngineDisplayName;
-                        engine.EnginePath = dialog.EnginePath;
-                        await _engineManager.UpdateEngine(engine);
-                        await LoadEngines();
-                    }
-                    catch (Exception ex)
-                    {
-                        await App.GetService<IDialogService>().ShowErrorDialog("更新引擎失败", ex.Message);
-                    }
-                }
-            }
-        }
-
-        private async void DeleteEngine_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button button && button.Tag is UnrealEngineInfo engine)
-            {
-                var dialog = new ContentDialog
-                {
-                    Title = "确认删除",
-                    Content = $"确定要删除引擎 \"{engine.DisplayName}\" 吗？",
-                    PrimaryButtonText = "删除",
-                    CloseButtonText = "取消",
-                    XamlRoot = this.XamlRoot
-                };
-
-                var result = await dialog.ShowAsync();
-                if (result == ContentDialogResult.Primary)
-                {
-                    try
-                    {
-                        await _engineManager.RemoveEngine(engine);
-                        await LoadEngines();
-                    }
-                    catch (Exception ex)
-                    {
-                        await App.GetService<IDialogService>().ShowErrorDialog("删除引擎失败", ex.Message);
-                    }
-                }
-            }
-        }
-
-        private async void AutoDetect_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                await _engineManager.AutoDetectEngines();
-                await LoadEngines();
-
-                var dialog = new ContentDialog
-                {
-                    Title = "自动检测完成",
-                    Content = "已完成自动检测，请查看引擎列表。",
-                    CloseButtonText = "确定",
-                    XamlRoot = this.XamlRoot
-                };
-                await dialog.ShowAsync();
-            }
-            catch (Exception ex)
-            {
-                await App.GetService<IDialogService>().ShowErrorDialog("自动检测失败", ex.Message);
-            }
-        }
-
-        private async void RefreshEngines_Click(object sender, RoutedEventArgs e)
-        {
-            await LoadEngines();
         }
 
         private void IdePathTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -438,27 +206,6 @@ namespace DreamUnrealManager.Views
 
                 // 更新IDE路径设置的UI显示
                 UpdateIdePathUI();
-            }
-        }
-
-        private async System.Threading.Tasks.Task LoadEngines()
-        {
-            try
-            {
-                await _engineManager.LoadEngines();
-
-                // 清空现有项目
-                EnginesStackPanel.Children.Clear();
-
-                // 添加每个引擎项目
-                foreach (var engine in _engineManager.Engines)
-                {
-                    CreateEngineItem(engine);
-                }
-            }
-            catch (Exception ex)
-            {
-                await App.GetService<IDialogService>().ShowErrorDialog("加载引擎列表失败", ex.Message);
             }
         }
 
@@ -846,18 +593,6 @@ namespace DreamUnrealManager.Views
         private void AcrylicTintLuminosityOpacitySettingSlider_OnValueChanged(object sender, RangeBaseValueChangedEventArgs e)
         {
             acrylicSettings.TintLuminosityOpacity = e.NewValue / 100.0f;
-        }
-
-        private void CloseBackgroundImageButton_OnChanged(object sender, RoutedEventArgs e)
-        {
-            if (CloseBackgroundImageButton?.IsChecked ?? false)
-            {
-                BackgroundSettingsService.Instance.BackgroundOpacity = 0.0f;
-            }
-            else
-            {
-                BackgroundSettingsService.Instance.BackgroundOpacity = 0.5f;
-            }
         }
     }
 

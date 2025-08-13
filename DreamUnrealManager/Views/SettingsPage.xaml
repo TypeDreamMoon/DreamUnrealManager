@@ -18,73 +18,7 @@
                            FontWeight="SemiBold"
                            Margin="0,0,0,10" />
 
-                <!-- 引擎管理卡片 -->
-                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        CornerRadius="8"
-                        Padding="20">
-                    <StackPanel Spacing="15">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Unreal Engine 管理"
-                                       FontSize="20"
-                                       FontWeight="SemiBold"
-                                       VerticalAlignment="Center" />
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
-                                <Button Content="添加引擎"
-                                        Click="AddEngine_Click"
-                                        Style="{ThemeResource AccentButtonStyle}" />
-                                <Button Content="自动检测"
-                                        Click="AutoDetect_Click" />
-                                <Button Content="刷新"
-                                        Click="RefreshEngines_Click" />
-                            </StackPanel>
-                        </Grid>
-
-                        <!-- 引擎列表 -->
-                        <ScrollViewer Height="400"
-                                      VerticalScrollBarVisibility="Auto"
-                                      Background="{ThemeResource ControlFillColorTransparentBrush}"
-                                      BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
-                                      BorderThickness="1"
-                                      CornerRadius="4">
-                            <StackPanel x:Name="EnginesStackPanel" Spacing="2" Margin="5" />
-                        </ScrollViewer>
-
-                        <TextBlock Text="提示: 可以手动添加自定义的 Unreal Engine 安装路径，或使用自动检测功能扫描常见的安装位置。"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap" />
-                    </StackPanel>
-                </Border>
-
                 <!-- 其他设置卡片 -->
-                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        CornerRadius="8"
-                        Padding="20">
-                    <StackPanel Spacing="15">
-                        <TextBlock Text="应用设置"
-                                   FontSize="20"
-                                   FontWeight="SemiBold" />
-
-                        <ToggleSwitch x:Name="AutoScanToggle"
-                                      Header="启动时自动扫描引擎"
-                                      IsOn="True" />
-
-                        <ToggleSwitch x:Name="LogDetailToggle"
-                                      Header="详细构建日志"
-                                      IsOn="False" />
-
-                        <NumberBox x:Name="MaxLogLinesNumber"
-                                   Header="最大日志行数"
-                                   Value="1000"
-                                   Minimum="100"
-                                   Maximum="10000"
-                                   SpinButtonPlacementMode="Inline" />
-                    </StackPanel>
-                </Border>
 
                 <controls:SettingsCard x:Name="ConsoleFontSettingCard"
                                        Description="控制台字体"
@@ -216,9 +150,7 @@
                 </controls:SettingsCard>
 
                 <controls:SettingsCard Description="关掉背景图片" Header="二刺猿蒸鹅心" ContentAlignment="Right">
-                    <CheckBox x:Name="CloseBackgroundImageButton"
-                              Checked="CloseBackgroundImageButton_OnChanged"
-                              Unchecked="CloseBackgroundImageButton_OnChanged" />
+                    <ToggleSwitch x:Name="CloseBackgroundImageButton" IsOn="{x:Bind ViewModel.ShowBackground, Mode=TwoWay}" />
                 </controls:SettingsCard>
 
             </StackPanel>

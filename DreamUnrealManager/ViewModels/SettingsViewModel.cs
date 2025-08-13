@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.ComponentModel;
+using System.Reflection;
 using System.Windows.Input;
 
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -10,11 +11,18 @@ using DreamUnrealManager.Helpers;
 using Microsoft.UI.Xaml;
 
 using Windows.ApplicationModel;
+using DreamUnrealManager.Services;
+using Microsoft.Extensions.Hosting;
 
 namespace DreamUnrealManager.ViewModels;
 
-public partial class SettingsViewModel : ObservableRecipient
+public partial class SettingsViewModel : ObservableRecipient, INotifyPropertyChanged
 {
+    PropertyChangedEventHandler PropertyChanged;
+    
+    protected void OnPropertyChanged(string propertyName)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
     private readonly IThemeSelectorService _themeSelectorService;
 
     [ObservableProperty]
@@ -61,5 +69,24 @@ public partial class SettingsViewModel : ObservableRecipient
         }
 
         return $"Dream Unreal Manager - {version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
+    }
+
+    private bool _showBackground;
+    public bool ShowBackground
+    {
+        get
+        {
+            _showBackground = BackgroundSettingsService.Instance.BackgroundOpacity == 0;
+            return _showBackground;
+        }
+        set
+        {
+            if (_showBackground != value)
+            {
+                _showBackground = value;
+                BackgroundSettingsService.Instance.BackgroundOpacity = value ? 0 : 0.5;
+                OnPropertyChanged(nameof(ShowBackground));
+            }
+        }
     }
 }

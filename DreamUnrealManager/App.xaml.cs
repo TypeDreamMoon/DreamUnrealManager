@@ -79,6 +79,7 @@ public partial class App : Application
             services.AddSingleton<IDialogService, DialogService>();
 
             services.AddSingleton<IEngineManagerService, EngineManagerService>();
+            services.AddSingleton<IUnrealProjectService, UnrealProjectService>();
 
             services.AddTransient<IProjectDataService, ProjectDataService>();
 

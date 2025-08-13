@@ -25,6 +25,7 @@
                        VerticalAlignment="Center"
                        TextWrapping="NoWrap"
                        Style="{StaticResource CaptionTextBlockStyle}"
+                       Text="Dream Unreal Launcher"
                        Margin="28,0,0,0" />
         </Grid>
         <NavigationView
@@ -53,12 +54,12 @@
                         <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE9A4;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
-                
+
                 <NavigationViewItem x:Name="UnrealLauncherNavItem"
                                     x:Uid="Shell_UnrealLauncher"
                                     helpers:NavigationHelper.NavigateTo="DreamUnrealManager.ViewModels.UnrealLauncherViewModel">
                     <NavigationViewItem.Icon>
-                        <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xEA40;" />
+                        <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE8A9;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
 

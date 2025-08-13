@@ -1,5 +1,10 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using DreamUnrealManager.Contracts.Services;
+using DreamUnrealManager.Models;
 using DreamUnrealManager.Services;
 using DreamUnrealManager.Views;
 using Microsoft.UI.Xaml.Navigation;
@@ -11,6 +16,8 @@ public partial class ShellViewModel : ObservableRecipient
     [ObservableProperty] private bool isBackEnabled;
 
     [ObservableProperty] private object? selected;
+
+    [ObservableProperty] private string commandText;
 
     public INavigationService NavigationService
     {

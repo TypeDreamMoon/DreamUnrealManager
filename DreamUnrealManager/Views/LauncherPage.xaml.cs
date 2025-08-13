@@ -1102,7 +1102,7 @@ namespace DreamUnrealManager.Views
             {
                 if (sender is Image img)
                 {
-                    string path = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "MdiUnreal.png");
+                    string path = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "UnrealIcon.png");
                     img.Source = new BitmapImage(new Uri(path));
                 }
             }
