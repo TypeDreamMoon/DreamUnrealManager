@@ -24,37 +24,62 @@
         <helpers:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </Page.Resources>
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="20">
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
         <TextBlock Text="引擎管理器"
                    FontSize="28"
                    FontWeight="SemiBold"
-                   Margin="0,0,0,10" />
+                   Margin="20" />
+        
+        <Border Grid.Row="1"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="0,1,0,1"
+                Padding="20,12">
+            <Grid ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-        <!-- 顶部工具栏 -->
-        <CommandBar Grid.Row="1" DefaultLabelPosition="Right" Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}">
-            <AppBarButton Icon="Add" Label="添加引擎" Click="AddEngine_Click" />
-            <AppBarButton Content="自动检测" Click="AutoDetect_Click">
-                <AppBarButton.Icon>
-                    <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE721;" />
-                </AppBarButton.Icon>
-            </AppBarButton>
-            <AppBarButton Icon="Refresh" Label="刷新全部" Click="RefreshAll_Click" />
-            <AppBarButton Icon="OpenFile" Label="打开存储位置" Click="OpenStore_Click" />
-        </CommandBar>
+                <!-- 搜索 -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                    <AutoSuggestBox Grid.Column="0" Width="360"
+                                    PlaceholderText="搜索：名称/路径/版本"
+                                    Text="{x:Bind ViewModel.SearchText, Mode=TwoWay}"
+                                    TextChanged="SearchBox_TextChanged" />
+                
+                    <ComboBox Grid.Column="1" Width="200"
+                              ItemsSource="{x:Bind ViewModel.SortOptions}"
+                              SelectedItem="{x:Bind ViewModel.SelectedSortOption, Mode=TwoWay}" />
+                    <Button Grid.Column="2" Content="清除" Click="ClearFilters_Click" />
+                </StackPanel>
+                
 
-        <!-- 搜索 + 排序 -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="12" Padding="12,8">
-            <AutoSuggestBox Width="360"
-                            PlaceholderText="搜索：名称/路径/版本"
-                            Text="{x:Bind ViewModel.SearchText, Mode=TwoWay}"
-                            TextChanged="SearchBox_TextChanged" />
-            <ComboBox Width="200"
-                      ItemsSource="{x:Bind ViewModel.SortOptions}"
-                      SelectedItem="{x:Bind ViewModel.SelectedSortOption, Mode=TwoWay}" />
-            <Button Content="清除" Click="ClearFilters_Click" />
-        </StackPanel>
+                <!-- 右侧按钮 + 布局切换 -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                    <Button Click="AddEngine_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE710;" />
+                            <TextBlock Text="添加引擎" />
+                        </StackPanel>
+                    </Button>
+                    <Button Click="AutoDetect_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE71E;" />
+                            <TextBlock Text="自动检测" />
+                        </StackPanel>
+                    </Button>
+                    <Button Click="RefreshAll_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE72C;" />
+                            <TextBlock Text="刷新全部" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
 
-        <Grid Grid.Row="3"
+        <Grid Grid.Row="2"
               HorizontalAlignment="Stretch">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
@@ -182,7 +207,7 @@
 
 
         <!-- 状态栏 -->
-        <InfoBar Grid.Row="4"
+        <InfoBar Grid.Row="3"
                  IsOpen="True"
                  IsIconVisible="False"
                  Severity="Informational"
