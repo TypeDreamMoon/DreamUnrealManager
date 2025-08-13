@@ -1,26 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text.Json;
-using System.Threading.Tasks;
+﻿using System.Text.Json;
 using DreamUnrealManager.Models;
 using Windows.Storage;
+using DreamUnrealManager.Contracts.Services;
 
 namespace DreamUnrealManager.Services
 {
-    public class ProjectDataService
+    /// <summary>
+    /// 项目数据读写服务实现。
+    /// 兼容：仍保留 Instance 单例；推荐：通过依赖注入注入 IProjectDataService 使用。
+    /// </summary>
+    public class ProjectDataService : IProjectDataService
     {
+        // =========================
+        // 兼容旧代码的单例入口
+        // =========================
         private static readonly Lazy<ProjectDataService> _instance = new(() => new ProjectDataService());
+
+        [Obsolete("建议通过依赖注入使用 IProjectDataService。临时兼容旧代码可用此属性。")]
         public static ProjectDataService Instance => _instance.Value;
 
         private const string ProjectsFileName = "projects.json";
         private const string BackupFileName = "projects_backup.json";
 
-        private ProjectDataService() { }
+        // 为支持 DI，将构造函数设为 public；依旧允许通过 Instance 获取单例以兼容旧代码
+        public ProjectDataService() { }
+
+        // ====== 以下为内部使用的数据结构（实现细节，不暴露到接口） ======
 
         // 保存项目数据的数据传输对象
-        public class ProjectDataDto
+        internal class ProjectDataDto
         {
             public string ProjectPath { get; set; } = "";
             public string DisplayName { get; set; } = "";
@@ -35,7 +43,7 @@ namespace DreamUnrealManager.Services
             public bool IsFavorite { get; set; }
         }
 
-        public class ProjectsData
+        internal class ProjectsData
         {
             public List<ProjectDataDto> Projects { get; set; } = new();
             public DateTime LastSaved { get; set; }
@@ -49,7 +57,6 @@ namespace DreamUnrealManager.Services
         {
             try
             {
-                // 先尝试使用标准的 ApplicationData
                 var localFolder = ApplicationData.Current.LocalFolder;
                 WriteDebug($"使用标准 ApplicationData 路径: {localFolder.Path}");
                 return localFolder.Path;
@@ -57,30 +64,27 @@ namespace DreamUnrealManager.Services
             catch (Exception ex)
             {
                 WriteDebug($"无法访问 ApplicationData，使用备用方法: {ex.Message}");
-                
-                // 备用方法：使用环境变量
+
                 var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 var appDirectory = Path.Combine(appDataPath, "DreamUnrealManager");
-                
-                // 确保目录存在
+
                 if (!Directory.Exists(appDirectory))
                 {
                     Directory.CreateDirectory(appDirectory);
                     WriteDebug($"创建应用程序数据目录: {appDirectory}");
                 }
-                
+
                 WriteDebug($"使用备用数据路径: {appDirectory}");
                 return appDirectory;
             }
         }
 
-        /// <summary>
-        /// 保存项目列表到本地存储
-        /// </summary>
+        /// <inheritdoc />
         public async Task<bool> SaveProjectsAsync(List<ProjectInfo> projects)
         {
             try
             {
+                projects ??= new List<ProjectInfo>();
                 WriteDebug($"开始保存项目数据，共 {projects.Count} 个项目");
 
                 var projectsData = new ProjectsData
@@ -169,9 +173,7 @@ namespace DreamUnrealManager.Services
             }
         }
 
-        /// <summary>
-        /// 从本地存储加载项目列表
-        /// </summary>
+        /// <inheritdoc />
         public async Task<List<ProjectInfo>> LoadProjectsAsync()
         {
             try
@@ -214,7 +216,7 @@ namespace DreamUnrealManager.Services
                 foreach (var dto in projectsData.Projects)
                 {
                     WriteDebug($"处理项目记录: {dto.DisplayName} - {dto.ProjectPath}");
-                    
+
                     if (File.Exists(dto.ProjectPath))
                     {
                         var projectInfo = new ProjectInfo
@@ -260,9 +262,27 @@ namespace DreamUnrealManager.Services
             }
         }
 
-        /// <summary>
-        /// 从备份文件恢复
-        /// </summary>
+        /// <inheritdoc />
+        public async Task<int> CleanupInvalidProjectsAsync(List<ProjectInfo> projects)
+        {
+            projects ??= new List<ProjectInfo>();
+
+            var validProjects = projects.Where(p => p != null && File.Exists(p.ProjectPath)).ToList();
+            var removedCount = projects.Count - validProjects.Count;
+
+            if (removedCount > 0)
+            {
+                await SaveProjectsAsync(validProjects);
+                WriteDebug($"清理了 {removedCount} 个无效项目");
+            }
+
+            return removedCount;
+        }
+
+        // =========================
+        // 以下为实现细节（私有方法）
+        // =========================
+
         private async Task<List<ProjectInfo>> LoadFromBackup()
         {
             try
@@ -309,9 +329,6 @@ namespace DreamUnrealManager.Services
             }
         }
 
-        /// <summary>
-        /// 从旧格式迁移数据
-        /// </summary>
         private async Task<List<ProjectInfo>> MigrateFromOldFormat()
         {
             try
@@ -378,9 +395,6 @@ namespace DreamUnrealManager.Services
             }
         }
 
-        /// <summary>
-        /// 从项目路径创建项目信息
-        /// </summary>
         private async Task<ProjectInfo> CreateProjectInfoFromPath(string projectPath)
         {
             try
@@ -429,23 +443,6 @@ namespace DreamUnrealManager.Services
                 WriteDebug($"CreateProjectInfoFromPath失败: {ex.Message}");
                 return null;
             }
-        }
-
-        /// <summary>
-        /// 清理过期的项目数据
-        /// </summary>
-        public async Task<int> CleanupInvalidProjectsAsync(List<ProjectInfo> projects)
-        {
-            var validProjects = projects.Where(p => File.Exists(p.ProjectPath)).ToList();
-            var removedCount = projects.Count - validProjects.Count;
-
-            if (removedCount > 0)
-            {
-                await SaveProjectsAsync(validProjects);
-                WriteDebug($"清理了 {removedCount} 个无效项目");
-            }
-
-            return removedCount;
         }
 
         private void WriteDebug(string message)

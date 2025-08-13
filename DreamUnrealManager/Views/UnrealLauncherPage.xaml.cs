@@ -153,5 +153,27 @@ namespace DreamUnrealManager.Views
                 await _editorLaunchService.LaunchEditorForEnginePathAsync(enginePath);
             }
         }
+
+        private async void AutoDetect_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                await App.GetService<IEngineManagerService>().AutoDetectEngines();
+                await ViewModel.LoadAsync();
+
+                var dialog = new ContentDialog
+                {
+                    Title = "自动检测完成",
+                    Content = "已完成自动检测，请查看引擎列表。",
+                    CloseButtonText = "确定",
+                    XamlRoot = this.XamlRoot
+                };
+                await dialog.ShowAsync();
+            }
+            catch (Exception ex)
+            {
+                await App.GetService<IDialogService>().ShowErrorDialog("自动检测失败", ex.Message);
+            }
+        }
     }
 }

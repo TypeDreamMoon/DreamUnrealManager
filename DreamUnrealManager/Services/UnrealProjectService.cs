@@ -7,12 +7,10 @@ namespace DreamUnrealManager.Services
     public sealed class UnrealProjectService : IUnrealProjectService
     {
         private IDialogService _dlg;
-        private IProjectRepositoryService _repo;
 
         public UnrealProjectService()
         {
             _dlg = new DialogService();
-            _repo = new ProjectRepositoryService();
         }
 
         public async Task LaunchProject(ProjectInfo project)
@@ -26,7 +24,7 @@ namespace DreamUnrealManager.Services
                 };
                 Process.Start(psi);
                 project.LastUsed = DateTime.Now;
-                await _repo.SaveAsync(await _repo.LoadAsync());
+                await App.RepositoryService.SaveAsync(await App.RepositoryService.LoadAsync());
             }
             catch (Exception ex)
             {

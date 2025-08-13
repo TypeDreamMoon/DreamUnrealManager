@@ -606,6 +606,7 @@
         <!-- 内容区 -->
 
         <Grid Grid.Row="3" Margin="15,0,15,10" CornerRadius="0 ,0, 8, 8">
+            
             <!-- 空状态 -->
             <StackPanel x:Name="EmptyStatePanel"
                         HorizontalAlignment="Center"
@@ -649,6 +650,19 @@
                       VerticalContentAlignment="Center"
                       ItemsPanel="{StaticResource GridItemsPanel}"
                       ItemTemplate="{StaticResource GridProjectTemplate}" />
+            
+            <Grid x:Name="GlobalOverlay"
+                  Background="#80000000"
+                  Visibility="Collapsed">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                    <ProgressRing IsActive="True" Width="40" Height="40" />
+                    <TextBlock x:Name="GlobalOverlayText"
+                               Text="正在加载项目信息..."
+                               Foreground="White"
+                               FontSize="16"
+                               TextAlignment="Center" />
+                </StackPanel>
+            </Grid>
         </Grid>
 
 
@@ -663,19 +677,6 @@
                        FontSize="12"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
         </Border>
-
-        <Grid x:Name="GlobalOverlay"
-              Background="#80000000"
-              Visibility="Collapsed">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
-                <ProgressRing IsActive="True" Width="40" Height="40" />
-                <TextBlock x:Name="GlobalOverlayText"
-                           Text="正在加载项目信息..."
-                           Foreground="White"
-                           FontSize="16"
-                           TextAlignment="Center" />
-            </StackPanel>
-        </Grid>
 
     </Grid>
 </Page>

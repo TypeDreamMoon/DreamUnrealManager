@@ -49,6 +49,12 @@ public partial class App : Application
         set;
     }
 
+    public static ProjectRepositoryService RepositoryService
+    {
+        get;
+        set;
+    }
+
     public App()
     {
         InitializeComponent();
@@ -69,6 +75,12 @@ public partial class App : Application
             services.AddSingleton<IActivationService, ActivationService>();
             services.AddSingleton<IPageService, PageService>();
             services.AddSingleton<INavigationService, NavigationService>();
+
+            services.AddSingleton<IDialogService, DialogService>();
+
+            services.AddSingleton<IEngineManagerService, EngineManagerService>();
+
+            services.AddTransient<IProjectDataService, ProjectDataService>();
 
             // Core Services
             services.AddSingleton<IFileService, FileService>();
@@ -96,7 +108,7 @@ public partial class App : Application
         }).Build();
 
         App.GetService<IAppNotificationService>().Initialize();
-
+        
         UnhandledException += App_UnhandledException;
     }
 
@@ -116,6 +128,9 @@ public partial class App : Application
 
         var opt = ThemeService.Load();
         ThemeService.ApplyToWindow(App.MainWindow, opt);
+
+        RepositoryService = new ProjectRepositoryService();
+        await RepositoryService.LoadAsync();
 
         UiDispatcherService.Initialize(MainWindow);
     }

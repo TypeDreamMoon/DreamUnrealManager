@@ -33,11 +33,13 @@
         <!-- 顶部工具栏 -->
         <CommandBar Grid.Row="1" DefaultLabelPosition="Right" Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}">
             <AppBarButton Icon="Add" Label="添加引擎" Click="AddEngine_Click" />
+            <AppBarButton Content="自动检测" Click="AutoDetect_Click">
+                <AppBarButton.Icon>
+                    <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE721;" />
+                </AppBarButton.Icon>
+            </AppBarButton>
             <AppBarButton Icon="Refresh" Label="刷新全部" Click="RefreshAll_Click" />
             <AppBarButton Icon="OpenFile" Label="打开存储位置" Click="OpenStore_Click" />
-            <AppBarSeparator />
-            <AppBarToggleButton x:Name="FavoriteFirstToggle" Label="收藏置顶"
-                                IsChecked="{x:Bind ViewModel.FavoriteFirst, Mode=TwoWay}" />
         </CommandBar>
 
         <!-- 搜索 + 排序 -->

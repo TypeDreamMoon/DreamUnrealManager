@@ -5,11 +5,12 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using DreamUnrealManager.Contracts.Services;
 using DreamUnrealManager.Models;
 
 namespace DreamUnrealManager.Services
 {
-    public class EngineManagerService
+    public class EngineManagerService : IEngineManagerService
     {
         private static EngineManagerService _instance;
         public static EngineManagerService Instance => _instance ??= new EngineManagerService();
@@ -22,7 +23,7 @@ namespace DreamUnrealManager.Services
             private set;
         }
 
-        private EngineManagerService()
+        public EngineManagerService()
         {
             var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             var appFolder = Path.Combine(appDataPath, "DreamUnrealManager");

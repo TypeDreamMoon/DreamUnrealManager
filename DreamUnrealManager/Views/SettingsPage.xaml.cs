@@ -11,6 +11,7 @@ using Windows.Storage.Pickers;
 using DreamUnrealManager.Models;
 using DreamUnrealManager.Services;
 using Windows.UI;
+using DreamUnrealManager.Contracts.Services;
 using DreamUnrealManager.Helpers;
 using Microsoft.UI;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -209,13 +210,13 @@ namespace DreamUnrealManager.Views
                 {
                     if (string.IsNullOrWhiteSpace(dialog.EngineDisplayName))
                     {
-                        await ShowErrorDialog("添加引擎失败", "请输入显示名称");
+                        await App.GetService<IDialogService>().ShowErrorDialog("添加引擎失败", "请输入显示名称");
                         return;
                     }
 
                     if (string.IsNullOrWhiteSpace(dialog.EnginePath))
                     {
-                        await ShowErrorDialog("添加引擎失败", "请选择引擎路径");
+                        await App.GetService<IDialogService>().ShowErrorDialog("添加引擎失败", "请选择引擎路径");
                         return;
                     }
 
@@ -224,7 +225,7 @@ namespace DreamUnrealManager.Views
                 }
                 catch (Exception ex)
                 {
-                    await ShowErrorDialog("添加引擎失败", ex.Message);
+                    await App.GetService<IDialogService>().ShowErrorDialog("添加引擎失败", ex.Message);
                 }
             }
         }
@@ -248,7 +249,7 @@ namespace DreamUnrealManager.Views
                     }
                     catch (Exception ex)
                     {
-                        await ShowErrorDialog("更新引擎失败", ex.Message);
+                        await App.GetService<IDialogService>().ShowErrorDialog("更新引擎失败", ex.Message);
                     }
                 }
             }
@@ -277,7 +278,7 @@ namespace DreamUnrealManager.Views
                     }
                     catch (Exception ex)
                     {
-                        await ShowErrorDialog("删除引擎失败", ex.Message);
+                        await App.GetService<IDialogService>().ShowErrorDialog("删除引擎失败", ex.Message);
                     }
                 }
             }
@@ -301,7 +302,7 @@ namespace DreamUnrealManager.Views
             }
             catch (Exception ex)
             {
-                await ShowErrorDialog("自动检测失败", ex.Message);
+                await App.GetService<IDialogService>().ShowErrorDialog("自动检测失败", ex.Message);
             }
         }
 
@@ -336,16 +337,16 @@ namespace DreamUnrealManager.Views
                 {
                     IdePathTextBox.Text = detectedPath;
                     var ideName = GetIdeDisplayName(defaultIde);
-                    await ShowErrorDialog("自动检测完成", $"已找到 {ideName} 的安装路径:\n{detectedPath}");
+                    await App.GetService<IDialogService>().ShowErrorDialog("自动检测完成", $"已找到 {ideName} 的安装路径:\n{detectedPath}");
                 }
                 else
                 {
-                    await ShowErrorDialog("自动检测完成", "未找到IDE的安装路径，请手动选择。");
+                    await App.GetService<IDialogService>().ShowErrorDialog("自动检测完成", "未找到IDE的安装路径，请手动选择。");
                 }
             }
             catch (Exception ex)
             {
-                await ShowErrorDialog("自动检测失败", ex.Message);
+                await App.GetService<IDialogService>().ShowErrorDialog("自动检测失败", ex.Message);
             }
             finally
             {
@@ -405,7 +406,7 @@ namespace DreamUnrealManager.Views
                     }
                     else
                     {
-                        await ShowErrorDialog("文件选择错误",
+                        await App.GetService<IDialogService>().ShowErrorDialog("文件选择错误",
                             $"请选择正确的IDE可执行文件。\n\n" +
                             $"当前选择的IDE: {GetIdeDisplayName(defaultIde)}\n" +
                             $"应选择的文件: {GetExpectedExecutableName(defaultIde)}");
@@ -414,7 +415,7 @@ namespace DreamUnrealManager.Views
             }
             catch (Exception ex)
             {
-                await ShowErrorDialog("选择文件失败", ex.Message);
+                await App.GetService<IDialogService>().ShowErrorDialog("选择文件失败", ex.Message);
             }
         }
 
@@ -457,20 +458,8 @@ namespace DreamUnrealManager.Views
             }
             catch (Exception ex)
             {
-                await ShowErrorDialog("加载引擎列表失败", ex.Message);
+                await App.GetService<IDialogService>().ShowErrorDialog("加载引擎列表失败", ex.Message);
             }
-        }
-
-        private async System.Threading.Tasks.Task ShowErrorDialog(string title, string message)
-        {
-            var dialog = new ContentDialog
-            {
-                Title = title,
-                Content = message,
-                CloseButtonText = "确定",
-                XamlRoot = this.XamlRoot
-            };
-            await dialog.ShowAsync();
         }
 
         private bool ValidateIdeExecutable(string filePath, string ideType)
