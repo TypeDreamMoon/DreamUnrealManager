@@ -41,7 +41,7 @@
         <MenuFlyout x:Key="ProjectMenuFlyoutTemplate">
 
             <MenuFlyoutItem Text="启动" Tag="{Binding}" Click="ContextMenu_LaunchProject_Click" />
-            <MenuFlyoutItem Text="用 IDE 打开" Tag="{Binding}" Click="ContextMenu_OpenWithIDE_Click" />
+            <MenuFlyoutItem Visibility="{Binding IsCPlusPlusProject, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" Text="用 IDE 打开" Tag="{Binding}" Click="ContextMenu_OpenWithIDE_Click" />
             <MenuFlyoutItem Text="打开项目文件夹" Tag="{Binding}" Click="ContextMenu_OpenFolder_Click" />
             <MenuFlyoutItem Text="查看详情"
                             Tag="{Binding}"
@@ -151,8 +151,7 @@
                 </Border.ContextFlyout>
             </Border>
         </DataTemplate>
-
-
+        
         <!-- 列表卡片（信息丰富） -->
         <DataTemplate x:Key="ListProjectTemplate" x:DataType="models:ProjectInfo">
             <Border Margin="0,8"
@@ -198,6 +197,15 @@
                                     VerticalAlignment="Center"
                                     Visibility="{x:Bind IsGitEnabled, Converter={StaticResource BoolToVisibility}}">
                                 <TextBlock Text="Git"
+                                           Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                                           Style="{ThemeResource CaptionTextBlockStyle}" />
+                            </Border>
+                            <Border Background="{ThemeResource AccentFillColorSecondaryBrush}"
+                                    Padding="6,2"
+                                    CornerRadius="6"
+                                    VerticalAlignment="Center"
+                                    Visibility="{x:Bind IsCPlusPlusProject, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="C++"
                                            Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
                                            Style="{ThemeResource CaptionTextBlockStyle}" />
                             </Border>

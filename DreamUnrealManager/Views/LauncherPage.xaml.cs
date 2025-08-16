@@ -146,18 +146,18 @@ namespace DreamUnrealManager.Views
             var items = list.ToList();
             _metaTotal = items.Count;
             _metaDone = 0;
-            
+
             ShowGlobalProgress(0, _metaTotal, true);
-            
+
             // 阶段A：元数据（决定遮罩+全局进度）
-            var semA = new SemaphoreSlim(4);  // 限制并发数为4
+            var semA = new SemaphoreSlim(4); // 限制并发数为4
             var metaTasks = items.Select(async p =>
             {
                 await semA.WaitAsync();
                 try
                 {
                     RunOnUI(() => p.IsLoadingMeta = true);
-            
+
                     if (File.Exists(p.ProjectPath))
                     {
                         var fresh = await _factoryService.CreateAsync(p.ProjectPath);
@@ -188,7 +188,7 @@ namespace DreamUnrealManager.Views
                     semA.Release();
                 }
             });
-            
+
             await Task.WhenAll(metaTasks);
             ShowGlobalProgress(_metaTotal, _metaTotal, false);
         }
@@ -930,7 +930,10 @@ namespace DreamUnrealManager.Views
                         await App.RepositoryService.SaveAsync(App.RepositoryService.LoadedData);
                         SetStatus($"已切换到 {selected.DisplayName}");
 
-                        await GenerateVSWithLogAsync(p);
+                        if (p.IsCPlusPlusProject)
+                        {
+                            await GenerateVSWithLogAsync(p);
+                        }
                     }
                     else
                     {

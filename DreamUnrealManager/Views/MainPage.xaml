@@ -54,7 +54,7 @@
                         <Button Tag="{x:Bind}"
                                 Visibility="{x:Bind IsCPlusPlusProject, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                 Click="OpenWithIDE_OnClick">
-                            <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xEDDA;" />
+                            <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xEB7E;" />
                         </Button>
                     </StackPanel>
 
