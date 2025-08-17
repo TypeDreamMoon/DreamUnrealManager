@@ -17,7 +17,7 @@ namespace DreamUnrealManager.Services
                 return;
             }
 
-            var slnPath = Path.Combine(project.ProjectDirectory);
+            var projectPath = Path.Combine(project.ProjectDirectory);
 
             string ide = SettingsService.Get("Default.IDE", "VS"); // 默认 IDE
             string idePath;
@@ -27,13 +27,32 @@ namespace DreamUnrealManager.Services
                 case "VS":
                 {
                     idePath = SettingsService.Get("IDE.Path.VS", "");
-                    slnPath = Path.Combine(slnPath, $"{project.ProjectName}.sln");
+                    projectPath = Path.Combine(projectPath, $"{project.ProjectName}.sln");
                 }
                     break;
                 case "RD":
                 {
                     idePath = SettingsService.Get("IDE.Path.RD", "");
-                    slnPath = Path.Combine(slnPath, $"{project.ProjectName}.sln");
+                    var launchMethod = SettingsService.Get("IDE.Rider.LaunchMethod", "SOLUTION");
+                    switch (launchMethod)
+                    {
+                        case "SOLUTION":
+                        {
+                            projectPath = Path.Combine(projectPath, $"{project.ProjectName}.sln");
+                            break;
+                        }
+                        case "UPROJECT":
+                        {
+                            projectPath = Path.Combine(projectPath, $"{project.ProjectName}.uproject");
+                            break;
+                        }
+
+                        default:
+                        {
+                            projectPath = Path.Combine(projectPath, $"{project.ProjectName}.sln");
+                            break;
+                        }
+                    }
                 }
                     break;
                 case "VSCode":
@@ -60,7 +79,7 @@ namespace DreamUnrealManager.Services
                 var processStartInfo = new ProcessStartInfo
                 {
                     FileName = idePath,
-                    Arguments = slnPath,
+                    Arguments = projectPath,
                     UseShellExecute = true
                 };
 

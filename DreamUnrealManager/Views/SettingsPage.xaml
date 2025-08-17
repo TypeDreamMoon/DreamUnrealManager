@@ -61,7 +61,6 @@
                                        Header="默认启动IDE"
                                        CornerRadius="8">
                     <ComboBox x:Name="DefaultIdeComboBox"
-                              Header="默认启动IDE"
                               PlaceholderText="请选择默认IDE"
                               MinWidth="400"
                               SelectionChanged="DefaultIdeComboBox_OnSelectionChanged">
@@ -76,10 +75,6 @@
                                        Header="IDE路径"
                                        CornerRadius="8">
                     <StackPanel Orientation="Vertical" Spacing="10">
-                        <TextBlock x:Name="IdePathHeader"
-                                   Text="Visual Studio 路径:"
-                                   Style="{ThemeResource BaseTextBlockStyle}" />
-
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -99,13 +94,19 @@
                                         Click="AutoDetectIdeButton_Click" />
                             </StackPanel>
                         </Grid>
-
-                        <TextBlock x:Name="IdePathDescription"
-                                   Text="根据选择的默认IDE，路径指向对应的可执行文件"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap" />
                     </StackPanel>
+                </controls:SettingsCard>
+
+                <controls:SettingsCard x:Name="RiderLauncherMethodSettingCard"
+                                       Description="Rider的启动方式"
+                                       Header="Rider项目启动方式">
+                    <ComboBox x:Name="RiderLauncherMethodComboBox"
+                              Width="200"
+                              SelectedIndex="0"
+                              SelectionChanged="RiderLauncherMethodComboBox_OnSelectionChanged">
+                        <ComboBoxItem Content="Solution" Tag="SOLUTION" />
+                        <ComboBoxItem Content="Uproject" Tag="UPROJECT" />
+                    </ComboBox>
                 </controls:SettingsCard>
 
                 <controls:SettingsCard x:Name="OpenConfigFolderSettingCard"

@@ -58,6 +58,7 @@ namespace DreamUnrealManager.Views
             LoadFonts();
             LoadIdeSettings();
             LoadDefaultIdeSetting();
+            LoadRiderLaunchMethod();
             UpdateIdePathUI();
 
             AutoDetectIdePaths();
@@ -93,11 +94,6 @@ namespace DreamUnrealManager.Views
         {
             try
             {
-                if (IdePathDescription != null)
-                {
-                    IdePathDescription.Text = "正在自动检测IDE路径...";
-                }
-
                 var defaultIde = SettingsService.Get("Default.IDE", "VS");
                 var detectedPath = await DetectIdePath(defaultIde);
 
@@ -259,27 +255,25 @@ namespace DreamUnrealManager.Views
             switch (defaultIde)
             {
                 case "VS":
-                    IdePathHeader.Text = "Visual Studio 路径:";
                     IdePathTextBox.PlaceholderText = "例如: C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\devenv.exe";
                     IdePathTextBox.Text = SettingsService.Get("IDE.Path.VS", "");
-                    IdePathDescription.Text = "设置 Visual Studio 的可执行文件路径";
+                    RiderLauncherMethodSettingCard.Visibility = Visibility.Collapsed;
+                    IdePathSettingCard.Header = "Visual Studio 可执行文件路径";
                     break;
                 case "RD":
-                    IdePathHeader.Text = "Rider 路径:";
                     IdePathTextBox.PlaceholderText = "例如: C:\\Program Files\\JetBrains\\JetBrains Rider\\bin\\rider64.exe";
                     IdePathTextBox.Text = SettingsService.Get("IDE.Path.RD", "");
-                    IdePathDescription.Text = "设置 Rider 的可执行文件路径";
+                    RiderLauncherMethodSettingCard.Visibility = Visibility.Visible;
+                    IdePathSettingCard.Header = "Rider 可执行文件路径";
                     break;
                 case "VSCode":
-                    IdePathHeader.Text = "VS Code 路径:";
                     IdePathTextBox.PlaceholderText = "例如: C:\\Users\\{用户名}\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe";
                     IdePathTextBox.Text = SettingsService.Get("IDE.Path.VSCode", "");
-                    IdePathDescription.Text = "设置 Visual Studio Code 的可执行文件路径";
+                    RiderLauncherMethodSettingCard.Visibility = Visibility.Collapsed;
+                    IdePathSettingCard.Header = "VSCode 路径";
                     break;
                 default:
-                    IdePathHeader.Text = "IDE 路径:";
                     IdePathTextBox.PlaceholderText = "请选择IDE可执行文件路径";
-                    IdePathDescription.Text = "根据选择的默认IDE，路径指向对应的可执行文件";
                     break;
             }
         }
@@ -343,16 +337,42 @@ namespace DreamUnrealManager.Views
             {
                 case "VS":
                     DefaultIdeComboBox.SelectedIndex = 0;
+                    RiderLauncherMethodSettingCard.Visibility = Visibility.Collapsed;
                     break;
                 case "RD":
                     DefaultIdeComboBox.SelectedIndex = 1;
+                    RiderLauncherMethodSettingCard.Visibility = Visibility.Visible;
                     break;
                 case "VSCode":
                     DefaultIdeComboBox.SelectedIndex = 2;
+                    RiderLauncherMethodSettingCard.Visibility = Visibility.Collapsed;
                     break;
                 default:
                     DefaultIdeComboBox.SelectedIndex = 3; // None
                     break;
+            }
+        }
+
+        private void LoadRiderLaunchMethod()
+        {
+            var method = SettingsService.Get("IDE.Rider.LaunchMethod", "SOLUTION");
+            switch (method)
+            {
+                case "SOLUTION":
+                {
+                    RiderLauncherMethodComboBox.SelectedIndex = 0;
+                    break;
+                }
+                case "UPROJECT":
+                {
+                    RiderLauncherMethodComboBox.SelectedIndex = 1;
+                    break;
+                }
+                default:
+                {
+                    RiderLauncherMethodComboBox.SelectedIndex = 0;
+                    break;
+                }
             }
         }
 
@@ -371,12 +391,6 @@ namespace DreamUnrealManager.Views
                     return;
                 }
 
-                // 显示正在检测的提示
-                if (IdePathDescription != null)
-                {
-                    IdePathDescription.Text = "正在自动检测IDE路径...";
-                }
-
                 // 根据默认IDE类型自动搜索路径
                 var detectedPath = await DetectIdePath(defaultIde);
                 if (!string.IsNullOrEmpty(detectedPath) && File.Exists(detectedPath))
@@ -389,28 +403,12 @@ namespace DreamUnrealManager.Views
                     {
                         IdePathTextBox.Text = detectedPath;
                     }
-
-                    if (IdePathDescription != null)
-                    {
-                        IdePathDescription.Text = $"自动检测到 {GetIdeDisplayName(defaultIde)} 路径";
-                    }
-                }
-                else
-                {
-                    if (IdePathDescription != null)
-                    {
-                        IdePathDescription.Text = "自动检测完成，未找到IDE路径，请手动选择";
-                    }
                 }
             }
             catch (Exception ex)
             {
                 // 静默处理自动检测错误，不打扰用户
                 System.Diagnostics.Debug.WriteLine($"自动检测IDE路径失败: {ex.Message}");
-                if (IdePathDescription != null)
-                {
-                    IdePathDescription.Text = "根据选择的默认IDE，路径指向对应的可执行文件";
-                }
             }
         }
 
@@ -593,6 +591,12 @@ namespace DreamUnrealManager.Views
         private void AcrylicTintLuminosityOpacitySettingSlider_OnValueChanged(object sender, RangeBaseValueChangedEventArgs e)
         {
             acrylicSettings.TintLuminosityOpacity = e.NewValue / 100.0f;
+        }
+
+        private void RiderLauncherMethodComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var tag = ((ComboBoxItem)RiderLauncherMethodComboBox.SelectedItem).Tag as string;
+            SettingsService.Set("IDE.Rider.LaunchMethod", tag);
         }
     }
 
