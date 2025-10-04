@@ -154,8 +154,7 @@
         
         <!-- 列表卡片（信息丰富） -->
         <DataTemplate x:Key="ListProjectTemplate" x:DataType="models:ProjectInfo">
-            <Border Margin="0,8"
-                    CornerRadius="10"
+            <Border CornerRadius="10"
                     MinHeight="140"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
@@ -171,8 +170,8 @@
                     <!-- 左：缩略图 -->
                     <Border Grid.Column="0"
                             Width="120" Height="120"
-                            Margin="12"
-                            CornerRadius="8, 0, 8, 0"
+                            Margin="8"
+                            CornerRadius="8"
                             Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
                         <Image Source="{x:Bind ProjectIconPath}"
                                Stretch="UniformToFill"
@@ -331,7 +330,7 @@
                       CornerRadius="8"
                       Height="80"
                       MinWidth="400"
-                      MaxWidth="800"
+                      MaxWidth="1500"
                       Padding="0, 0, 15, 0"
                       ColumnSpacing="5">
                     <Grid.ColumnDefinitions>
@@ -657,7 +656,8 @@
                       HorizontalContentAlignment="Center"
                       VerticalContentAlignment="Center"
                       ItemsPanel="{StaticResource GridItemsPanel}"
-                      ItemTemplate="{StaticResource GridProjectTemplate}" />
+                      ItemTemplate="{StaticResource GridProjectTemplate}" >
+            </ListView>
             
             <Grid x:Name="GlobalOverlay"
                   Background="#80000000"

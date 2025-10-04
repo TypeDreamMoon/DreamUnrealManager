@@ -23,7 +23,10 @@ namespace DreamUnrealManager.Services
             }
 
             // 目标： [引擎目录]/Engine/Binaries/Win64/UnrealEditor.exe
-            var exePath = Path.Combine(engineRootPath, "Engine", "Binaries", "Win64", "UnrealEditor.exe");
+            var basePath = Path.Combine(engineRootPath, "Engine", "Binaries");
+            var ue5_Path = Path.Combine(basePath, "Win64", "UnrealEditor.exe");
+            var ue4_Path = Path.Combine(basePath, "Win64", "UE4Editor.exe");
+            var exePath = File.Exists(ue5_Path) ? ue5_Path : ue4_Path;
 
             if (!File.Exists(exePath))
             {

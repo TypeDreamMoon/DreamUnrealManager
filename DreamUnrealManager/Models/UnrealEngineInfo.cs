@@ -24,7 +24,17 @@ namespace DreamUnrealManager.Models
 
         public string DisplayName
         {
-            get => _displayName;
+            get
+            {
+                if (IsSourceBuild)
+                {
+                    return _displayName + " - " + EnginePath.Substring(EnginePath.LastIndexOf('\\') + 1);
+                }
+                else
+                {
+                    return _displayName;
+                }
+            }
             set
             {
                 _displayName = value;
