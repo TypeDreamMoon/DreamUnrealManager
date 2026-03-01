@@ -70,6 +70,14 @@
                         <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xF156;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+
+                <NavigationViewItem x:Name="UnrealHordeNavItem"
+                                    x:Uid="Shell_UnrealHorde"
+                                    helpers:NavigationHelper.NavigateTo="DreamUnrealManager.ViewModels.UnrealHordeViewModel">
+                    <NavigationViewItem.Icon>
+                        <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE9F9;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
             </NavigationView.MenuItems>
 
             <NavigationView.FooterMenuItems>

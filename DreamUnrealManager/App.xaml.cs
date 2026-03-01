@@ -103,6 +103,8 @@ public partial class App : Application
 
             services.AddTransient<UnrealLauncherPage>();
             services.AddTransient<UnrealLauncherViewModel>();
+            services.AddTransient<UnrealHordePage>();
+            services.AddTransient<UnrealHordeViewModel>();
 
             // Configuration
             services.Configure<LocalSettingsOptions>(context.Configuration.GetSection(nameof(LocalSettingsOptions)));

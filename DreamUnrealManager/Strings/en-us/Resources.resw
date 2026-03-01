@@ -79,4 +79,7 @@
   <data name="Shell_UnrealLauncher.Content" xml:space="preserve">
         <value>Unreal Launcher</value>
   </data>
+  <data name="Shell_UnrealHorde.Content" xml:space="preserve">
+        <value>Unreal Horde</value>
+  </data>
 </root>
