@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using DreamUnrealManager.Contracts.Services;
 using DreamUnrealManager.Models;
@@ -16,6 +17,11 @@ namespace DreamUnrealManager.Services
         public static EngineManagerService Instance => _instance ??= new EngineManagerService();
 
         private readonly string _configFilePath;
+        private readonly SemaphoreSlim _loadLock = new(1, 1);
+        private bool _isLoaded;
+        private bool _lastConfigExisted;
+        private DateTime? _lastConfigWriteTimeUtc;
+        private long? _lastConfigLength;
 
         public ObservableCollection<UnrealEngineInfo> Engines
         {
@@ -36,8 +42,19 @@ namespace DreamUnrealManager.Services
 
         public async Task LoadEngines()
         {
+            if (_isLoaded && !HasExternalConfigChanges())
+            {
+                return;
+            }
+
+            await _loadLock.WaitAsync();
             try
             {
+                if (_isLoaded && !HasExternalConfigChanges())
+                {
+                    return;
+                }
+
                 if (File.Exists(_configFilePath))
                 {
                     var json = await File.ReadAllTextAsync(_configFilePath);
@@ -59,11 +76,18 @@ namespace DreamUnrealManager.Services
                     // 首次运行，尝试自动检测引擎
                     await AutoDetectEngines();
                 }
+
+                MarkConfigSnapshot();
+                _isLoaded = true;
             }
             catch (Exception ex)
             {
                 // 记录错误但不抛出异常
                 System.Diagnostics.Debug.WriteLine($"Failed to load engines: {ex.Message}");
+            }
+            finally
+            {
+                _loadLock.Release();
             }
         }
 
@@ -78,10 +102,65 @@ namespace DreamUnrealManager.Services
                     new JsonSerializerOptions { WriteIndented = true }
                 );
                 await File.WriteAllTextAsync(_configFilePath, json);
+                MarkConfigSnapshot();
+                _isLoaded = true;
             }
             catch (Exception ex)
             {
                 throw new Exception($"保存引擎配置失败: {ex.Message}");
+            }
+        }
+
+        private bool HasExternalConfigChanges()
+        {
+            try
+            {
+                var exists = File.Exists(_configFilePath);
+                if (!exists)
+                {
+                    return _lastConfigExisted;
+                }
+
+                var fi = new FileInfo(_configFilePath);
+
+                if (!_lastConfigExisted || !_lastConfigWriteTimeUtc.HasValue || !_lastConfigLength.HasValue)
+                {
+                    return true;
+                }
+
+                return fi.LastWriteTimeUtc != _lastConfigWriteTimeUtc.Value
+                       || fi.Length != _lastConfigLength.Value;
+            }
+            catch
+            {
+                // IO 异常时保守处理为“有变化”，避免一直用到旧缓存。
+                return true;
+            }
+        }
+
+        private void MarkConfigSnapshot()
+        {
+            try
+            {
+                var exists = File.Exists(_configFilePath);
+                _lastConfigExisted = exists;
+
+                if (!exists)
+                {
+                    _lastConfigWriteTimeUtc = null;
+                    _lastConfigLength = null;
+                    return;
+                }
+
+                var fi = new FileInfo(_configFilePath);
+                _lastConfigWriteTimeUtc = fi.LastWriteTimeUtc;
+                _lastConfigLength = fi.Length;
+            }
+            catch
+            {
+                _lastConfigExisted = false;
+                _lastConfigWriteTimeUtc = null;
+                _lastConfigLength = null;
             }
         }
 

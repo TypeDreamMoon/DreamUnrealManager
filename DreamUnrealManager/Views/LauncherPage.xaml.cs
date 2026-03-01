@@ -42,6 +42,7 @@ namespace DreamUnrealManager.Views
         // 进度
         private int _metaTotal;
         private int _metaDone;
+        private CancellationTokenSource? _rehydrateCts;
 
         public LauncherPage()
         {
@@ -57,6 +58,7 @@ namespace DreamUnrealManager.Views
 
             InitializeComponent(); // 再加载 XAML
             Loaded += LauncherPage_Loaded;
+            Unloaded += LauncherPage_Unloaded;
         }
 
 
@@ -74,7 +76,7 @@ namespace DreamUnrealManager.Views
                 }
 
                 // 两阶段补全（元数据→体积）
-                _ = RehydrateProjectsAsync(App.RepositoryService.LoadedData);
+                StartRehydrateProjects(App.RepositoryService.LoadedData);
 
                 SetStatus("就绪");
             }
@@ -82,6 +84,13 @@ namespace DreamUnrealManager.Views
             {
                 SetStatus($"加载失败：{ex.Message}");
             }
+        }
+
+        private void LauncherPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            _rehydrateCts?.Cancel();
+            _rehydrateCts?.Dispose();
+            _rehydrateCts = null;
         }
 
         #region 进度/调度/工具
@@ -141,40 +150,97 @@ namespace DreamUnrealManager.Views
 
         #region 两阶段加载
 
-        private async Task RehydrateProjectsAsync(List<ProjectInfo> list)
+        private void StartRehydrateProjects(List<ProjectInfo>? list)
+        {
+            _rehydrateCts?.Cancel();
+            _rehydrateCts?.Dispose();
+            _rehydrateCts = new CancellationTokenSource();
+            _ = RehydrateProjectsAsync(list ?? new List<ProjectInfo>(), _rehydrateCts.Token);
+        }
+
+        private static bool NeedsMetadataRefresh(ProjectInfo project)
+        {
+            if (project == null || string.IsNullOrWhiteSpace(project.ProjectPath))
+            {
+                return false;
+            }
+
+            if (!File.Exists(project.ProjectPath))
+            {
+                return true;
+            }
+
+            try
+            {
+                var actualModified = File.GetLastWriteTime(project.ProjectPath);
+                if (actualModified != project.LastModified)
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+                return true;
+            }
+
+            return string.IsNullOrWhiteSpace(project.EngineAssociation)
+                   || project.Modules == null
+                   || project.Plugins == null;
+        }
+
+        private async Task RehydrateProjectsAsync(List<ProjectInfo> list, CancellationToken ct)
         {
             var items = list.ToList();
             _metaTotal = items.Count;
             _metaDone = 0;
 
-            ShowGlobalProgress(0, _metaTotal, true);
+            if (_metaTotal == 0)
+            {
+                SetStatus("就绪");
+                return;
+            }
+
+            SetStatus($"正在后台补全项目信息... 0/{_metaTotal}");
 
             // 阶段A：元数据（决定遮罩+全局进度）
             var semA = new SemaphoreSlim(4); // 限制并发数为4
             var metaTasks = items.Select(async p =>
             {
-                await semA.WaitAsync();
+                await semA.WaitAsync(ct);
                 try
                 {
+                    ct.ThrowIfCancellationRequested();
                     RunOnUI(() => p.IsLoadingMeta = true);
 
-                    if (File.Exists(p.ProjectPath))
+                    if (!NeedsMetadataRefresh(p))
                     {
-                        var fresh = await _factoryService.CreateAsync(p.ProjectPath);
-                        if (fresh != null)
-                        {
-                            // 回填关键字段并统一刷新派生属性
-                            RunOnUI(() =>
-                            {
-                                p.UpdateFrom(fresh);
-                                p.RefreshThumbnail();
-                            });
-                        }
+                        // 不做重解析，轻量刷新缩略图与状态。
+                        RunOnUI(() => p.RefreshThumbnail(includeGitStatus: false));
                     }
                     else
                     {
-                        p.IsValid = false;
+                        if (File.Exists(p.ProjectPath))
+                        {
+                            var fresh = await _factoryService.CreateAsync(p.ProjectPath, ct);
+                            if (fresh != null)
+                            {
+                                // 回填关键字段并统一刷新派生属性
+                                RunOnUI(() =>
+                                {
+                                    p.UpdateFrom(fresh);
+                                    p.RefreshThumbnail(includeGitStatus: false);
+                                });
+                            }
+                        }
+                        else
+                        {
+                            RunOnUI(() => p.IsValid = false);
+                        }
                     }
+                }
+                catch (OperationCanceledException)
+                {
+                    // ignore
                 }
                 catch
                 {
@@ -184,13 +250,28 @@ namespace DreamUnrealManager.Views
                 {
                     RunOnUI(() => p.IsLoadingMeta = false);
                     var d = Interlocked.Increment(ref _metaDone);
-                    ShowGlobalProgress(d, _metaTotal, true);
+                    if (d == _metaTotal || d % 8 == 0)
+                    {
+                        SetStatus($"正在后台补全项目信息... {d}/{_metaTotal}");
+                    }
+
                     semA.Release();
                 }
             });
 
-            await Task.WhenAll(metaTasks);
-            ShowGlobalProgress(_metaTotal, _metaTotal, false);
+            try
+            {
+                await Task.WhenAll(metaTasks);
+            }
+            catch (OperationCanceledException)
+            {
+                // ignore
+            }
+
+            if (!ct.IsCancellationRequested)
+            {
+                SetStatus("就绪");
+            }
         }
 
 
@@ -464,7 +545,7 @@ namespace DreamUnrealManager.Views
                 ApplyFilters();
 
                 // 体积后台算
-                _ = RehydrateProjectsAsync(App.RepositoryService.LoadedData);
+                StartRehydrateProjects(App.RepositoryService.LoadedData);
                 SetStatus("项目列表已刷新");
             }
             catch (Exception ex)
@@ -502,7 +583,7 @@ namespace DreamUnrealManager.Views
                 ApplyFilters();
 
                 // 补全加载
-                _ = RehydrateProjectsAsync(newOnes);
+                StartRehydrateProjects(newOnes);
                 SetStatus($"搜索完成：新增 {newOnes.Count} 项目");
             }
             catch (OperationCanceledException)

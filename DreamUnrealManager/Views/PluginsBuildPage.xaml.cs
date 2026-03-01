@@ -32,6 +32,32 @@ namespace DreamUnrealManager.Views
         private int _errorCount = 0;
         private int _warningCount = 0;
         private UnrealEngineInfo _currentBuildingEngine;
+        private int _activeBatchTotal = 0;
+        private double _currentEngineProgress = 0;
+
+        private static readonly System.Text.RegularExpressions.Regex BuildActionProgressRegex =
+            new(@"\[(\d+)\/(\d+)\]", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private sealed class BatchBuildSummary
+        {
+            public int Total
+            {
+                get;
+                set;
+            }
+
+            public int SuccessCount
+            {
+                get;
+                set;
+            }
+
+            public int FailCount
+            {
+                get;
+                set;
+            }
+        }
 
         public PluginsBuildPage()
         {
@@ -245,11 +271,20 @@ namespace DreamUnrealManager.Views
             {
                 try
                 {
+                    if (string.IsNullOrWhiteSpace(message))
+                    {
+                        return;
+                    }
+
+                    message = message.Trim();
+
                     // 如果页面还没加载完成，直接返回
                     if (!this.IsLoaded || TerminalOutput == null)
                     {
                         return;
                     }
+
+                    messageType = MergeMessageType(messageType, InferMessageTypeFromOutput(message));
 
                     // 过滤掉一些噪音信息
                     if (ShouldFilterMessage(message))
@@ -267,9 +302,6 @@ namespace DreamUnrealManager.Views
                             UpdateCurrentEngineInfo(_currentBuildingEngine, "构建失败");
                             UpdateNavigationStatus(true, 1, "构建失败");
                             UpdateBuildProgressBarState(true);
-
-                            // 取消当前构建过程
-                            _buildCancellationTokenSource?.Cancel();
                         }
                     }
 
@@ -320,6 +352,42 @@ namespace DreamUnrealManager.Views
                     System.Diagnostics.Debug.WriteLine($"WriteToTerminal error: {ex.Message}");
                 }
             });
+        }
+
+        private static TerminalMessageType MergeMessageType(TerminalMessageType origin, TerminalMessageType inferred)
+        {
+            if (origin != TerminalMessageType.Info)
+            {
+                return origin;
+            }
+
+            return inferred;
+        }
+
+        private TerminalMessageType InferMessageTypeFromOutput(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return TerminalMessageType.Info;
+            }
+
+            if (IsRealError(message, TerminalMessageType.Info))
+            {
+                return TerminalMessageType.Error;
+            }
+
+            if (IsRealWarning(message, TerminalMessageType.Info))
+            {
+                return TerminalMessageType.Warning;
+            }
+
+            if (message.Contains("BUILD SUCCESSFUL", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("exiting with ExitCode=0", StringComparison.OrdinalIgnoreCase))
+            {
+                return TerminalMessageType.Success;
+            }
+
+            return TerminalMessageType.Info;
         }
 
 
@@ -584,8 +652,9 @@ namespace DreamUnrealManager.Views
             {
                 try
                 {
-                    CurrentBuildProgressBar.Value = percentage;
-                    BuildProgressText.Text = $"{percentage}%";
+                    var clamped = Math.Clamp(percentage, 0, 100);
+                    CurrentBuildProgressBar.Value = clamped;
+                    BuildProgressText.Text = $"{clamped}%";
 
                     if (!string.IsNullOrEmpty(step))
                     {
@@ -597,6 +666,12 @@ namespace DreamUnrealManager.Views
                     System.Diagnostics.Debug.WriteLine($"UpdateBuildProgress error: {ex.Message}");
                 }
             });
+
+            if (_activeBatchTotal > 0)
+            {
+                _currentEngineProgress = Math.Max(_currentEngineProgress, Math.Clamp(percentage, 0, 100));
+                UpdateBatchProgressWithCurrentEngine();
+            }
         }
 
         private void UpdateBuildProgressBarState(bool bIsError)
@@ -834,21 +909,30 @@ namespace DreamUnrealManager.Views
 
             try
             {
+                bool overallSuccess;
                 if (SingleBuildRadio.IsChecked == true)
                 {
-                    await PerformSingleBuildAsync(_buildCancellationTokenSource.Token);
+                    overallSuccess = await PerformSingleBuildAsync(_buildCancellationTokenSource.Token);
                 }
                 else
                 {
                     // 批量构建
                     var selectedEngines = GetSelectedEnginesForBatch();
                     UpdateNavigationStatus(true, selectedEngines.Count, $"批量构建中 (共{selectedEngines.Count}个引擎)");
-                    await PerformBatchBuildAsync(_buildCancellationTokenSource.Token);
+                    var summary = await PerformBatchBuildAsync(_buildCancellationTokenSource.Token);
+                    overallSuccess = summary.FailCount == 0;
                 }
 
-                // 构建成功完成
-                UpdateNavigationStatus(false, 0, "构建完成");
-                WriteToTerminal("=== 构建成功完成 ===", TerminalMessageType.Success);
+                if (overallSuccess)
+                {
+                    UpdateNavigationStatus(false, 0, "构建完成");
+                    WriteToTerminal("=== 构建完成（全部成功）===", TerminalMessageType.Success);
+                }
+                else
+                {
+                    UpdateNavigationStatus(false, 0, "构建完成（含失败项）");
+                    WriteToTerminal("=== 构建完成（含失败项）===", TerminalMessageType.Warning);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -881,26 +965,49 @@ namespace DreamUnrealManager.Views
         }
 
 
-        private async Task PerformSingleBuildAsync(CancellationToken cancellationToken)
+        private async Task<bool> PerformSingleBuildAsync(CancellationToken cancellationToken)
         {
             var engine = GetSelectedEngine();
             UpdateCurrentEngineInfo(engine, "开始构建");
+            _activeBatchTotal = 0;
+            _currentBatchIndex = 0;
+            _currentEngineProgress = 0;
+
+            var sw = Stopwatch.StartNew();
             await ExecuteRunUATCommand(engine, cancellationToken);
+            sw.Stop();
+
+            WriteToTerminal($"[OK] {engine.DisplayName} 构建成功，用时 {FormatDuration(sw.Elapsed)}", TerminalMessageType.Success);
+            return true;
         }
 
-        private async Task PerformBatchBuildAsync(CancellationToken cancellationToken)
+        private async Task<BatchBuildSummary> PerformBatchBuildAsync(CancellationToken cancellationToken)
         {
             _selectedEnginesForBatch = GetSelectedEnginesForBatch();
             _batchBuildResults = new List<string>();
+            _activeBatchTotal = _selectedEnginesForBatch.Count;
+            _currentBatchIndex = 0;
+            _currentEngineProgress = 0;
+
+            var summary = new BatchBuildSummary
+            {
+                Total = _selectedEnginesForBatch.Count
+            };
 
             WriteToTerminal($"开始批量构建，共 {_selectedEnginesForBatch.Count} 个引擎版本", TerminalMessageType.Info);
+            WriteToTerminal($"遇错即停: {(StopOnErrorCheckBox.IsChecked.GetValueOrDefault() ? "是" : "否")}", TerminalMessageType.Info);
 
             // 更新为批量构建状态
             UpdateNavigationStatus(true, _selectedEnginesForBatch.Count, $"批量构建 (0/{_selectedEnginesForBatch.Count})");
+            UpdateBatchProgress("准备批量构建...", 0, _selectedEnginesForBatch.Count);
 
             for (int i = 0; i < _selectedEnginesForBatch.Count; i++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 var engine = _selectedEnginesForBatch[i];
+                _currentBatchIndex = i;
+                _currentEngineProgress = 0;
 
                 // 更新批量构建进度
                 UpdateNavigationStatus(true, _selectedEnginesForBatch.Count, $"批量构建 ({i + 1}/{_selectedEnginesForBatch.Count})");
@@ -911,14 +1018,20 @@ namespace DreamUnrealManager.Views
                 UpdateCurrentEngineInfo(engine, $"批量构建 {i + 1}/{_selectedEnginesForBatch.Count}");
 
                 WriteToTerminal($"=== 开始构建 {engine.DisplayName} ({engine.FullVersion ?? engine.Version}) ===", TerminalMessageType.Info);
+                var sw = Stopwatch.StartNew();
 
                 try
                 {
                     await ExecuteRunUATCommand(engine, cancellationToken);
+                    sw.Stop();
+                    _currentEngineProgress = 100;
+                    UpdateBatchProgress($"[{i + 1}/{_selectedEnginesForBatch.Count}] {engine.DisplayName} 构建成功",
+                        i + 1, _selectedEnginesForBatch.Count);
 
-                    var result = $"✓ {engine.DisplayName}: 构建成功";
+                    var result = $"✓ {engine.DisplayName}: 构建成功 ({FormatDuration(sw.Elapsed)})";
                     _batchBuildResults.Add(result);
                     WriteToTerminal(result, TerminalMessageType.Success);
+                    summary.SuccessCount++;
                 }
                 catch (OperationCanceledException)
                 {
@@ -926,9 +1039,15 @@ namespace DreamUnrealManager.Views
                 }
                 catch (Exception ex)
                 {
-                    var result = $"✗ {engine.DisplayName}: 构建失败 - {ex.Message}";
+                    sw.Stop();
+                    _currentEngineProgress = 100;
+                    UpdateBatchProgress($"[{i + 1}/{_selectedEnginesForBatch.Count}] {engine.DisplayName} 构建失败",
+                        i + 1, _selectedEnginesForBatch.Count);
+
+                    var result = $"✗ {engine.DisplayName}: 构建失败 - {ex.Message} ({FormatDuration(sw.Elapsed)})";
                     _batchBuildResults.Add(result);
                     WriteToTerminal(result, TerminalMessageType.Error);
+                    summary.FailCount++;
 
                     if (StopOnErrorCheckBox.IsChecked.GetValueOrDefault())
                     {
@@ -946,8 +1065,8 @@ namespace DreamUnrealManager.Views
                 WriteToTerminal(result, result.StartsWith("✓") ? TerminalMessageType.Success : TerminalMessageType.Error);
             }
 
-            var successCount = _batchBuildResults.Count(r => r.StartsWith("✓"));
-            var failCount = _batchBuildResults.Count(r => r.StartsWith("✗"));
+            var successCount = summary.SuccessCount;
+            var failCount = summary.FailCount;
 
             UpdateBatchProgress($"批量构建完成: {successCount} 成功, {failCount} 失败",
                 _selectedEnginesForBatch.Count, _selectedEnginesForBatch.Count);
@@ -963,6 +1082,10 @@ namespace DreamUnrealManager.Views
             {
                 UpdateNavigationStatus(false, 0, $"批量构建完成: 全部{successCount}个成功");
             }
+
+            _activeBatchTotal = 0;
+            _currentEngineProgress = 0;
+            return summary;
         }
 
         private async Task ExecuteRunUATCommand(UnrealEngineInfo engine, CancellationToken cancellationToken)
@@ -982,75 +1105,125 @@ namespace DreamUnrealManager.Views
             Directory.CreateDirectory(outputPath);
 
             var command = BuildRunUATCommand(engine);
+            var arguments = BuildRunUATArguments(engine);
             WriteToTerminal($"执行命令: {command}", TerminalMessageType.Command);
 
             UpdateCurrentEngineInfo(engine, "启动 UAT 构建进程");
-            UpdateBuildProgress(10, "启动构建进程");
+            UpdateBuildProgress(5, "启动构建进程");
             UpdateBuildProgressBarState(false);
             UpdateNavigationStatus(true, 1, $"正在编译 {engine.DisplayName}");
 
-            // 用于检测构建是否失败
             var buildFailed = false;
-            var localCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-            // 事件处理
-            void OutputHandler(string line)
-            {
-                // 检查是否包含构建失败信息
-                if (line.Contains("BUILD FAILED", StringComparison.OrdinalIgnoreCase))
-                {
-                    buildFailed = true;
-                    WriteToTerminal("检测到 BUILD FAILED，正在终止构建过程...", TerminalMessageType.Error);
-                    UpdateCurrentEngineInfo(engine, "构建失败");
-                    UpdateNavigationStatus(true, 1, "构建失败");
-
-                    // 取消当前构建任务
-                    localCancellationTokenSource.Cancel();
-                }
-
-                WriteToTerminal(line, TerminalMessageType.Info);
-                UpdateBuildProgressFromOutput(line);
-                UpdateNavigationStatusFromOutput(line, engine);
-            }
-
-            ConsoleService.Instance.OutputReceived += OutputHandler;
+            var commandExitCode = 0;
+            Process? process = null;
 
             try
             {
-                await ConsoleService.Instance.ExecuteCommandAsync(command, localCancellationTokenSource.Token);
-
-                // 等待构建完成（可根据实际情况优化等待方式）
-                while (!localCancellationTokenSource.Token.IsCancellationRequested)
+                process = new Process
                 {
-                    await Task.Delay(1000, localCancellationTokenSource.Token);
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = runUATPath,
+                        Arguments = arguments,
+                        WorkingDirectory = Path.GetDirectoryName(runUATPath) ?? engine.EnginePath,
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true
+                    },
+                    EnableRaisingEvents = true
+                };
+
+                void OutputHandler(object? _, DataReceivedEventArgs e)
+                {
+                    if (string.IsNullOrWhiteSpace(e.Data))
+                    {
+                        return;
+                    }
+
+                    var line = e.Data.Trim();
+                    WriteToTerminal(line);
+                    UpdateBuildProgressFromOutput(line);
+                    UpdateNavigationStatusFromOutput(line, engine);
+
+                    if (line.Contains("BUILD FAILED", StringComparison.OrdinalIgnoreCase))
+                    {
+                        buildFailed = true;
+                    }
+                }
+
+                process.OutputDataReceived += OutputHandler;
+                process.ErrorDataReceived += OutputHandler;
+
+                if (!process.Start())
+                {
+                    throw new Exception("无法启动构建进程。");
+                }
+
+                _currentProcess = process;
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
+                using var cancelReg = cancellationToken.Register(() =>
+                {
+                    try
+                    {
+                        if (!process.HasExited)
+                        {
+                            process.Kill(true);
+                        }
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                });
+
+                await process.WaitForExitAsync();
+                commandExitCode = process.ExitCode;
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    throw new OperationCanceledException(cancellationToken);
                 }
             }
             catch (OperationCanceledException)
             {
-                // 如果是我们主动取消的（因为BUILD FAILED），则抛出特定异常
-                if (buildFailed)
-                {
-                    WriteToTerminal("构建因 BUILD FAILED 而终止", TerminalMessageType.Error);
-                    throw new Exception("构建过程中检测到 BUILD FAILED 错误");
-                }
-                else
-                {
-                    WriteToTerminal("构建进程已被用户终止", TerminalMessageType.Warning);
-                    UpdateNavigationStatus(false, 0, "构建已取消");
-                    throw;
-                }
+                WriteToTerminal("构建进程已被用户终止", TerminalMessageType.Warning);
+                UpdateNavigationStatus(false, 0, "构建已取消");
+                throw;
             }
             finally
             {
-                ConsoleService.Instance.OutputReceived -= OutputHandler;
-                localCancellationTokenSource.Dispose();
-
-                // 如果检测到构建失败，确保抛出异常
-                if (buildFailed)
+                if (process != null)
                 {
-                    throw new Exception("构建过程中检测到 BUILD FAILED 错误");
+                    try
+                    {
+                        process.CancelOutputRead();
+                        process.CancelErrorRead();
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    process.Dispose();
                 }
+
+                _currentProcess = null;
             }
+
+            if (buildFailed || commandExitCode != 0)
+            {
+                UpdateBuildProgressBarState(true);
+                UpdateCurrentEngineInfo(engine, "构建失败");
+                UpdateNavigationStatus(true, 1, "构建失败");
+                throw new Exception($"构建失败（ExitCode={commandExitCode}）");
+            }
+
+            UpdateBuildProgress(100, "构建完成");
+            UpdateCurrentEngineInfo(engine, "构建成功");
+            UpdateNavigationStatus(true, 1, "构建成功");
         }
 
 
@@ -1059,32 +1232,99 @@ namespace DreamUnrealManager.Views
             try
             {
                 var lowerOutput = output.ToLower();
+                int progress = -1;
+                string? step = null;
 
-                if (lowerOutput.Contains("parsing") || lowerOutput.Contains("loading"))
+                if (lowerOutput.Contains("running automationtool") || lowerOutput.Contains("starting automationtool"))
                 {
-                    UpdateBuildProgress(20, "解析项目文件");
+                    progress = 8;
+                    step = "启动 AutomationTool";
                 }
-                else if (lowerOutput.Contains("compiling") || lowerOutput.Contains("building"))
+                else if (lowerOutput.Contains("initializing script modules"))
                 {
-                    UpdateBuildProgress(50, "正在编译插件");
+                    progress = 12;
+                    step = "初始化脚本模块";
                 }
-                else if (lowerOutput.Contains("linking"))
+                else if (lowerOutput.Contains("executing commands"))
                 {
-                    UpdateBuildProgress(70, "正在链接");
+                    progress = 18;
+                    step = "执行构建命令";
                 }
-                else if (lowerOutput.Contains("packaging") || lowerOutput.Contains("copying"))
+                else if (lowerOutput.Contains("copying ") && lowerOutput.Contains("file"))
                 {
-                    UpdateBuildProgress(80, "正在打包插件");
+                    progress = 25;
+                    step = "复制插件文件";
                 }
-                else if (lowerOutput.Contains("success") || lowerOutput.Contains("completed"))
+                else if (lowerOutput.Contains("building plugin for host platforms"))
                 {
-                    UpdateBuildProgress(90, "构建接近完成");
+                    progress = 30;
+                    step = "构建宿主平台";
+                }
+                else if (lowerOutput.Contains("running internal unrealheadertool"))
+                {
+                    progress = 38;
+                    step = "运行 UHT";
+                }
+                else if (lowerOutput.Contains("building unrealeditor"))
+                {
+                    progress = 45;
+                    step = "构建 UnrealEditor";
+                }
+                else if (lowerOutput.Contains("building plugin for target platforms"))
+                {
+                    progress = 58;
+                    step = "构建目标平台";
+                }
+                else if (lowerOutput.Contains("reading filter rules") || lowerOutput.Contains("loading filterplugin"))
+                {
+                    progress = 92;
+                    step = "整理产物";
+                }
+                else if (lowerOutput.Contains("build successful"))
+                {
+                    progress = 100;
+                    step = "构建成功";
+                }
+                else
+                {
+                    var match = BuildActionProgressRegex.Match(output);
+                    if (match.Success &&
+                        int.TryParse(match.Groups[1].Value, out var current) &&
+                        int.TryParse(match.Groups[2].Value, out var total) &&
+                        total > 0)
+                    {
+                        var actionProgress = Math.Clamp(current * 1.0 / total, 0, 1);
+                        progress = (int)Math.Round(35 + actionProgress * 50);
+                        step = $"编译中 [{current}/{total}]";
+                    }
+                }
+
+                if (progress >= 0)
+                {
+                    _currentEngineProgress = Math.Max(_currentEngineProgress, progress);
+                    UpdateBuildProgress((int)_currentEngineProgress, step);
+                    UpdateBatchProgressWithCurrentEngine();
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"UpdateBuildProgressFromOutput error: {ex.Message}");
             }
+        }
+
+        private static string FormatDuration(TimeSpan elapsed)
+        {
+            if (elapsed.TotalHours >= 1)
+            {
+                return $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m {elapsed.Seconds}s";
+            }
+
+            if (elapsed.TotalMinutes >= 1)
+            {
+                return $"{elapsed.Minutes}m {elapsed.Seconds}s";
+            }
+
+            return $"{elapsed.TotalSeconds:F1}s";
         }
 
         // ... 其他方法保持不变，但需要添加一些事件处理 ...
@@ -1377,6 +1617,9 @@ namespace DreamUnrealManager.Views
             // 过滤一些噪音消息
             var noisePatterns = new[]
             {
+                @"^Microsoft Windows \[版本 .+\]$",
+                @"^\(c\) Microsoft Corporation。保留所有权利。$",
+                @"^[A-Za-z]:\\.+>\s*""?[A-Za-z]:\\.+RunUAT\.bat""?.*$",
                 @"^LogTemp:\s*Display:",
                 @"^LogInit:\s*Display:",
                 @"^LogCore:\s*Display:",
@@ -1688,6 +1931,12 @@ namespace DreamUnrealManager.Views
         private string BuildRunUATCommand(UnrealEngineInfo engine)
         {
             var runUATPath = Path.Combine(engine.EnginePath, "Engine", "Build", "BatchFiles", "RunUAT.bat");
+            var args = BuildRunUATArguments(engine);
+            return $"\"{runUATPath}\" {args}";
+        }
+
+        private string BuildRunUATArguments(UnrealEngineInfo engine)
+        {
             var pluginPath = SourcePathTextBox.Text;
             var outputPath = GetFinalOutputPath(engine);
 
@@ -1718,7 +1967,7 @@ namespace DreamUnrealManager.Views
                 args.Add("-Clean");
             }
 
-            return $"\"{runUATPath}\" {string.Join(" ", args)}";
+            return string.Join(" ", args);
         }
 
         private string GetPluginBuildName()
@@ -1794,13 +2043,44 @@ namespace DreamUnrealManager.Views
                     if (BatchProgressText != null) BatchProgressText.Text = $"{current}/{total}";
                     if (BatchProgressBar != null && total > 0)
                     {
-                        BatchProgressBar.Value = (current * 100.0) / total;
+                        var value = (current * 100.0) / total;
+                        BatchProgressBar.Value = Math.Clamp(value, 0, 100);
                     }
                 });
             }
             catch (Exception ex)
             {
                 WriteToTerminal($"更新批量进度时出错: {ex.Message}", TerminalMessageType.Error);
+            }
+        }
+
+        private void UpdateBatchProgressWithCurrentEngine()
+        {
+            try
+            {
+                if (_activeBatchTotal <= 0 || BatchProgressBar == null)
+                {
+                    return;
+                }
+
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (BatchProgressBar == null || BatchProgressText == null)
+                    {
+                        return;
+                    }
+
+                    var completed = Math.Clamp(_currentBatchIndex, 0, _activeBatchTotal);
+                    var engineFraction = Math.Clamp(_currentEngineProgress, 0, 100) / 100.0;
+                    var overall = ((completed + engineFraction) / _activeBatchTotal) * 100.0;
+
+                    BatchProgressBar.Value = Math.Clamp(overall, 0, 100);
+                    BatchProgressText.Text = $"{completed}/{_activeBatchTotal}";
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"UpdateBatchProgressWithCurrentEngine error: {ex.Message}");
             }
         }
 

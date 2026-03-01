@@ -345,7 +345,7 @@ namespace DreamUnrealManager.Models
             OnPropertyChanged(nameof(IsValid));
         }
 
-        public void RefreshThumbnail()
+        public void RefreshThumbnail(bool includeGitStatus = true)
         {
             if (!string.IsNullOrEmpty(ProjectDirectory))
             {
@@ -365,10 +365,10 @@ namespace DreamUnrealManager.Models
                 OnPropertyChanged(nameof(ThumbnailPath));
             }
 
-            CheckGitStatus();
+            CheckGitStatus(includeFolderSizeCalculation: includeGitStatus);
         }
 
-        public void CheckGitStatus()
+        public void CheckGitStatus(bool includeFolderSizeCalculation = true)
         {
             try
             {
@@ -392,7 +392,7 @@ namespace DreamUnrealManager.Models
 
                 IsGitEnabled = exists;
 
-                if (IsGitEnabled)
+                if (IsGitEnabled && includeFolderSizeCalculation)
                 {
                     Task.Run(() =>
                     {

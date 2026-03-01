@@ -170,20 +170,20 @@
                                         </StackPanel>
                                     </Button>
 
-                                    <Button Click="OpenFolder_Click" Tag="{x:Bind EnginePath}">
+                                    <Button Click="CopyPath_Click" Tag="{x:Bind EnginePath}">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE62F;" />
                                             <TextBlock Text="复制路径" />
                                         </StackPanel>
                                     </Button>
 
-                                    <Button Click="RefreshOne_Click" Tag="{x:Bind EnginePath}">
+                                    <Button Click="RefreshOne_Click" Tag="{x:Bind Id}">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE72C;" />
                                             <TextBlock Text="刷新" />
                                         </StackPanel>
                                     </Button>
-                                    <Button Click="Remove_Click" Tag="{x:Bind EnginePath}">
+                                    <Button Click="Remove_Click" Tag="{x:Bind Id}">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE74D;" />
                                             <TextBlock Text="删除" />

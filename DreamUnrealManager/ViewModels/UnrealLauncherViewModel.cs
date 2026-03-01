@@ -123,7 +123,7 @@ namespace DreamUnrealManager.ViewModels
 
         public async Task RemoveAsync(string id)
         {
-            var item = Engines.FirstOrDefault(e => e.Id == id);
+            var item = FindEngine(id);
             if (item == null) return;
             Engines.Remove(item);
             await SaveAsync();
@@ -152,7 +152,7 @@ namespace DreamUnrealManager.ViewModels
 
         public async Task RefreshOneAsync(string id)
         {
-            var item = Engines.FirstOrDefault(e => e.Id == id);
+            var item = FindEngine(id);
             if (item == null) return;
             item.RefreshVersionInfo();
             item.LastUsed = DateTime.Now;
@@ -163,7 +163,7 @@ namespace DreamUnrealManager.ViewModels
 
         public async Task SetDefaultAsync(string id)
         {
-            var item = Engines.FirstOrDefault(e => e.Id == id);
+            var item = FindEngine(id);
             if (item == null) return;
             // 这里简单地把默认引擎记在 engines.json 同目录的一个小文件里
             try
@@ -191,6 +191,18 @@ namespace DreamUnrealManager.ViewModels
         }
 
         #endregion
+
+        private UnrealEngineInfo? FindEngine(string idOrPath)
+        {
+            if (string.IsNullOrWhiteSpace(idOrPath))
+            {
+                return null;
+            }
+
+            // 优先按稳定 Id 查找，兼容历史 UI 传路径的情况。
+            return Engines.FirstOrDefault(e => string.Equals(e.Id, idOrPath, StringComparison.Ordinal))
+                   ?? Engines.FirstOrDefault(e => string.Equals(e.EnginePath, idOrPath, StringComparison.OrdinalIgnoreCase));
+        }
 
         #region 过滤与排序
 

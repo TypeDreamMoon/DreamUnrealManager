@@ -152,7 +152,7 @@
                         <!-- 批量构建选择 -->
                         <StackPanel x:Name="BatchBuildPanel" Spacing="10" Visibility="Collapsed">
                             <TextBlock Text="选择要构建的引擎版本:" />
-                            <TextBlock Text="构建将按顺序执行，如果任何一个版本构建失败，整个批量构建将停止。"
+                            <TextBlock Text="构建将按顺序执行；是否在失败后停止，取决于下方“遇到错误时停止批量构建”选项。"
                                        FontSize="12"
                                        Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
                                        TextWrapping="Wrap" />

@@ -122,8 +122,8 @@ namespace DreamUnrealManager.Services
                 /* 忽略关联异常 */
             }
 
-            project.RefreshThumbnail();
-            project.CheckGitStatus();
+            // 高频批量构建时不计算 .git 目录体积，减少加载抖动。
+            project.RefreshThumbnail(includeGitStatus: false);
 
             return project;
         }
