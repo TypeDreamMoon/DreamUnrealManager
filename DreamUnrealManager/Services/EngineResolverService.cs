@@ -72,7 +72,7 @@ namespace DreamUnrealManager.Services
 
         private static bool IsGuid(string s) => GuidPattern.IsMatch(s?.Trim() ?? "");
 
-        private static string ResolveEnginePathFromGuid(string guid)
+        private static string? ResolveEnginePathFromGuid(string guid)
         {
             if (string.IsNullOrWhiteSpace(guid)) return null;
 
@@ -93,7 +93,7 @@ namespace DreamUnrealManager.Services
             return fromHklm32;
         }
 
-        private static string ReadRegValue(RegistryHive hive, RegistryView view, string subkey, string valueName)
+        private static string? ReadRegValue(RegistryHive hive, RegistryView view, string subkey, string valueName)
         {
             try
             {
@@ -114,7 +114,7 @@ namespace DreamUnrealManager.Services
             try
             {
                 var p = path;
-                if (File.Exists(p)) p = Path.GetDirectoryName(p);
+                if (File.Exists(p)) p = Path.GetDirectoryName(p) ?? path;
                 var dir = new DirectoryInfo(p);
                 while (dir != null && !Directory.Exists(Path.Combine(dir.FullName, "Engine")))
                     dir = dir.Parent;

@@ -10,35 +10,35 @@ namespace DreamUnrealManager.Models
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("Type")]
         public string Type
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("LoadingPhase")]
         public string LoadingPhase
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("WhitelistPlatforms")]
         public List<string> WhitelistPlatforms
         {
             get;
             set;
-        }
+        } = new();
 
         [JsonPropertyName("BlacklistPlatforms")]
         public List<string> BlacklistPlatforms
         {
             get;
             set;
-        }
+        } = new();
     }
 
     public class PluginInfo
@@ -62,63 +62,63 @@ namespace DreamUnrealManager.Models
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("FriendlyName")]
         public string FriendlyName
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("Description")]
         public string Description
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("Category")]
         public string Category
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("CreatedBy")]
         public string CreatedBy
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("CreatedByURL")]
         public string CreatedByURL
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("DocsURL")]
         public string DocsURL
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("MarketplaceURL")]
         public string MarketplaceURL
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("SupportURL")]
         public string SupportURL
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("CanContainContent")]
         public bool CanContainContent
@@ -210,7 +210,7 @@ namespace DreamUnrealManager.Models
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("Enabled")]
         public bool Enabled

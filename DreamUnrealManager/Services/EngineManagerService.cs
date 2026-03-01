@@ -13,7 +13,7 @@ namespace DreamUnrealManager.Services
 {
     public class EngineManagerService : IEngineManagerService
     {
-        private static EngineManagerService _instance;
+        private static EngineManagerService? _instance;
         public static EngineManagerService Instance => _instance ??= new EngineManagerService();
 
         private readonly string _configFilePath;
@@ -37,7 +37,7 @@ namespace DreamUnrealManager.Services
             _configFilePath = Path.Combine(appFolder, "engines.json");
 
             Engines = new ObservableCollection<UnrealEngineInfo>();
-            LoadEngines();
+            _ = LoadEngines();
         }
 
         public async Task LoadEngines()
@@ -266,12 +266,12 @@ namespace DreamUnrealManager.Services
             }
         }
 
-        public UnrealEngineInfo GetEngineByDisplayName(string displayName)
+        public UnrealEngineInfo? GetEngineByDisplayName(string displayName)
         {
             return Engines.FirstOrDefault(e => e != null && e.DisplayName == displayName);
         }
 
-        public UnrealEngineInfo GetEngineByVersion(string version)
+        public UnrealEngineInfo? GetEngineByVersion(string version)
         {
             return Engines.FirstOrDefault(e => e != null &&
                                                (e.Version == version || e.FullVersion == version));

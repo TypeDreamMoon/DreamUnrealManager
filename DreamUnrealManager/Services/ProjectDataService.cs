@@ -403,7 +403,7 @@ namespace DreamUnrealManager.Services
                 {
                     ProjectPath = projectPath,
                     DisplayName = Path.GetFileNameWithoutExtension(projectPath),
-                    ProjectDirectory = Path.GetDirectoryName(projectPath),
+                    ProjectDirectory = Path.GetDirectoryName(projectPath) ?? string.Empty,
                     LastModified = File.GetLastWriteTime(projectPath)
                 };
 
@@ -441,7 +441,13 @@ namespace DreamUnrealManager.Services
             catch (Exception ex)
             {
                 WriteDebug($"CreateProjectInfoFromPath失败: {ex.Message}");
-                return null;
+                return new ProjectInfo
+                {
+                    ProjectPath = projectPath,
+                    DisplayName = Path.GetFileNameWithoutExtension(projectPath),
+                    ProjectDirectory = Path.GetDirectoryName(projectPath) ?? string.Empty,
+                    LastModified = File.Exists(projectPath) ? File.GetLastWriteTime(projectPath) : DateTime.Now
+                };
             }
         }
 

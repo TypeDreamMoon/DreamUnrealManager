@@ -11,7 +11,7 @@ namespace DreamUnrealManager.Services
 {
     public class ProjectManagerServic
     {
-        private static ProjectManagerServic _instance;
+        private static ProjectManagerServic? _instance;
         public static ProjectManagerServic Instance => _instance ??= new ProjectManagerServic();
 
         private readonly string _configFilePath;

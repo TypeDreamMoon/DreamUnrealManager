@@ -13,7 +13,6 @@ namespace DreamUnrealManager.Services
         private readonly ContentDialog _dlg;
         private readonly ProgressBar _bar;
         private readonly TextBox _tb;
-        private readonly Button _primaryBtn;
 
         private readonly CancellationTokenSource _cts;
         public CancellationToken Token => _cts.Token;
@@ -83,7 +82,8 @@ namespace DreamUnrealManager.Services
             SetIndeterminate(false);
             AppendLine(success ? "[完成]" : "[失败]");
             // 取消按钮变成不可用
-            _dlg.PrimaryButtonText = null;
+            _dlg.PrimaryButtonText = string.Empty;
+            _dlg.IsPrimaryButtonEnabled = false;
         }
 
         public void AppendLine(string line)
@@ -95,7 +95,7 @@ namespace DreamUnrealManager.Services
             }
             else
             {
-                _tb.DispatcherQueue.TryEnqueue(() => AppendLine(line));
+                _tb.DispatcherQueue?.TryEnqueue(() => AppendLine(line));
             }
         }
 
@@ -108,7 +108,7 @@ namespace DreamUnrealManager.Services
             }
             else
             {
-                _bar.DispatcherQueue.TryEnqueue(() => SetProgress(v));
+                _bar.DispatcherQueue?.TryEnqueue(() => SetProgress(v));
             }
         }
 
@@ -120,7 +120,7 @@ namespace DreamUnrealManager.Services
             }
             else
             {
-                _bar.DispatcherQueue.TryEnqueue(() => SetIndeterminate(b));
+                _bar.DispatcherQueue?.TryEnqueue(() => SetIndeterminate(b));
             }
         }
     }

@@ -61,7 +61,7 @@ namespace DreamUnrealManager.Services
             {
                 get;
                 set;
-            }
+            } = string.Empty;
         }
     }
 }

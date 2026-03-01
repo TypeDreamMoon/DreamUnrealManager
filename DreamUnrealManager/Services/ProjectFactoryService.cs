@@ -22,7 +22,7 @@ namespace DreamUnrealManager.Services
             var project = new ProjectInfo
             {
                 ProjectPath = uprojectPath,
-                ProjectDirectory = Path.GetDirectoryName(uprojectPath),
+                ProjectDirectory = Path.GetDirectoryName(uprojectPath) ?? string.Empty,
                 DisplayName = Path.GetFileNameWithoutExtension(uprojectPath),
                 LastModified = File.GetLastWriteTime(uprojectPath)
             };
@@ -49,14 +49,15 @@ namespace DreamUnrealManager.Services
                     foreach (var m in modulesEl.EnumerateArray())
                     {
                         var mod = new ProjectModule();
-                        if (m.TryGetProperty("Name", out var n)) mod.Name = n.GetString();
-                        if (m.TryGetProperty("Type", out var t)) mod.Type = t.GetString();
-                        if (m.TryGetProperty("LoadingPhase", out var lp)) mod.LoadingPhase = lp.GetString();
+                        if (m.TryGetProperty("Name", out var n)) mod.Name = n.GetString() ?? string.Empty;
+                        if (m.TryGetProperty("Type", out var t)) mod.Type = t.GetString() ?? string.Empty;
+                        if (m.TryGetProperty("LoadingPhase", out var lp)) mod.LoadingPhase = lp.GetString() ?? string.Empty;
                         if (m.TryGetProperty("AdditionalDependencies", out var deps) && deps.ValueKind == JsonValueKind.Array)
                         {
                             mod.AdditionalDependencies = deps.EnumerateArray()
                                 .Select(x => x.GetString())
                                 .Where(x => !string.IsNullOrEmpty(x))
+                                .Select(x => x!)
                                 .ToArray();
                         }
 
@@ -72,12 +73,12 @@ namespace DreamUnrealManager.Services
                     foreach (var p in pluginsEl.EnumerateArray())
                     {
                         var pl = new ProjectPlugin();
-                        if (p.TryGetProperty("Name", out var n)) pl.Name = n.GetString();
+                        if (p.TryGetProperty("Name", out var n)) pl.Name = n.GetString() ?? string.Empty;
                         if (p.TryGetProperty("Enabled", out var en)) pl.Enabled = en.GetBoolean();
                         if (p.TryGetProperty("TargetAllowList", out var tal) && tal.ValueKind == JsonValueKind.Array)
-                            pl.TargetAllowList = tal.EnumerateArray().Select(x => x.GetString()).ToArray();
+                            pl.TargetAllowList = tal.EnumerateArray().Select(x => x.GetString()).Where(x => !string.IsNullOrEmpty(x)).Select(x => x!).ToArray();
                         if (p.TryGetProperty("SupportedTargetPlatforms", out var stp) && stp.ValueKind == JsonValueKind.Array)
-                            pl.SupportedTargetPlatforms = stp.EnumerateArray().Select(x => x.GetString()).ToArray();
+                            pl.SupportedTargetPlatforms = stp.EnumerateArray().Select(x => x.GetString()).Where(x => !string.IsNullOrEmpty(x)).Select(x => x!).ToArray();
                         plugins.Add(pl);
                     }
 

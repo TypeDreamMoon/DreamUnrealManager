@@ -633,14 +633,14 @@ namespace DreamUnrealManager.Views
     // 添加引擎对话框
     public sealed class AddEngineDialog : ContentDialog
     {
-        private TextBox _displayNameTextBox;
-        private TextBox _pathTextBox;
-        private UnrealEngineInfo _editingEngine;
+        private TextBox _displayNameTextBox = null!;
+        private TextBox _pathTextBox = null!;
+        private readonly UnrealEngineInfo? _editingEngine;
 
         public string EngineDisplayName => _displayNameTextBox?.Text ?? "";
         public string EnginePath => _pathTextBox?.Text ?? "";
 
-        public AddEngineDialog(UnrealEngineInfo editingEngine = null)
+        public AddEngineDialog(UnrealEngineInfo? editingEngine = null)
         {
             _editingEngine = editingEngine;
 
@@ -710,20 +710,20 @@ namespace DreamUnrealManager.Views
                 var folder = await folderPicker.PickSingleFolderAsync();
                 if (folder != null)
                 {
-                    _pathTextBox.Text = folder.Path;
+                    _pathTextBox!.Text = folder.Path;
 
                     // 如果显示名称为空，尝试从路径自动生成
-                    if (string.IsNullOrWhiteSpace(_displayNameTextBox.Text))
+                    if (string.IsNullOrWhiteSpace(_displayNameTextBox!.Text))
                     {
                         var folderName = System.IO.Path.GetFileName(folder.Path);
                         if (folderName.StartsWith("UE_"))
                         {
                             var version = folderName.Replace("UE_", "").Replace("_", ".");
-                            _displayNameTextBox.Text = $"Unreal Engine {version}";
+                            _displayNameTextBox!.Text = $"Unreal Engine {version}";
                         }
                         else
                         {
-                            _displayNameTextBox.Text = folderName;
+                            _displayNameTextBox!.Text = folderName;
                         }
                     }
                 }

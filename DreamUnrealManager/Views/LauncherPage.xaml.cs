@@ -1,4 +1,4 @@
-﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System.Collections.ObjectModel;
@@ -38,6 +38,20 @@ namespace DreamUnrealManager.Views
         private readonly IEngineSwitchService _engineSwitch;
         private readonly IDialogService _dialogs;
         private readonly IUnrealProjectService _uproj;
+        private ProjectRepositoryService Repository => App.RepositoryService!;
+        private List<ProjectInfo> LoadedProjects
+        {
+            get
+            {
+                if (Repository.LoadedData == null)
+                {
+                    Repository.LoadedData = new List<ProjectInfo>();
+                }
+
+                return Repository.LoadedData;
+            }
+            set => Repository.LoadedData = value ?? new List<ProjectInfo>();
+        }
 
         // 进度
         private int _metaTotal;
@@ -76,7 +90,7 @@ namespace DreamUnrealManager.Views
                 }
 
                 // 两阶段补全（元数据→体积）
-                StartRehydrateProjects(App.RepositoryService.LoadedData);
+                StartRehydrateProjects(LoadedProjects);
 
                 SetStatus("就绪");
             }
@@ -357,7 +371,6 @@ namespace DreamUnrealManager.Views
 
         private void ApplyFilters()
         {
-            if (App.RepositoryService.LoadedData == null) App.RepositoryService.LoadedData = new List<ProjectInfo>();
             if (_filterService == null) return;
 
             var opts = new ProjectFilterOptions
@@ -369,7 +382,7 @@ namespace DreamUnrealManager.Views
                 FavoriteFirst = SettingsService.Get("Launcher.FavoriteFirst", true) // 收藏置顶
             };
 
-            var result = _filterService.FilterAndSort(App.RepositoryService.LoadedData, opts)?.ToList() ?? new List<ProjectInfo>();
+            var result = _filterService.FilterAndSort(LoadedProjects, opts)?.ToList() ?? new List<ProjectInfo>();
 
             // 清空现有数据
             _filteredProjects.Clear();
@@ -393,7 +406,7 @@ namespace DreamUnrealManager.Views
                 EngineFilterComboBox.Items.Clear();
                 EngineFilterComboBox.Items.Add(new ComboBoxItem { Content = "所有引擎版本", Tag = "ALL_ENGINES" });
 
-                var versions = App.RepositoryService.LoadedData.Select(p => p.EngineAssociation)
+                var versions = LoadedProjects.Select(p => p.EngineAssociation)
                     .Where(v => !string.IsNullOrWhiteSpace(v))
                     .Distinct()
                     .OrderByDescending(v => v);
@@ -413,7 +426,7 @@ namespace DreamUnrealManager.Views
         {
             try
             {
-                var total = App.RepositoryService.LoadedData.Count;
+                var total = LoadedProjects.Count;
                 var filtered = _filteredProjects.Count;
                 if (FilterStatsText != null)
                     FilterStatsText.Text = total == filtered ? $"显示 {total} 个项目" : $"显示 {filtered} / {total} 个项目";
@@ -434,7 +447,7 @@ namespace DreamUnrealManager.Views
                     EmptyStatePanel.Visibility = Visibility.Visible;
                     ProjectsListView.Visibility = Visibility.Collapsed;
 
-                    if (App.RepositoryService.LoadedData.Count == 0)
+                    if (LoadedProjects.Count == 0)
                     {
                         if (EmptyStateTitle != null) EmptyStateTitle.Text = "暂无项目";
                         if (EmptyStateMessage != null) EmptyStateMessage.Text = "点击下方按钮来添加你的第一个 Unreal Engine 项目";
@@ -508,10 +521,10 @@ namespace DreamUnrealManager.Views
                 if (file == null) return;
 
                 var created = await _factoryService.CreateAsync(file.Path);
-                if (created != null && !App.RepositoryService.LoadedData.Any(p => p.ProjectPath == created.ProjectPath))
+                if (created != null && !LoadedProjects.Any(p => p.ProjectPath == created.ProjectPath))
                 {
-                    App.RepositoryService.LoadedData.Add(created);
-                    await App.RepositoryService.SaveAsync(App.RepositoryService.LoadedData);
+                    LoadedProjects.Add(created);
+                    await Repository!.SaveAsync(LoadedProjects);
                     LoadEngineFilters();
                     ApplyFilters();
                 }
@@ -528,7 +541,7 @@ namespace DreamUnrealManager.Views
             {
                 SetStatus("正在刷新项目列表...");
                 var freshList = new List<ProjectInfo>();
-                foreach (var p in App.RepositoryService.LoadedData.ToList())
+                foreach (var p in LoadedProjects.ToList())
                 {
                     if (!File.Exists(p.ProjectPath)) continue;
                     var fresh = await _factoryService.CreateAsync(p.ProjectPath);
@@ -539,13 +552,13 @@ namespace DreamUnrealManager.Views
                     }
                 }
 
-                App.RepositoryService.LoadedData = freshList;
-                await App.RepositoryService.SaveAsync(App.RepositoryService.LoadedData);
+                LoadedProjects = freshList;
+                await Repository!.SaveAsync(LoadedProjects);
                 LoadEngineFilters();
                 ApplyFilters();
 
                 // 体积后台算
-                StartRehydrateProjects(App.RepositoryService.LoadedData);
+                StartRehydrateProjects(LoadedProjects);
                 SetStatus("项目列表已刷新");
             }
             catch (Exception ex)
@@ -575,10 +588,10 @@ namespace DreamUnrealManager.Views
                 var found = await _search.SearchAsync(folder.Path, progress);
 
                 // 合并去重
-                var newOnes = found.Where(f => !App.RepositoryService.LoadedData.Any(p => p.ProjectPath == f.ProjectPath)).ToList();
-                App.RepositoryService.LoadedData.AddRange(newOnes);
+                var newOnes = found.Where(f => !LoadedProjects.Any(p => p.ProjectPath == f.ProjectPath)).ToList();
+                LoadedProjects.AddRange(newOnes);
 
-                await App.RepositoryService.SaveAsync(App.RepositoryService.LoadedData);
+                await Repository!.SaveAsync(LoadedProjects);
                 LoadEngineFilters();
                 ApplyFilters();
 
@@ -654,7 +667,7 @@ namespace DreamUnrealManager.Views
             };
             img.ImageFailed += ProjectImage_ImageFailed; // 你已有的兜底
 
-            string imagePath = null;
+            string? imagePath = null;
             if (!string.IsNullOrWhiteSpace(p.ProjectIconPath) && File.Exists(p.ProjectIconPath))
                 imagePath = p.ProjectIconPath;
             else if (!string.IsNullOrWhiteSpace(p.ThumbnailPath) && File.Exists(p.ThumbnailPath))
@@ -718,7 +731,7 @@ namespace DreamUnrealManager.Views
 
             int r = -1;
 
-            void Add(string label, string value, FrameworkElement extra = null)
+            void Add(string label, string value, FrameworkElement? extra = null)
             {
                 r++;
                 g.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -1008,7 +1021,7 @@ namespace DreamUnrealManager.Views
                         p.EngineAssociation = selected.Version;
                         p.AssociatedEngine = selected;
                         p.NotifyDerived();
-                        await App.RepositoryService.SaveAsync(App.RepositoryService.LoadedData);
+                        await Repository!.SaveAsync(LoadedProjects);
                         SetStatus($"已切换到 {selected.DisplayName}");
 
                         if (p.IsCPlusPlusProject)
@@ -1036,8 +1049,8 @@ namespace DreamUnrealManager.Views
                     $"确定要从列表中移除项目 \"{p.DisplayName}\" 吗？\n\n注意：这不会删除项目文件，只是从启动器中移除。");
                 if (!ok) return;
 
-                App.RepositoryService.LoadedData.Remove(p);
-                await App.RepositoryService.SaveAsync(App.RepositoryService.LoadedData);
+                LoadedProjects.Remove(p);
+                await Repository!.SaveAsync(LoadedProjects);
                 LoadEngineFilters();
                 ApplyFilters();
             }
@@ -1149,7 +1162,7 @@ namespace DreamUnrealManager.Views
             {
                 p.ToggleFavorite();
                 // 收藏变化后立即保存并刷新过滤/排序
-                await App.RepositoryService.SaveAsync(App.RepositoryService.LoadedData);
+                await Repository!.SaveAsync(LoadedProjects);
                 ApplyFilters();
             }
         }
@@ -1159,7 +1172,7 @@ namespace DreamUnrealManager.Views
             if (sender is MenuFlyoutItem item && item.Tag is ProjectInfo p)
             {
                 p.ToggleFavorite();
-                await App.RepositoryService.SaveAsync(App.RepositoryService.LoadedData);
+                await Repository!.SaveAsync(LoadedProjects);
                 ApplyFilters();
             }
         }
@@ -1198,3 +1211,6 @@ namespace DreamUnrealManager.Views
         #endregion
     }
 }
+
+
+

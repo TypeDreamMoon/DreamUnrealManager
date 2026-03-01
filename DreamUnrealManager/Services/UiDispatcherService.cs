@@ -6,7 +6,7 @@ namespace DreamUnrealManager.Services
 {
     public static class UiDispatcherService
     {
-        public static DispatcherQueue Queue
+        public static DispatcherQueue? Queue
         {
             get;
             private set;
@@ -14,7 +14,7 @@ namespace DreamUnrealManager.Services
 
         public static void Initialize(Window window)
         {
-            Queue = window?.DispatcherQueue;
+            Queue = window.DispatcherQueue;
         }
 
         public static void Enqueue(Action action)

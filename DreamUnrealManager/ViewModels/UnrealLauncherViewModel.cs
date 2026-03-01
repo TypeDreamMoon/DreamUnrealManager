@@ -1,9 +1,6 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Text.Json;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
@@ -13,7 +10,7 @@ using DreamUnrealManager.Models;
 namespace DreamUnrealManager.ViewModels
 {
     // 让 XAML 强类型绑定方便，这里直接公开 UnrealEngineInfo
-    public partial class UnrealLauncherViewModel : ObservableRecipient, INotifyPropertyChanged
+    public partial class UnrealLauncherViewModel : ObservableRecipient
     {
         private const string StoreFileName = "engines.json";
         private const string DefaultEngineKey = "Launcher.DefaultEngineId";
@@ -34,10 +31,33 @@ namespace DreamUnrealManager.ViewModels
             get;
         } = new[] { "最近使用", "名称", "版本" };
 
-        [ObservableProperty] private string selectedSortOption = "最近使用";
-        [ObservableProperty] private string searchText = string.Empty;
-        [ObservableProperty] private bool favoriteFirst = true;
-        [ObservableProperty] private string statusText = "就绪";
+        private string _selectedSortOption = "最近使用";
+        public string SelectedSortOption
+        {
+            get => _selectedSortOption;
+            set => SetProperty(ref _selectedSortOption, value);
+        }
+
+        private string _searchText = string.Empty;
+        public string SearchText
+        {
+            get => _searchText;
+            set => SetProperty(ref _searchText, value);
+        }
+
+        private bool _favoriteFirst = true;
+        public bool FavoriteFirst
+        {
+            get => _favoriteFirst;
+            set => SetProperty(ref _favoriteFirst, value);
+        }
+
+        private string _statusText = "就绪";
+        public string StatusText
+        {
+            get => _statusText;
+            set => SetProperty(ref _statusText, value);
+        }
 
         public UnrealLauncherViewModel()
         {
@@ -73,7 +93,7 @@ namespace DreamUnrealManager.ViewModels
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(GetStorePath())!);
+                Directory.CreateDirectory(Path.GetDirectoryName(GetStorePath()) ?? string.Empty);
                 using var s = File.Create(GetStorePath());
                 await JsonSerializer.SerializeAsync(s, Engines.ToList(), new JsonSerializerOptions { WriteIndented = true });
             }
@@ -168,7 +188,7 @@ namespace DreamUnrealManager.ViewModels
             // 这里简单地把默认引擎记在 engines.json 同目录的一个小文件里
             try
             {
-                var flagPath = Path.Combine(Path.GetDirectoryName(GetStorePath())!, "default.txt");
+                var flagPath = Path.Combine(Path.GetDirectoryName(GetStorePath()) ?? string.Empty, "default.txt");
                 File.WriteAllText(flagPath, id);
             }
             catch
@@ -242,11 +262,7 @@ namespace DreamUnrealManager.ViewModels
 
         #endregion
 
-        #region INotifyPropertyChanged（补充触发过滤）
-
-        public new event PropertyChangedEventHandler? PropertyChanged;
-
-        protected override void OnPropertyChanged(PropertyChangedEventArgs e)
+        protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
         {
             base.OnPropertyChanged(e);
             if (e.PropertyName == nameof(SearchText) ||
@@ -255,13 +271,6 @@ namespace DreamUnrealManager.ViewModels
             {
                 ApplyFilters();
             }
-
-            PropertyChanged?.Invoke(this, e);
         }
-
-        protected void Raise([CallerMemberName] string? name = null)
-            => OnPropertyChanged(new PropertyChangedEventArgs(name));
-
-        #endregion
     }
 }

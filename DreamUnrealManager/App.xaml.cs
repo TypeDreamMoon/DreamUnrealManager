@@ -53,7 +53,7 @@ public partial class App : Application
     {
         get;
         set;
-    }
+    } = new();
 
     public App()
     {

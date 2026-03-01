@@ -58,7 +58,7 @@ namespace DreamUnrealManager.Models
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         /// <summary>
         /// 获取完整版本字符串，例如：5.4.4

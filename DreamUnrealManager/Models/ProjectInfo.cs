@@ -22,28 +22,28 @@ namespace DreamUnrealManager.Models
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("Category")]
         public string Category
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("Description")]
         public string Description
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("FriendlyName")]
         public string FriendlyName
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("Modules")]
         public List<ProjectModule> Modules
@@ -64,7 +64,7 @@ namespace DreamUnrealManager.Models
         {
             get;
             set;
-        }
+        } = [];
 
         [JsonPropertyName("IsFavorite")]
         public bool IsFavorite
@@ -88,20 +88,20 @@ namespace DreamUnrealManager.Models
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         public string ProjectDirectory
         {
-            get => !string.IsNullOrEmpty(_projectDirectory) ? _projectDirectory : Path.GetDirectoryName(ProjectPath);
+            get => !string.IsNullOrEmpty(_projectDirectory) ? _projectDirectory : Path.GetDirectoryName(ProjectPath) ?? string.Empty;
             set => _projectDirectory = value;
         }
 
-        private string _projectDirectory;
+        private string _projectDirectory = string.Empty;
 
         public string ProjectName => Path.GetFileNameWithoutExtension(ProjectPath);
 
         // 可编辑显示名（优先级：显式设置 > FriendlyName > 文件名）
-        private string _displayName;
+        private string _displayName = string.Empty;
 
         public string DisplayName
         {
@@ -149,11 +149,11 @@ namespace DreamUnrealManager.Models
         } = true;
 
         // ╭─ 运行期/UI 专用（不序列化） ───────────────────────────────────────╮
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         // 引擎对象（运行期注入）
         [JsonIgnore]
-        public UnrealEngineInfo AssociatedEngine
+        public UnrealEngineInfo? AssociatedEngine
         {
             get;
             set;
@@ -217,14 +217,14 @@ namespace DreamUnrealManager.Models
 
         // 缩略图：Unpackaged 友好（file:///...）
         [JsonIgnore]
-        public Uri ThumbnailUri
+        public Uri? ThumbnailUri
         {
             get;
             private set;
         }
 
         [JsonIgnore]
-        public string ThumbnailPath
+        public string? ThumbnailPath
         {
             get;
             private set;
@@ -467,7 +467,7 @@ namespace DreamUnrealManager.Models
         // protected virtual void OnPropertyChanged([CallerMemberName] string name = null)
         //     => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
-        protected virtual void OnPropertyChanged([CallerMemberName] string name = null)
+        protected virtual void OnPropertyChanged([CallerMemberName] string? name = null)
         {
             try
             {
@@ -545,28 +545,28 @@ namespace DreamUnrealManager.Models
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("Type")]
         public string Type
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("LoadingPhase")]
         public string LoadingPhase
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("AdditionalDependencies")]
         public string[] AdditionalDependencies
         {
             get;
             set;
-        }
+        } = [];
     }
 
     public class ProjectPlugin
@@ -576,7 +576,7 @@ namespace DreamUnrealManager.Models
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         [JsonPropertyName("Enabled")]
         public bool Enabled
@@ -590,13 +590,13 @@ namespace DreamUnrealManager.Models
         {
             get;
             set;
-        }
+        } = [];
 
         [JsonPropertyName("SupportedTargetPlatforms")]
         public string[] SupportedTargetPlatforms
         {
             get;
             set;
-        }
+        } = [];
     }
 }

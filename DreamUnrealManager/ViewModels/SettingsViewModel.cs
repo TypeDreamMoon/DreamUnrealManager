@@ -1,35 +1,32 @@
-﻿using System.ComponentModel;
 using System.Reflection;
 using System.Windows.Input;
-
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-
 using DreamUnrealManager.Contracts.Services;
 using DreamUnrealManager.Helpers;
-
-using Microsoft.UI.Xaml;
-
-using Windows.ApplicationModel;
 using DreamUnrealManager.Services;
-using Microsoft.Extensions.Hosting;
+using Microsoft.UI.Xaml;
+using Windows.ApplicationModel;
 
 namespace DreamUnrealManager.ViewModels;
 
-public partial class SettingsViewModel : ObservableRecipient, INotifyPropertyChanged
+public partial class SettingsViewModel : ObservableRecipient
 {
-    PropertyChangedEventHandler PropertyChanged;
-    
-    protected void OnPropertyChanged(string propertyName)
-        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-
     private readonly IThemeSelectorService _themeSelectorService;
 
-    [ObservableProperty]
     private ElementTheme _elementTheme;
+    public ElementTheme ElementTheme
+    {
+        get => _elementTheme;
+        set => SetProperty(ref _elementTheme, value);
+    }
 
-    [ObservableProperty]
-    private string _versionDescription;
+    private string _versionDescription = string.Empty;
+    public string VersionDescription
+    {
+        get => _versionDescription;
+        set => SetProperty(ref _versionDescription, value);
+    }
 
     public ICommand SwitchThemeCommand
     {
@@ -60,12 +57,11 @@ public partial class SettingsViewModel : ObservableRecipient, INotifyPropertyCha
         if (RuntimeHelper.IsMSIX)
         {
             var packageVersion = Package.Current.Id.Version;
-
             version = new(packageVersion.Major, packageVersion.Minor, packageVersion.Build, packageVersion.Revision);
         }
         else
         {
-            version = Assembly.GetExecutingAssembly().GetName().Version!;
+            version = Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0, 0);
         }
 
         return $"Dream Unreal Manager - {version.Major}.{version.Minor}.{version.Build}.{version.Revision}";

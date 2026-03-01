@@ -16,23 +16,23 @@ namespace DreamUnrealManager.Views
 {
     public sealed partial class PluginsBuildPage : Page
     {
-        private CancellationTokenSource _buildCancellationTokenSource;
+        private CancellationTokenSource? _buildCancellationTokenSource;
         private bool _isBuildInProgress = false;
-        private Process _currentProcess;
+        private Process? _currentProcess;
         private readonly EngineManagerService _engineManager;
-        private PluginInfo _currentPluginInfo;
+        private PluginInfo? _currentPluginInfo;
         private List<CheckBox> _engineCheckBoxes = new List<CheckBox>();
 
         // 批量构建相关字段
-        private List<UnrealEngineInfo> _selectedEnginesForBatch;
+        private List<UnrealEngineInfo> _selectedEnginesForBatch = new();
         private int _currentBatchIndex;
-        private List<string> _batchBuildResults;
+        private List<string> _batchBuildResults = new();
 
         // 错误和警告跟踪
         private List<BuildIssue> _buildIssues = new List<BuildIssue>();
         private int _errorCount = 0;
         private int _warningCount = 0;
-        private UnrealEngineInfo _currentBuildingEngine;
+        private UnrealEngineInfo? _currentBuildingEngine;
         private int _activeBatchTotal = 0;
         private double _currentEngineProgress = 0;
         private bool _isPageInitialized = false;
@@ -90,13 +90,13 @@ namespace DreamUnrealManager.Views
             {
                 get;
                 set;
-            }
+            } = string.Empty;
 
             public string Engine
             {
                 get;
                 set;
-            }
+            } = string.Empty;
 
             public DateTime Timestamp
             {
@@ -108,7 +108,7 @@ namespace DreamUnrealManager.Views
             {
                 get;
                 set;
-            }
+            } = string.Empty;
 
             public int LineNumber
             {
@@ -687,7 +687,7 @@ namespace DreamUnrealManager.Views
             });
         }
 
-        private void UpdateCurrentEngineInfo(UnrealEngineInfo engine, string step = "准备中...")
+        private void UpdateCurrentEngineInfo(UnrealEngineInfo? engine, string step = "准备中...")
         {
             DispatcherQueue.TryEnqueue(() =>
             {
@@ -698,7 +698,7 @@ namespace DreamUnrealManager.Views
 
                     CurrentEngineNameText.Text = $"当前引擎: {engine?.DisplayName ?? "未知"}";
                     CurrentEngineVersionText.Text = engine != null
-                        ? $"版本: {engine.FullVersion ?? engine.Version ?? "未知"} | 路径: {Path.GetFileName(engine.EnginePath)}"
+                        ? $"版本: {engine.FullVersion} | 路径: {Path.GetFileName(engine.EnginePath)}"
                         : "";
                     CurrentBuildStepText.Text = step;
                 }
@@ -709,7 +709,7 @@ namespace DreamUnrealManager.Views
             });
         }
 
-        private void UpdateBuildProgress(int percentage, string step = null)
+        private void UpdateBuildProgress(int percentage, string? step = null)
         {
             DispatcherQueue.TryEnqueue(() =>
             {
@@ -820,7 +820,7 @@ namespace DreamUnrealManager.Views
             }
         }
 
-        private void ClearIssues_Click(object sender, RoutedEventArgs e)
+        private void ClearIssues_Click(object? sender, RoutedEventArgs? e)
         {
             _buildIssues.Clear();
             _errorCount = 0;
@@ -1031,13 +1031,19 @@ namespace DreamUnrealManager.Views
         private async Task<bool> PerformSingleBuildAsync(CancellationToken cancellationToken)
         {
             var engine = GetSelectedEngine();
+            if (engine == null)
+            {
+                WriteToTerminal("错误: 未选择有效引擎", TerminalMessageType.Error);
+                return false;
+            }
+
             UpdateCurrentEngineInfo(engine, "开始构建");
             _activeBatchTotal = 0;
             _currentBatchIndex = 0;
             _currentEngineProgress = 0;
 
             var sw = Stopwatch.StartNew();
-            await ExecuteRunUATCommand(engine, cancellationToken);
+            await ExecuteRunUATCommand(engine!, cancellationToken);
             sw.Stop();
 
             WriteToTerminal($"[OK] {engine.DisplayName} 构建成功，用时 {FormatDuration(sw.Elapsed)}", TerminalMessageType.Success);
@@ -1151,8 +1157,13 @@ namespace DreamUnrealManager.Views
             return summary;
         }
 
-        private async Task ExecuteRunUATCommand(UnrealEngineInfo engine, CancellationToken cancellationToken)
+        private async Task ExecuteRunUATCommand(UnrealEngineInfo? engine, CancellationToken cancellationToken)
         {
+            if (engine == null)
+            {
+                throw new ArgumentNullException(nameof(engine));
+            }
+
             UpdateCurrentEngineInfo(engine, "验证引擎配置");
             UpdateNavigationStatus(true, 1, $"构建 {engine.DisplayName}");
 
@@ -1461,7 +1472,13 @@ namespace DreamUnrealManager.Views
                 if (SingleBuildRadio.IsChecked == true)
                 {
                     var engine = GetSelectedEngine();
-                    var command = BuildRunUATCommand(engine);
+                    if (engine == null)
+                    {
+                        WriteToTerminal("错误: 未选择有效引擎", TerminalMessageType.Error);
+                        return;
+                    }
+
+                    var command = BuildRunUATCommand(engine!);
                     commands.Add(command);
                 }
                 else
@@ -1649,7 +1666,7 @@ namespace DreamUnrealManager.Views
                 _currentPluginInfo = JsonSerializer.Deserialize<PluginInfo>(content, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
-                });
+                }) ?? new PluginInfo();
 
                 if (_currentPluginInfo != null)
                 {
@@ -1960,7 +1977,7 @@ namespace DreamUnrealManager.Views
             }
         }
 
-        private UnrealEngineInfo GetSelectedEngine()
+        private UnrealEngineInfo? GetSelectedEngine()
         {
             try
             {
@@ -1982,6 +1999,7 @@ namespace DreamUnrealManager.Views
                     .Where(cb => cb.IsChecked == true)
                     .Select(cb => cb.Tag as UnrealEngineInfo)
                     .Where(engine => engine != null)
+                    .Select(engine => engine!)
                     .ToList();
             }
             catch (Exception ex)
@@ -1991,8 +2009,13 @@ namespace DreamUnrealManager.Views
             }
         }
 
-        private string BuildRunUATCommand(UnrealEngineInfo engine)
+        private string BuildRunUATCommand(UnrealEngineInfo? engine)
         {
+            if (engine == null)
+            {
+                throw new ArgumentNullException(nameof(engine));
+            }
+
             var runUATPath = Path.Combine(engine.EnginePath, "Engine", "Build", "BatchFiles", "RunUAT.bat");
             var args = BuildRunUATArguments(engine);
             return $"\"{runUATPath}\" {args}";

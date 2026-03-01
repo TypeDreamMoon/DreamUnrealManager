@@ -12,8 +12,8 @@ namespace DreamUnrealManager.Contracts.Services
         Task UpdateEngine(UnrealEngineInfo engine);
         Task RemoveEngine(UnrealEngineInfo engine);
         Task AutoDetectEngines();
-        UnrealEngineInfo GetEngineByDisplayName(string displayName);
-        UnrealEngineInfo GetEngineByVersion(string version);
+        UnrealEngineInfo? GetEngineByDisplayName(string displayName);
+        UnrealEngineInfo? GetEngineByVersion(string version);
         List<UnrealEngineInfo> GetValidEngines();
         List<UnrealEngineInfo> GetEnginesByMajorVersion(int majorVersion);
         Task RefreshAllEngines();

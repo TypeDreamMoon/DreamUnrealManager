@@ -24,7 +24,7 @@ namespace DreamUnrealManager.Services
                 };
                 Process.Start(psi);
                 project.LastUsed = DateTime.Now;
-                await App.RepositoryService.SaveAsync(await App.RepositoryService.LoadAsync());
+                await App.RepositoryService!.SaveAsync(await App.RepositoryService!.LoadAsync());
             }
             catch (Exception ex)
             {

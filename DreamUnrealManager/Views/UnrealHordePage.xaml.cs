@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Security.Principal;
 using System.ServiceProcess;
 using DreamUnrealManager.Models;
 using Microsoft.UI.Xaml;
@@ -12,8 +14,8 @@ namespace DreamUnrealManager.Views;
 
 public sealed partial class UnrealHordePage : Page
 {
-    private const string HordeAgentServiceName = "Horde Agent";
-    private const string HordeServerServiceName = "Horde Server";
+    private const string HordeAgentServiceName = "HordeAgent";
+    private const string HordeServerServiceName = "HordeServer";
     private static readonly TimeSpan ServiceWaitTimeout = TimeSpan.FromSeconds(20);
 
     private readonly ObservableCollection<HordeRegistryItem> _registryItems = new();
@@ -340,6 +342,20 @@ public sealed partial class UnrealHordePage : Page
 
     private async Task RunServiceActionAsync(string targetName, ServiceOperation operation)
     {
+        if (!IsRunningAsAdministrator())
+        {
+            var actionText = operation switch
+            {
+                ServiceOperation.Start => "启动",
+                ServiceOperation.PauseOrContinue => "暂停/继续",
+                _ => "操作"
+            };
+            var permissionMessage = $"执行服务{actionText}需要管理员权限。请以管理员身份重新启动程序后重试。";
+            ServiceActionTextBlock.Text = $"服务操作失败: {permissionMessage}";
+            await ShowInfoDialogAsync("需要管理员权限", permissionMessage);
+            return;
+        }
+
         try
         {
             var message = await Task.Run(() => ExecuteServiceAction(targetName, operation));
@@ -347,13 +363,21 @@ public sealed partial class UnrealHordePage : Page
         }
         catch (Exception ex)
         {
-            ServiceActionTextBlock.Text = $"服务操作失败: {ex.Message}";
-            await ShowInfoDialogAsync("服务操作失败", ex.Message);
+            var friendlyMessage = BuildServiceActionErrorMessage(ex, targetName, operation);
+            ServiceActionTextBlock.Text = $"服务操作失败: {friendlyMessage}";
+            await ShowInfoDialogAsync("服务操作失败", friendlyMessage);
         }
         finally
         {
             await RefreshServicesAsync();
         }
+    }
+
+    private static bool IsRunningAsAdministrator()
+    {
+        using var identity = WindowsIdentity.GetCurrent();
+        var principal = new WindowsPrincipal(identity);
+        return principal.IsInRole(WindowsBuiltInRole.Administrator);
     }
 
     private static string ExecuteServiceAction(string targetName, ServiceOperation operation)
@@ -419,6 +443,62 @@ public sealed partial class UnrealHordePage : Page
             default:
                 throw new ArgumentOutOfRangeException(nameof(operation), operation, null);
         }
+    }
+
+    private static string BuildServiceActionErrorMessage(Exception ex, string targetName, ServiceOperation operation)
+    {
+        var actionText = operation switch
+        {
+            ServiceOperation.Start => "启动",
+            ServiceOperation.PauseOrContinue => "暂停/继续",
+            _ => "操作"
+        };
+
+        if (TryGetNativeErrorCode(ex, out var nativeCode))
+        {
+            return nativeCode switch
+            {
+                5 => $"无法{actionText}服务 `{targetName}`：权限不足。请以管理员身份运行程序后重试。",
+                1060 => $"无法{actionText}服务 `{targetName}`：系统未找到该服务，请先确认 Horde 服务已正确安装。",
+                _ => $"无法{actionText}服务 `{targetName}`：{ex.GetBaseException().Message} (Win32: {nativeCode})"
+            };
+        }
+
+        if (ContainsAccessDenied(ex))
+        {
+            return $"无法{actionText}服务 `{targetName}`：权限不足。请以管理员身份运行程序后重试。";
+        }
+
+        return $"无法{actionText}服务 `{targetName}`：{ex.GetBaseException().Message}";
+    }
+
+    private static bool TryGetNativeErrorCode(Exception ex, out int code)
+    {
+        for (Exception? current = ex; current != null; current = current.InnerException)
+        {
+            if (current is Win32Exception win32Ex)
+            {
+                code = win32Ex.NativeErrorCode;
+                return true;
+            }
+        }
+
+        code = 0;
+        return false;
+    }
+
+    private static bool ContainsAccessDenied(Exception ex)
+    {
+        for (Exception? current = ex; current != null; current = current.InnerException)
+        {
+            if (current.Message.Contains("Access is denied", StringComparison.OrdinalIgnoreCase) ||
+                current.Message.Contains("拒绝访问", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private async Task RefreshRegistryValuesAsync()

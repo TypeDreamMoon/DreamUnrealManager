@@ -9,12 +9,12 @@ namespace DreamUnrealManager.Models
 {
     public class UnrealEngineInfo : INotifyPropertyChanged
     {
-        private string _displayName;
-        private string _enginePath;
-        private string _version;
-        private string _fullVersion;
+        private string _displayName = string.Empty;
+        private string _enginePath = string.Empty;
+        private string _version = string.Empty;
+        private string _fullVersion = string.Empty;
         private bool _isValid;
-        private BuildVersionInfo _buildVersionInfo;
+        private BuildVersionInfo _buildVersionInfo = new();
 
         public string Id
         {
@@ -306,9 +306,9 @@ namespace DreamUnrealManager.Models
             }
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

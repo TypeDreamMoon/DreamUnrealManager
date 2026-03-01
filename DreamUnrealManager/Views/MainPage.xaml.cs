@@ -85,12 +85,12 @@ public sealed partial class MainPage : Page
 
     private void QuickBuildingButton_OnClick(object sender, RoutedEventArgs e)
     {
-        App.GetService<INavigationService>().Frame.Navigate(typeof(PluginsBuildPage));
+        App.GetService<INavigationService>().Frame?.Navigate(typeof(PluginsBuildPage));
     }
 
     private void QuickLaunchButton_OnClick(object sender, RoutedEventArgs e)
     {
-        App.GetService<INavigationService>().Frame.Navigate(typeof(LauncherPage));
+        App.GetService<INavigationService>().Frame?.Navigate(typeof(LauncherPage));
     }
 
     private async void LoadFavoriteProjects()
@@ -141,6 +141,11 @@ public sealed partial class MainPage : Page
     public string GetAppVersion()
     {
         var version = Assembly.GetExecutingAssembly().GetName().Version;
+        if (version == null)
+        {
+            return "v0.0.0";
+        }
+
         return $"v{version.Major}.{version.Minor}.{version.Build}";
     }
 

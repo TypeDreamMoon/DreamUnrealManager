@@ -9,11 +9,11 @@ namespace DreamUnrealManager.Services
 {
     public sealed class ProjectRepositoryService : IProjectRepositoryService, INotifyPropertyChanged
     {
-        private List<ProjectInfo> _loadedData;
+        private List<ProjectInfo> _loadedData = [];
         private bool _isDataLoaded; // 用于标记数据是否已加载
 
         // INotifyPropertyChanged 接口实现
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         // 当 LoadedData 变化时通知 UI
         private void OnPropertyChanged(string propertyName)
@@ -61,7 +61,7 @@ namespace DreamUnrealManager.Services
         // 重置缓存（如果需要清除已加载的数据）
         public void ClearCache()
         {
-            _loadedData = null;
+            _loadedData = [];
             _isDataLoaded = false;
             OnPropertyChanged(nameof(LoadedData));
         }

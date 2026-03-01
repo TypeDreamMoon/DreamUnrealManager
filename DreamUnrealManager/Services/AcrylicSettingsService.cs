@@ -49,8 +49,8 @@ namespace DreamUnrealManager.Services
 
         private static double Clamp(double v) => v < 0 ? 0 : (v > 1 ? 1 : v);
 
-        public event PropertyChangedEventHandler PropertyChanged;
-        private void OnPropertyChanged([CallerMemberName] string name = null)
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }

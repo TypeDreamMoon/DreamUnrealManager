@@ -1,10 +1,5 @@
-﻿using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using DreamUnrealManager.Contracts.Services;
-using DreamUnrealManager.Models;
 using DreamUnrealManager.Services;
 using DreamUnrealManager.Views;
 using Microsoft.UI.Xaml.Navigation;
@@ -13,11 +8,26 @@ namespace DreamUnrealManager.ViewModels;
 
 public partial class ShellViewModel : ObservableRecipient
 {
-    [ObservableProperty] private bool isBackEnabled;
+    private bool _isBackEnabled;
+    public bool IsBackEnabled
+    {
+        get => _isBackEnabled;
+        set => SetProperty(ref _isBackEnabled, value);
+    }
 
-    [ObservableProperty] private object? selected;
+    private object? _selected;
+    public object? Selected
+    {
+        get => _selected;
+        set => SetProperty(ref _selected, value);
+    }
 
-    [ObservableProperty] private string commandText;
+    private string _commandText = string.Empty;
+    public string CommandText
+    {
+        get => _commandText;
+        set => SetProperty(ref _commandText, value);
+    }
 
     public INavigationService NavigationService
     {
