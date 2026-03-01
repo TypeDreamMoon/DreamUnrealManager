@@ -32,7 +32,7 @@
         <!-- 紧凑 -->
         <ItemsPanelTemplate x:Key="CompactItemsPanel">
             <ItemsWrapGrid Orientation="Horizontal"
-                           HorizontalAlignment="Stretch"
+                           HorizontalAlignment="Center"
                            VerticalAlignment="Top" />
         </ItemsPanelTemplate>
 
@@ -325,14 +325,13 @@
 
         <!-- 紧凑卡片（高密度） -->
         <DataTemplate x:Key="CompactProjectTemplate" x:DataType="models:ProjectInfo">
-            <Border>
-                <Grid Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                      CornerRadius="8"
-                      Height="80"
-                      MinWidth="400"
-                      MaxWidth="1500"
-                      Padding="0, 0, 15, 0"
-                      ColumnSpacing="5">
+            <Border CornerRadius="10"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1">
+                <Grid Height="92"
+                      Padding="10,8"
+                      ColumnSpacing="12">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
@@ -340,104 +339,141 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- 缩略图 -->
-                    <Border Grid.Column="0" Width="80"
-                            Height="80"
-                            CornerRadius="8, 0, 0, 8"
+                    <Border Grid.Column="0"
+                            Width="76"
+                            Height="76"
+                            CornerRadius="8"
                             Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
-                        <Image Grid.Column="0"
-                               Width="80"
-                               Height="80"
-                               Stretch="UniformToFill"
-                               Source="{Binding ThumbnailUri}"
-                               ImageFailed="ProjectImage_ImageFailed"
-                               AutomationProperties.Name="{Binding DisplayName}" />
+                        <Grid>
+                            <Image Width="76"
+                                   Height="76"
+                                   Stretch="UniformToFill"
+                                   Source="{Binding ThumbnailUri}"
+                                   ImageFailed="ProjectImage_ImageFailed"
+                                   AutomationProperties.Name="{Binding DisplayName}" />
+
+                            <Grid Background="#55000000"
+                                  Visibility="{Binding IsLoadingMeta, Converter={StaticResource BoolToVisibility}}">
+                                <ProgressRing IsActive="True"
+                                              Width="20"
+                                              Height="20"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                            </Grid>
+                        </Grid>
                     </Border>
 
                     <!-- 文本区 -->
-                    <!--
-                    1. Project Name
-                    2. Engine Tab
-                    3. Information
-                    -->
-                    <StackPanel Grid.Column="1" Spacing="4">
-                        <!-- 标题行：收藏星 + 名称 + 引擎标签 -->
-                        <Grid>
+                    <Grid Grid.Column="1"
+                          VerticalAlignment="Center"
+                          RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <!-- 收藏星（填充/空心由后端 Glyph 提供） -->
-                                <Button Tag="{x:Bind}"
-                                        Click="ToggleFavorite_Click"
-                                        HorizontalAlignment="Right"
-                                        VerticalAlignment="Top"
-                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="12">
-                                    <FontIcon Glyph="{x:Bind FavoriteGlyph, Mode=OneWay}"
-                                              FontSize="10" />
-                                </Button>
+                            <TextBlock Text="{Binding DisplayName}"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"
+                                       ToolTipService.ToolTip="{Binding DisplayName}" />
 
-                                <TextBlock Text="{Binding DisplayName}"
-                                           FontSize="16"
-                                           FontWeight="SemiBold"
-                                           TextTrimming="CharacterEllipsis"
-                                           ToolTipService.ToolTip="{Binding DisplayName}" />
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="6"
+                                        VerticalAlignment="Center">
+                                <Border Background="{ThemeResource AccentFillColorSecondaryBrush}"
+                                        Padding="6,2"
+                                        CornerRadius="6"
+                                        Visibility="{Binding IsGitEnabled, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="Git"
+                                               Style="{ThemeResource CaptionTextBlockStyle}"
+                                               Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+                                </Border>
+                                <Border Background="{ThemeResource AccentFillColorSecondaryBrush}"
+                                        Padding="6,2"
+                                        CornerRadius="6"
+                                        Visibility="{Binding IsCPlusPlusProject, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="C++"
+                                               Style="{ThemeResource CaptionTextBlockStyle}"
+                                               Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+                                </Border>
                             </StackPanel>
                         </Grid>
 
-                        <!-- 引擎版本标签 -->
-                        <Border Padding="6,2"
-                                Background="{ThemeResource SystemControlHighlightListLowBrush}"
-                                CornerRadius="4"
-                                VerticalAlignment="Center">
+                        <StackPanel Grid.Row="1"
+                                    Orientation="Horizontal"
+                                    Spacing="6"
+                                    VerticalAlignment="Center">
+                            <FontIcon Glyph="&#xE7F8;"
+                                      FontSize="12"
+                                      Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                             <TextBlock Text="{Binding EngineDisplayName}"
-                                       Style="{StaticResource CaptionTextBlockStyle}"
-                                       Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}" />
-                        </Border>
+                                       Style="{ThemeResource CaptionTextBlockStyle}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
 
-                        <!-- 元信息（更轻的次要行） -->
-                        <StackPanel Orientation="Horizontal" Spacing="14">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <TextBlock Text="上次打开时间 : "
-                                           Style="{StaticResource CaptionTextBlockStyle}"
-                                           Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
-                                <TextBlock Text="{x:Bind GetLastUsedString()}"
-                                           Style="{StaticResource CaptionTextBlockStyle}"
-                                           Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                        <StackPanel Grid.Row="2"
+                                    Orientation="Horizontal"
+                                    Spacing="12"
+                                    VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <FontIcon Glyph="&#xE823;"
+                                          FontSize="11"
+                                          Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                <TextBlock Text="{Binding LastModifiedString}"
+                                           Style="{ThemeResource CaptionTextBlockStyle}"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <TextBlock Text="磁盘大小 : "
-                                           Style="{StaticResource CaptionTextBlockStyle}"
-                                           Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
-                                <TextBlock Text="{x:Bind ProjectSizeString}"
-                                           Style="{StaticResource CaptionTextBlockStyle}"
-                                           Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <FontIcon Glyph="&#xE81E;"
+                                          FontSize="11"
+                                          Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                <TextBlock Text="{Binding ProjectSizeString}"
+                                           Style="{ThemeResource CaptionTextBlockStyle}"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
                         </StackPanel>
-                    </StackPanel>
+                    </Grid>
 
                     <!-- 操作区 -->
                     <StackPanel Grid.Column="2"
                                 Orientation="Horizontal"
-                                Spacing="8"
+                                Spacing="6"
                                 VerticalAlignment="Center">
-                        <Button x:Name="StartProjectButton"
-                                Content="启动"
+                        <Button Tag="{Binding}"
+                                Click="ToggleFavorite_Click"
+                                Padding="8,6"
+                                MinWidth="36"
+                                ToolTipService.ToolTip="收藏/取消收藏">
+                            <FontIcon Glyph="{Binding FavoriteGlyph}" />
+                        </Button>
+
+                        <Button Content="启动"
+                                MinWidth="84"
                                 Tag="{Binding}"
                                 Click="StartProjectButton_OnClick" />
 
-                        <Button x:Name="StartWithIdeButton"
+                        <Button MinWidth="110"
                                 Content="用 IDE 打开"
                                 Tag="{Binding}"
-                                Click="StartWithIdeButton_OnClick" />
+                                Click="StartWithIdeButton_OnClick"
+                                Visibility="{Binding IsCPlusPlusProject, Converter={StaticResource BoolToVisibility}}" />
 
-                        <Button x:Name="MoreCommandsButton"
-                                Tag="{Binding}"
-                                Click="MoreCommandsButton_OnClick" Flyout="{StaticResource ProjectMenuFlyoutTemplate}">
+                        <Button Tag="{Binding}"
+                                MinWidth="40"
+                                Click="MoreCommandsButton_OnClick"
+                                Flyout="{StaticResource ProjectMenuFlyoutTemplate}"
+                                ToolTipService.ToolTip="更多操作">
                             <FontIcon Glyph="&#xE712;" />
                         </Button>
                     </StackPanel>

@@ -13,9 +13,14 @@
         <Style x:Key="RegistryItemContainerStyle" TargetType="ListViewItem">
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="VerticalContentAlignment" Value="Stretch" />
-            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Margin" Value="0,0,0,10" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style x:Key="RegistryCodeTextStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
         </Style>
     </Page.Resources>
 
@@ -202,7 +207,7 @@
                         BorderThickness="1"
                         CornerRadius="8"
                         Padding="16">
-                    <StackPanel Spacing="12">
+                    <StackPanel Spacing="14">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -217,51 +222,91 @@
                                     Click="RefreshRegistry_Click" />
                         </Grid>
 
-                        <TextBlock Text="可编辑项必须通过弹框修改并二次确认。标记为 READ ONLY 的项不可修改。修改 HKLM 需要管理员权限。"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                   TextWrapping="Wrap" />
+                        <Border Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                                CornerRadius="8"
+                                Padding="12">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="8">
+                                <FontIcon Glyph="&#xE946;"
+                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Text="可编辑项通过弹框修改并二次确认；不可编辑项不显示修改按钮。写入 HKLM 需要管理员权限。"
+                                           FontFamily="Consolas"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           TextWrapping="Wrap"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
 
                         <ListView x:Name="RegistryListView"
                                   SelectionMode="None"
                                   IsItemClickEnabled="False"
+                                  HorizontalAlignment="Stretch"
                                   ItemContainerStyle="{StaticResource RegistryItemContainerStyle}">
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="models:HordeRegistryItem">
-                                    <Border Background="{ThemeResource ControlFillColorSecondaryBrush}"
-                                            CornerRadius="6"
+                                    <Border Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
                                             Padding="12">
-                                        <Grid ColumnSpacing="10">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="2.6*" />
-                                                <ColumnDefinition Width="2*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
+                                        <Grid RowSpacing="8">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
 
-                                            <StackPanel Grid.Column="0" Spacing="4">
-                                                <TextBlock Text="{x:Bind FullPath}"
-                                                           FontWeight="SemiBold"
-                                                           TextWrapping="Wrap" />
+                                            <StackPanel Grid.Row="0"
+                                                        Spacing="4">
                                                 <TextBlock Text="{x:Bind ValueName}"
-                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                <TextBlock>
-                                                    <Run Text="{x:Bind DisplayType}" />
-                                                    <Run Text=" · " />
-                                                    <Run Text="{x:Bind AccessLabel}" />
-                                                </TextBlock>
+                                                           FontFamily="Consolas"
+                                                           FontSize="15"
+                                                           FontWeight="SemiBold"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{x:Bind FullPath}"
+                                                           Style="{StaticResource RegistryCodeTextStyle}"
+                                                           TextWrapping="Wrap" />
                                             </StackPanel>
 
-                                            <TextBox Grid.Column="1"
-                                                     Text="{x:Bind CurrentValue, Mode=OneWay}"
-                                                     IsReadOnly="True"
-                                                     TextWrapping="Wrap"
-                                                     MinWidth="200"
-                                                     VerticalAlignment="Center" />
+                                            <Border Grid.Row="1"
+                                                    Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="6"
+                                                    Padding="8">
+                                                <StackPanel Spacing="6">
+                                                    <TextBlock Text="VALUE"
+                                                               Style="{StaticResource RegistryCodeTextStyle}"
+                                                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                                    <TextBlock Text="{x:Bind CurrentValue, Mode=OneWay}"
+                                                               FontFamily="Consolas"
+                                                               TextWrapping="Wrap"
+                                                               MinHeight="22"
+                                                               VerticalAlignment="Center"
+                                                               Margin="0,0,0,2" />
+                                                </StackPanel>
+                                            </Border>
 
-                                            <Button Grid.Column="2"
-                                                    Content="修改"
-                                                    Tag="{x:Bind}"
-                                                    Click="EditRegistryValue_Click"
-                                                    Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            <Grid Grid.Row="2"
+                                                  ColumnSpacing="10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Grid.Column="0"
+                                                           Text="修改会立即写入注册表并生效"
+                                                           Style="{StaticResource RegistryCodeTextStyle}"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis" />
+
+                                                <Button Grid.Column="1"
+                                                        Content="修改值"
+                                                        Tag="{x:Bind}"
+                                                        Click="EditRegistryValue_Click"
+                                                        Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            </Grid>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>

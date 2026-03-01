@@ -483,14 +483,20 @@ namespace DreamUnrealManager.Views
                 case 0: // 网格
                     ProjectsListView.ItemsPanel = (ItemsPanelTemplate)Resources["GridItemsPanel"];
                     ProjectsListView.ItemTemplate = (DataTemplate)Resources["GridProjectTemplate"];
+                    ProjectsListView.HorizontalContentAlignment = HorizontalAlignment.Center;
+                    ProjectsListView.VerticalContentAlignment = VerticalAlignment.Center;
                     break;
                 case 1: // 列表
                     ProjectsListView.ItemsPanel = (ItemsPanelTemplate)Resources["ListItemsPanel"];
                     ProjectsListView.ItemTemplate = (DataTemplate)Resources["ListProjectTemplate"];
+                    ProjectsListView.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+                    ProjectsListView.VerticalContentAlignment = VerticalAlignment.Stretch;
                     break;
                 case 2: // 紧凑
                     ProjectsListView.ItemsPanel = (ItemsPanelTemplate)Resources["CompactItemsPanel"];
                     ProjectsListView.ItemTemplate = (DataTemplate)Resources["CompactProjectTemplate"];
+                    ProjectsListView.HorizontalContentAlignment = HorizontalAlignment.Center;
+                    ProjectsListView.VerticalContentAlignment = VerticalAlignment.Center;
                     break;
             }
         }
