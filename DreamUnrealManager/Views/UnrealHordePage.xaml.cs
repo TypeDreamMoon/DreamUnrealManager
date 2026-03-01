@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -17,8 +18,13 @@ public sealed partial class UnrealHordePage : Page
     private const string HordeAgentServiceName = "HordeAgent";
     private const string HordeServerServiceName = "HordeServer";
     private static readonly TimeSpan ServiceWaitTimeout = TimeSpan.FromSeconds(20);
+    private static readonly TimeSpan ServiceLogLookback = TimeSpan.FromHours(2);
+    private const int MaxServiceLogEntries = 200;
 
     private readonly ObservableCollection<HordeRegistryItem> _registryItems = new();
+    private readonly ObservableCollection<string> _serviceLogs = new();
+    private readonly DispatcherTimer _serviceLogTimer = new();
+    private bool _isRefreshingServiceLogs;
 
     private readonly List<HordeRegistryItem> _registryDefinitions =
     [
@@ -115,19 +121,126 @@ public sealed partial class UnrealHordePage : Page
     {
         InitializeComponent();
         RegistryListView.ItemsSource = _registryItems;
+        ServiceLogListView.ItemsSource = _serviceLogs;
         Loaded += UnrealHordePage_Loaded;
+        Unloaded += UnrealHordePage_Unloaded;
+
+        _serviceLogTimer.Interval = TimeSpan.FromSeconds(5);
+        _serviceLogTimer.Tick += ServiceLogTimer_Tick;
     }
 
     private async void UnrealHordePage_Loaded(object sender, RoutedEventArgs e)
     {
+        if (ServiceLogAutoRefreshSwitch.IsOn)
+        {
+            _serviceLogTimer.Start();
+        }
+
         await RefreshAllAsync();
+    }
+
+    private void UnrealHordePage_Unloaded(object sender, RoutedEventArgs e)
+    {
+        _serviceLogTimer.Stop();
+    }
+
+    private async void ServiceLogTimer_Tick(object? sender, object e)
+    {
+        await RefreshServiceLogsAsync();
     }
 
     private async Task RefreshAllAsync()
     {
         RefreshLocalIp();
         await RefreshServicesAsync();
+        await RefreshServiceLogsAsync();
         await RefreshRegistryValuesAsync();
+    }
+
+    private async Task RefreshServiceLogsAsync()
+    {
+        if (_isRefreshingServiceLogs)
+        {
+            return;
+        }
+
+        _isRefreshingServiceLogs = true;
+        try
+        {
+            var lines = await Task.Run(QueryServiceLogLines);
+            _serviceLogs.Clear();
+            foreach (var line in lines)
+            {
+                _serviceLogs.Add(line);
+            }
+
+            ServiceLogStatusTextBlock.Text = $"事件日志: 已刷新 {DateTime.Now:HH:mm:ss}，共 {_serviceLogs.Count} 条";
+        }
+        catch (Exception ex)
+        {
+            ServiceLogStatusTextBlock.Text = $"事件日志刷新失败: {ex.Message}";
+        }
+        finally
+        {
+            _isRefreshingServiceLogs = false;
+        }
+    }
+
+    private static List<string> QueryServiceLogLines()
+    {
+        var result = new List<(DateTime Time, string Text)>();
+        var keywords = new[] { "horde", "hordeagent", "hordeserver" };
+        var since = DateTime.Now - ServiceLogLookback;
+
+        foreach (var logName in new[] { "Application", "System" })
+        {
+            try
+            {
+                using var eventLog = new EventLog(logName);
+                var entries = eventLog.Entries;
+                for (var i = entries.Count - 1; i >= 0 && result.Count < MaxServiceLogEntries; i--)
+                {
+                    if (entries[i] is not EventLogEntry entry)
+                    {
+                        continue;
+                    }
+
+                    if (entry.TimeGenerated < since)
+                    {
+                        break;
+                    }
+
+                    var source = entry.Source ?? string.Empty;
+                    var message = entry.Message ?? string.Empty;
+                    var sourceLower = source.ToLowerInvariant();
+                    var messageLower = message.ToLowerInvariant();
+
+                    if (!keywords.Any(k => sourceLower.Contains(k) || messageLower.Contains(k)))
+                    {
+                        continue;
+                    }
+
+                    var firstLine = message.Replace("\r", "").Split('\n').FirstOrDefault() ?? string.Empty;
+                    if (firstLine.Length > 300)
+                    {
+                        firstLine = firstLine[..300] + "...";
+                    }
+
+                    var text = $"[{entry.TimeGenerated:HH:mm:ss}] [{entry.EntryType}] [{source}] {firstLine}";
+                    result.Add((entry.TimeGenerated, text));
+                }
+            }
+            catch
+            {
+                // 某些机器可能没有访问权限或日志不存在，忽略并继续读取其他日志源。
+            }
+        }
+
+        return result
+            .OrderByDescending(x => x.Time)
+            .Take(MaxServiceLogEntries)
+            .Select(x => x.Text)
+            .ToList();
     }
 
     private void RefreshLocalIp()
@@ -607,6 +720,22 @@ public sealed partial class UnrealHordePage : Page
         await RefreshServicesAsync();
     }
 
+    private async void RefreshServiceLogs_Click(object sender, RoutedEventArgs e)
+    {
+        await RefreshServiceLogsAsync();
+    }
+
+    private void ServiceLogAutoRefreshSwitch_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (ServiceLogAutoRefreshSwitch.IsOn)
+        {
+            _serviceLogTimer.Start();
+            return;
+        }
+
+        _serviceLogTimer.Stop();
+    }
+
     private async void StartAgent_Click(object sender, RoutedEventArgs e)
     {
         await RunServiceActionAsync(HordeAgentServiceName, ServiceOperation.Start);
@@ -793,3 +922,4 @@ public sealed partial class UnrealHordePage : Page
         await dialog.ShowAsync();
     }
 }
+

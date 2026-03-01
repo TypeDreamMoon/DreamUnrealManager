@@ -36,6 +36,7 @@ namespace DreamUnrealManager.Views
         private int _activeBatchTotal = 0;
         private double _currentEngineProgress = 0;
         private bool _isPageInitialized = false;
+        private bool _isInitializingPage = false;
         private const int MaxTerminalLines = 5000;
 
         private static readonly System.Text.RegularExpressions.Regex BuildActionProgressRegex =
@@ -123,10 +124,21 @@ namespace DreamUnrealManager.Views
         {
             if (_isPageInitialized)
             {
-                await LoadEngineVersions(writeLoadedMessage: false);
+                _ = LoadEngineVersions(writeLoadedMessage: false);
                 return;
             }
 
+            if (_isInitializingPage)
+            {
+                return;
+            }
+
+            _isInitializingPage = true;
+            _ = InitializePageOnOpenAsync();
+        }
+
+        private async Task InitializePageOnOpenAsync()
+        {
             try
             {
                 await InitializePage();
@@ -139,13 +151,16 @@ namespace DreamUnrealManager.Views
                 WriteToTerminal("插件构建页面已就绪", TerminalMessageType.Success);
 
                 TerminalOutput.FontFamily = new FontFamily(SettingsService.Get("Console.Font", "Consolas"));
-
                 WriteToTerminal("Powered by Dream Moon. © 2025", TerminalMessageType.Info);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"页面加载失败: {ex.Message}");
                 UpdateNavigationStatus(false, 0, "初始化失败");
+            }
+            finally
+            {
+                _isInitializingPage = false;
             }
         }
 
@@ -154,6 +169,9 @@ namespace DreamUnrealManager.Views
         {
             try
             {
+                // 先让页面完成首帧渲染，再进行引擎列表加载，避免导航卡顿。
+                await Task.Yield();
+
                 var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                 OutputPathTextBox.Text = Path.Combine(documentsPath, "PluginsBuilded");
 

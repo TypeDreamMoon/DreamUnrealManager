@@ -159,6 +159,54 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="服务事件日志"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                            <ToggleSwitch Grid.Column="1"
+                                          x:Name="ServiceLogAutoRefreshSwitch"
+                                          Header="自动刷新"
+                                          IsOn="True"
+                                          Margin="0,0,12,0"
+                                          Toggled="ServiceLogAutoRefreshSwitch_Toggled" />
+                            <Button Grid.Column="2"
+                                    Content="刷新日志"
+                                    Click="RefreshServiceLogs_Click" />
+                        </Grid>
+
+                        <TextBlock x:Name="ServiceLogStatusTextBlock"
+                                   Text="事件日志: 未刷新"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   TextWrapping="Wrap" />
+
+                        <ListView x:Name="ServiceLogListView"
+                                  SelectionMode="None"
+                                  IsItemClickEnabled="False"
+                                  MaxHeight="300">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}"
+                                               TextWrapping="Wrap"
+                                               FontFamily="Consolas"
+                                               Margin="0,2,0,2" />
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16">
+                    <StackPanel Spacing="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="Horde 注册表配置"
                                        FontSize="18"
