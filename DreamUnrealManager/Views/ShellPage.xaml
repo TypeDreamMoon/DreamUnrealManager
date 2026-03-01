@@ -93,7 +93,13 @@
                     <AcrylicBrush TintOpacity="{x:Bind ViewModel.AcrylicSettings.TintOpacity, Mode=OneWay}"
                                   TintLuminosityOpacity="{x:Bind ViewModel.AcrylicSettings.TintLuminosityOpacity, Mode=OneWay}" />
                 </Grid.Background>
-                <Frame x:Name="NavigationFrame" />
+                <Frame x:Name="NavigationFrame">
+                    <Frame.ContentTransitions>
+                        <TransitionCollection>
+                            <NavigationThemeTransition />
+                        </TransitionCollection>
+                    </Frame.ContentTransitions>
+                </Frame>
             </Grid>
         </NavigationView>
     </Grid>

@@ -5,6 +5,7 @@ using DreamUnrealManager.Contracts.ViewModels;
 using DreamUnrealManager.Helpers;
 
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Navigation;
 
 namespace DreamUnrealManager.Services;
@@ -14,6 +15,16 @@ namespace DreamUnrealManager.Services;
 public class NavigationService : INavigationService
 {
     private readonly IPageService _pageService;
+    private static readonly SlideNavigationTransitionInfo ForwardTransition = new()
+    {
+        Effect = SlideNavigationTransitionEffect.FromRight
+    };
+
+    private static readonly SlideNavigationTransitionInfo BackTransition = new()
+    {
+        Effect = SlideNavigationTransitionEffect.FromLeft
+    };
+
     private object? _lastParameterUsed;
     private Frame? _frame;
 
@@ -69,7 +80,7 @@ public class NavigationService : INavigationService
         if (CanGoBack)
         {
             var vmBeforeNavigation = _frame.GetPageViewModel();
-            _frame.GoBack();
+            _frame.GoBack(BackTransition);
             if (vmBeforeNavigation is INavigationAware navigationAware)
             {
                 navigationAware.OnNavigatedFrom();
@@ -89,7 +100,7 @@ public class NavigationService : INavigationService
         {
             _frame.Tag = clearNavigation;
             var vmBeforeNavigation = _frame.GetPageViewModel();
-            var navigated = _frame.Navigate(pageType, parameter);
+            var navigated = _frame.Navigate(pageType, parameter, ForwardTransition);
             if (navigated)
             {
                 _lastParameterUsed = parameter;

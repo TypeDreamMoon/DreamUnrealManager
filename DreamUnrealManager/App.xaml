@@ -16,7 +16,15 @@
             <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
             <helpers:InverseStringToVisibilityConverter x:Key="InverseStringToVisibilityConverter" />
             <helpers:ObjectToBoolConverter x:Key="ObjectToBoolConverter" />
-            
+            <Style TargetType="Page">
+                <Setter Property="Transitions">
+                    <Setter.Value>
+                        <TransitionCollection>
+                            <EntranceThemeTransition FromVerticalOffset="20" IsStaggeringEnabled="False" />
+                        </TransitionCollection>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

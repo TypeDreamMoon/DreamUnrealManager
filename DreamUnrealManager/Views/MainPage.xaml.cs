@@ -85,12 +85,12 @@ public sealed partial class MainPage : Page
 
     private void QuickBuildingButton_OnClick(object sender, RoutedEventArgs e)
     {
-        App.GetService<INavigationService>().Frame?.Navigate(typeof(PluginsBuildPage));
+        App.GetService<INavigationService>().NavigateTo(typeof(PluginsBuildViewModel).FullName!);
     }
 
     private void QuickLaunchButton_OnClick(object sender, RoutedEventArgs e)
     {
-        App.GetService<INavigationService>().Frame?.Navigate(typeof(LauncherPage));
+        App.GetService<INavigationService>().NavigateTo(typeof(LauncherViewModel).FullName!);
     }
 
     private async void LoadFavoriteProjects()
