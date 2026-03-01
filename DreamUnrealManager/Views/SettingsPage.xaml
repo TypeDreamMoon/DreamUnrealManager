@@ -120,6 +120,14 @@
                     </TextBlock>
                 </controls:SettingsCard>
 
+                <controls:SettingsCard x:Name="CloseBehaviorSettingCard"
+                                       Description="点击窗口关闭按钮时最小化到后台，不直接退出"
+                                       Header="关闭行为"
+                                       CornerRadius="8">
+                    <ToggleSwitch x:Name="CloseToBackgroundToggle"
+                                  Toggled="CloseToBackgroundToggle_Toggled" />
+                </controls:SettingsCard>
+
                 <controls:SettingsCard Description="主题设置" Header="主题">
                     <controls:SettingsCard.HeaderIcon>
                         <FontIcon Glyph="&#xE790;" />

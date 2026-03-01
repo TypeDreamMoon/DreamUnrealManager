@@ -10,6 +10,7 @@ using DreamUnrealManager.Services;
 using DreamUnrealManager.Models;
 using Windows.UI;
 using Microsoft.UI;
+using Microsoft.UI.Xaml.Navigation;
 
 namespace DreamUnrealManager.Views
 {
@@ -34,6 +35,8 @@ namespace DreamUnrealManager.Views
         private UnrealEngineInfo _currentBuildingEngine;
         private int _activeBatchTotal = 0;
         private double _currentEngineProgress = 0;
+        private bool _isPageInitialized = false;
+        private const int MaxTerminalLines = 5000;
 
         private static readonly System.Text.RegularExpressions.Regex BuildActionProgressRegex =
             new(@"\[(\d+)\/(\d+)\]", System.Text.RegularExpressions.RegexOptions.Compiled);
@@ -62,6 +65,7 @@ namespace DreamUnrealManager.Views
         public PluginsBuildPage()
         {
             this.InitializeComponent();
+            NavigationCacheMode = NavigationCacheMode.Required;
             _engineManager = EngineManagerService.Instance;
             this.Loaded += PluginsBuildPage_Loaded;
         }
@@ -117,9 +121,16 @@ namespace DreamUnrealManager.Views
 
         private async void PluginsBuildPage_Loaded(object sender, RoutedEventArgs e)
         {
+            if (_isPageInitialized)
+            {
+                await LoadEngineVersions(writeLoadedMessage: false);
+                return;
+            }
+
             try
             {
                 await InitializePage();
+                _isPageInitialized = true;
 
                 // 初始化导航状态为就绪
                 UpdateNavigationStatus(false, 0, "就绪");
@@ -164,10 +175,18 @@ namespace DreamUnrealManager.Views
         }
 
 
-        private async Task LoadEngineVersions()
+        private async Task LoadEngineVersions(bool writeLoadedMessage = true)
         {
             try
             {
+                var previousSingleEnginePath = (GetSelectedEngine()?.EnginePath ?? string.Empty).Trim();
+                var previousBatchEnginePaths = _engineCheckBoxes
+                    .Where(cb => cb.IsChecked == true)
+                    .Select(cb => (cb.Tag as UnrealEngineInfo)?.EnginePath)
+                    .Where(path => !string.IsNullOrWhiteSpace(path))
+                    .Select(path => path!.Trim())
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
                 await _engineManager.LoadEngines();
 
                 EngineVersionComboBox.Items.Clear();
@@ -193,12 +212,28 @@ namespace DreamUnrealManager.Views
                 }
 
                 if (EngineVersionComboBox.Items.Count > 0)
-                    EngineVersionComboBox.SelectedIndex = 0;
+                {
+                    var matchedItem = EngineVersionComboBox.Items
+                        .OfType<ComboBoxItem>()
+                        .FirstOrDefault(item =>
+                            string.Equals((item.Tag as UnrealEngineInfo)?.EnginePath?.Trim(),
+                                previousSingleEnginePath,
+                                StringComparison.OrdinalIgnoreCase));
 
-                LoadBatchEnginesList();
+                    if (matchedItem != null)
+                    {
+                        EngineVersionComboBox.SelectedItem = matchedItem;
+                    }
+                    else
+                    {
+                        EngineVersionComboBox.SelectedIndex = 0;
+                    }
+                }
+
+                LoadBatchEnginesList(previousBatchEnginePaths);
 
                 // 只有在页面完全加载后才显示加载消息
-                if (this.IsLoaded)
+                if (this.IsLoaded && writeLoadedMessage)
                 {
                     WriteToTerminal($"已加载 {validEngines?.Count() ?? 0} 个有效引擎版本", TerminalMessageType.Info);
                 }
@@ -211,7 +246,7 @@ namespace DreamUnrealManager.Views
         }
 
 
-        private void LoadBatchEnginesList()
+        private void LoadBatchEnginesList(HashSet<string>? selectedEnginePaths = null)
         {
             try
             {
@@ -233,6 +268,7 @@ namespace DreamUnrealManager.Views
                         {
                             Content = displayText,
                             Tag = engine,
+                            IsChecked = selectedEnginePaths?.Contains(engine.EnginePath?.Trim() ?? string.Empty) == true,
                             Margin = new Thickness(0, 2, 0, 2)
                         };
 
@@ -337,6 +373,7 @@ namespace DreamUnrealManager.Views
                     paragraph.Inlines.Add(messageRun);
 
                     TerminalOutput.Blocks.Add(paragraph);
+                    TrimTerminalLinesIfNeeded();
 
                     // 检查是否包含错误或警告
                     CheckForIssues(message, messageType);
@@ -352,6 +389,32 @@ namespace DreamUnrealManager.Views
                     System.Diagnostics.Debug.WriteLine($"WriteToTerminal error: {ex.Message}");
                 }
             });
+        }
+
+        private void TrimTerminalLinesIfNeeded()
+        {
+            try
+            {
+                if (TerminalOutput?.Blocks == null)
+                {
+                    return;
+                }
+
+                while (TerminalOutput.Blocks.Count > MaxTerminalLines)
+                {
+                    var first = TerminalOutput.Blocks.FirstOrDefault();
+                    if (first == null)
+                    {
+                        break;
+                    }
+
+                    TerminalOutput.Blocks.Remove(first);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"TrimTerminalLinesIfNeeded error: {ex.Message}");
+            }
         }
 
         private static TerminalMessageType MergeMessageType(TerminalMessageType origin, TerminalMessageType inferred)

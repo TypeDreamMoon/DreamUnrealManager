@@ -60,6 +60,10 @@ namespace DreamUnrealManager.Views
             LoadDefaultIdeSetting();
             LoadRiderLaunchMethod();
             UpdateIdePathUI();
+            if (CloseToBackgroundToggle != null)
+            {
+                CloseToBackgroundToggle.IsOn = SettingsService.Get("App.CloseToBackground", false);
+            }
 
             AutoDetectIdePaths();
             OnLoaded_SyncThemeSelection();
@@ -597,6 +601,11 @@ namespace DreamUnrealManager.Views
         {
             var tag = ((ComboBoxItem)RiderLauncherMethodComboBox.SelectedItem).Tag as string;
             SettingsService.Set("IDE.Rider.LaunchMethod", tag);
+        }
+
+        private void CloseToBackgroundToggle_Toggled(object sender, RoutedEventArgs e)
+        {
+            SettingsService.Set("App.CloseToBackground", CloseToBackgroundToggle?.IsOn == true);
         }
     }
 
