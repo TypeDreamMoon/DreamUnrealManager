@@ -4,9 +4,9 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Windows.ApplicationModel.DataTransfer;
-using Windows.Storage.Pickers;
 using CommunityToolkit.WinUI.Controls;
 using DreamUnrealManager.Contracts.Services;
+using DreamUnrealManager.Helpers;
 using DreamUnrealManager.Models;
 using DreamUnrealManager.Services;
 using Microsoft.UI;
@@ -509,24 +509,14 @@ namespace DreamUnrealManager.Views
         {
             try
             {
-                var picker = new FileOpenPicker
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+                var filePath = Win32DialogHelper.PickSingleFile(hwnd, "选择 Unreal 项目文件", "Unreal Project (*.uproject)|*.uproject");
+                if (string.IsNullOrWhiteSpace(filePath))
                 {
-                    ViewMode = PickerViewMode.List,
-                    SuggestedStartLocation = PickerLocationId.Desktop
-                };
-                picker.FileTypeFilter.Add(".uproject");
-
-                var window = App.MainWindow;
-                if (window != null)
-                {
-                    var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
-                    WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+                    return;
                 }
 
-                var file = await picker.PickSingleFileAsync();
-                if (file == null) return;
-
-                var created = await _factoryService.CreateAsync(file.Path);
+                var created = await _factoryService.CreateAsync(filePath);
                 if (created != null && !LoadedProjects.Any(p => p.ProjectPath == created.ProjectPath))
                 {
                     LoadedProjects.Add(created);
@@ -577,21 +567,16 @@ namespace DreamUnrealManager.Views
         {
             try
             {
-                var folderPicker = new Windows.Storage.Pickers.FolderPicker();
-                folderPicker.FileTypeFilter.Add("*");
-                var window = App.MainWindow;
-                if (window != null)
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+                var folderPath = Win32DialogHelper.PickFolder(hwnd, "选择用于自动搜索 .uproject 的目录");
+                if (string.IsNullOrWhiteSpace(folderPath))
                 {
-                    var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
-                    WinRT.Interop.InitializeWithWindow.Initialize(folderPicker, hwnd);
+                    return;
                 }
-
-                var folder = await folderPicker.PickSingleFolderAsync();
-                if (folder == null) return;
 
                 SetStatus("正在搜索项目...");
                 var progress = new Progress<int>(v => SetStatus($"正在搜索... {v}%"));
-                var found = await _search.SearchAsync(folder.Path, progress);
+                var found = await _search.SearchAsync(folderPath, progress);
 
                 // 合并去重
                 var newOnes = found.Where(f => !LoadedProjects.Any(p => p.ProjectPath == f.ProjectPath)).ToList();

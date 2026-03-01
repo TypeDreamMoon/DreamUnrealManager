@@ -7,7 +7,6 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Drawing.Text;
 using System.Linq;
-using Windows.Storage.Pickers;
 using DreamUnrealManager.Models;
 using DreamUnrealManager.Services;
 using Windows.UI;
@@ -126,51 +125,29 @@ namespace DreamUnrealManager.Views
         {
             try
             {
-                var filePicker = new FileOpenPicker();
-                filePicker.SuggestedStartLocation = PickerLocationId.ComputerFolder;
-
                 // 根据当前选择的IDE类型设置特定的文件过滤器
                 var defaultIde = SettingsService.Get("Default.IDE", "VS");
+                var pickerTitle = "选择 IDE 可执行文件";
                 switch (defaultIde)
                 {
                     case "VS":
-                        // Visual Studio 可执行文件
-                        filePicker.FileTypeFilter.Add(".exe");
-                        filePicker.CommitButtonText = "选择 devenv.exe";
-                        filePicker.SettingsIdentifier = "VSPathPicker";
+                        pickerTitle = "选择 devenv.exe";
                         break;
                     case "RD":
-                        // Rider 可执行文件
-                        filePicker.FileTypeFilter.Add(".exe");
-                        filePicker.CommitButtonText = "选择 rider64.exe";
-                        filePicker.SettingsIdentifier = "RiderPathPicker";
+                        pickerTitle = "选择 rider64.exe";
                         break;
                     case "VSCode":
-                        // VS Code 可执行文件
-                        filePicker.FileTypeFilter.Add(".exe");
-                        filePicker.CommitButtonText = "选择 Code.exe";
-                        filePicker.SettingsIdentifier = "VSCodePathPicker";
-                        break;
-                    default:
-                        filePicker.FileTypeFilter.Add(".exe");
-                        filePicker.SettingsIdentifier = "IDEPathPicker";
+                        pickerTitle = "选择 Code.exe";
                         break;
                 }
 
-                var window = App.MainWindow;
-                if (window != null)
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+                var filePath = Win32DialogHelper.PickSingleFile(hwnd, pickerTitle, "可执行文件 (*.exe)|*.exe");
+                if (!string.IsNullOrWhiteSpace(filePath))
                 {
-                    var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
-                    WinRT.Interop.InitializeWithWindow.Initialize(filePicker, hwnd);
-                }
-
-                var file = await filePicker.PickSingleFileAsync();
-                if (file != null)
-                {
-                    // 验证选择的文件是否符合当前IDE类型
-                    if (ValidateIdeExecutable(file.Path, defaultIde))
+                    if (ValidateIdeExecutable(filePath, defaultIde))
                     {
-                        IdePathTextBox.Text = file.Path;
+                        IdePathTextBox.Text = filePath;
                     }
                     else
                     {
@@ -692,30 +669,20 @@ namespace DreamUnrealManager.Views
             Content = panel;
         }
 
-        private async void BrowseButton_Click(object sender, RoutedEventArgs e)
+        private void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                var folderPicker = new FolderPicker();
-                folderPicker.SuggestedStartLocation = PickerLocationId.ComputerFolder;
-                folderPicker.FileTypeFilter.Add("*");
-
-                var window = App.MainWindow;
-                if (window != null)
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+                var folderPath = Win32DialogHelper.PickFolder(hwnd, "选择 Unreal 引擎目录");
+                if (!string.IsNullOrWhiteSpace(folderPath))
                 {
-                    var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
-                    WinRT.Interop.InitializeWithWindow.Initialize(folderPicker, hwnd);
-                }
-
-                var folder = await folderPicker.PickSingleFolderAsync();
-                if (folder != null)
-                {
-                    _pathTextBox!.Text = folder.Path;
+                    _pathTextBox!.Text = folderPath;
 
                     // 如果显示名称为空，尝试从路径自动生成
                     if (string.IsNullOrWhiteSpace(_displayNameTextBox!.Text))
                     {
-                        var folderName = System.IO.Path.GetFileName(folder.Path);
+                        var folderName = System.IO.Path.GetFileName(folderPath);
                         if (folderName.StartsWith("UE_"))
                         {
                             var version = folderName.Replace("UE_", "").Replace("_", ".");

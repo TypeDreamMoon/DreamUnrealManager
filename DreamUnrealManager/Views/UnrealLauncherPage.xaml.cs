@@ -3,9 +3,9 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using System;
 using System.Diagnostics;
-using Windows.Storage.Pickers;
 using Windows.ApplicationModel.DataTransfer;
 using DreamUnrealManager.Contracts.Services;
+using DreamUnrealManager.Helpers;
 using DreamUnrealManager.Services;
 using DreamUnrealManager.ViewModels;
 
@@ -59,14 +59,14 @@ namespace DreamUnrealManager.Views
         {
             try
             {
-                var picker = new FolderPicker();
-                picker.FileTypeFilter.Add("*");
                 var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
-                WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-                var folder = await picker.PickSingleFolderAsync();
-                if (folder == null) return;
+                var folderPath = Win32DialogHelper.PickFolder(hwnd, "选择 Unreal 引擎根目录");
+                if (string.IsNullOrWhiteSpace(folderPath))
+                {
+                    return;
+                }
 
-                await ViewModel.AddEngineAsync(folder.Path);
+                await ViewModel.AddEngineAsync(folderPath);
             }
             catch (Exception ex)
             {

@@ -2,10 +2,10 @@
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Media;
-using Windows.Storage.Pickers;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using DreamUnrealManager.Helpers;
 using DreamUnrealManager.Services;
 using DreamUnrealManager.Models;
 using Windows.UI;
@@ -887,30 +887,24 @@ namespace DreamUnrealManager.Views
         {
             try
             {
-                var savePicker = new Windows.Storage.Pickers.FileSavePicker();
-                savePicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
-                savePicker.FileTypeChoices.Add("文本文件", new List<string>() { ".txt" });
-                savePicker.FileTypeChoices.Add("日志文件", new List<string>() { ".log" });
-                savePicker.SuggestedFileName = $"PluginBuildLog_{DateTime.Now:yyyyMMdd_HHmmss}";
-
-                var window = App.MainWindow;
-                if (window != null)
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+                var savePath = Win32DialogHelper.SaveFile(
+                    hwnd,
+                    "导出构建日志",
+                    "文本文件 (*.txt)|*.txt|日志文件 (*.log)|*.log",
+                    $"PluginBuildLog_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
+                if (string.IsNullOrWhiteSpace(savePath))
                 {
-                    var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
-                    WinRT.Interop.InitializeWithWindow.Initialize(savePicker, hwnd);
+                    return;
                 }
 
-                var file = await savePicker.PickSaveFileAsync();
-                if (file != null)
-                {
-                    // 获取终端中的所有文本内容
-                    var logContent = ExtractTerminalContent();
+                // 获取终端中的所有文本内容
+                var logContent = ExtractTerminalContent();
 
-                    // 写入文件
-                    await Windows.Storage.FileIO.WriteTextAsync(file, logContent);
+                // 写入文件
+                await File.WriteAllTextAsync(savePath, logContent, Encoding.UTF8);
 
-                    WriteToTerminal($"日志已导出到: {file.Path}", TerminalMessageType.Success);
-                }
+                WriteToTerminal($"日志已导出到: {savePath}", TerminalMessageType.Success);
             }
             catch (Exception ex)
             {
@@ -922,30 +916,24 @@ namespace DreamUnrealManager.Views
         {
             try
             {
-                var savePicker = new Windows.Storage.Pickers.FileSavePicker();
-                savePicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
-                savePicker.FileTypeChoices.Add("文本文件", new List<string>() { ".txt" });
-                savePicker.FileTypeChoices.Add("日志文件", new List<string>() { ".log" });
-                savePicker.SuggestedFileName = $"PluginBuildErrors_{DateTime.Now:yyyyMMdd_HHmmss}";
-
-                var window = App.MainWindow;
-                if (window != null)
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+                var savePath = Win32DialogHelper.SaveFile(
+                    hwnd,
+                    "导出错误日志",
+                    "文本文件 (*.txt)|*.txt|日志文件 (*.log)|*.log",
+                    $"PluginBuildErrors_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
+                if (string.IsNullOrWhiteSpace(savePath))
                 {
-                    var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
-                    WinRT.Interop.InitializeWithWindow.Initialize(savePicker, hwnd);
+                    return;
                 }
 
-                var file = await savePicker.PickSaveFileAsync();
-                if (file != null)
-                {
-                    // 获取所有错误信息
-                    var errorContent = ExtractErrorContent();
+                // 获取所有错误信息
+                var errorContent = ExtractErrorContent();
 
-                    // 写入文件
-                    await Windows.Storage.FileIO.WriteTextAsync(file, errorContent);
+                // 写入文件
+                await File.WriteAllTextAsync(savePath, errorContent, Encoding.UTF8);
 
-                    WriteToTerminal($"错误信息已导出到: {file.Path}", TerminalMessageType.Success);
-                }
+                WriteToTerminal($"错误信息已导出到: {savePath}", TerminalMessageType.Success);
             }
             catch (Exception ex)
             {
@@ -1425,23 +1413,13 @@ namespace DreamUnrealManager.Views
         {
             try
             {
-                var filePicker = new FileOpenPicker();
-                filePicker.SuggestedStartLocation = PickerLocationId.Desktop;
-                filePicker.FileTypeFilter.Add(".uplugin");
-
-                var window = App.MainWindow;
-                if (window != null)
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+                var filePath = Win32DialogHelper.PickSingleFile(hwnd, "选择插件文件", "插件描述文件 (*.uplugin)|*.uplugin");
+                if (!string.IsNullOrWhiteSpace(filePath))
                 {
-                    var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
-                    WinRT.Interop.InitializeWithWindow.Initialize(filePicker, hwnd);
-                }
-
-                var file = await filePicker.PickSingleFileAsync();
-                if (file != null)
-                {
-                    SourcePathTextBox.Text = file.Path;
-                    WriteToTerminal($"已选择插件文件: {file.Path}", TerminalMessageType.Success);
-                    await LoadPluginInfo(file.Path);
+                    SourcePathTextBox.Text = filePath;
+                    WriteToTerminal($"已选择插件文件: {filePath}", TerminalMessageType.Success);
+                    await LoadPluginInfo(filePath);
                 }
             }
             catch (Exception ex)
@@ -1450,26 +1428,16 @@ namespace DreamUnrealManager.Views
             }
         }
 
-        private async void BrowseOutputPath_Click(object sender, RoutedEventArgs e)
+        private void BrowseOutputPath_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                var folderPicker = new FolderPicker();
-                folderPicker.SuggestedStartLocation = PickerLocationId.Desktop;
-                folderPicker.FileTypeFilter.Add("*");
-
-                var window = App.MainWindow;
-                if (window != null)
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+                var folderPath = Win32DialogHelper.PickFolder(hwnd, "选择插件构建输出目录");
+                if (!string.IsNullOrWhiteSpace(folderPath))
                 {
-                    var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
-                    WinRT.Interop.InitializeWithWindow.Initialize(folderPicker, hwnd);
-                }
-
-                var folder = await folderPicker.PickSingleFolderAsync();
-                if (folder != null)
-                {
-                    OutputPathTextBox.Text = folder.Path;
-                    WriteToTerminal($"已选择输出路径: {folder.Path}", TerminalMessageType.Success);
+                    OutputPathTextBox.Text = folderPath;
+                    WriteToTerminal($"已选择输出路径: {folderPath}", TerminalMessageType.Success);
                 }
             }
             catch (Exception ex)
