@@ -17,11 +17,12 @@ namespace DreamUnrealManager.Services
             if (string.IsNullOrWhiteSpace(uprojectPath) || !File.Exists(uprojectPath))
                 return false;
 
-            var engineRoot = await GetEngineRootForProjectAsync(uprojectPath, ct);
-            if (string.IsNullOrEmpty(engineRoot) || !Directory.Exists(engineRoot))
+            var engine = await ResolveEngineForProjectAsync(uprojectPath, ct);
+            if (engine == null || !Directory.Exists(engine.EnginePath))
                 return false;
 
             // 优先走 UnrealBuildTool 生成（5.x 默认路径）
+            var engineRoot = engine.EnginePath;
             var ubtExe = Path.Combine(engineRoot, "Engine", "Binaries", "DotNET", "UnrealBuildTool", "UnrealBuildTool.exe");
             if (!File.Exists(ubtExe))
             {
@@ -31,7 +32,7 @@ namespace DreamUnrealManager.Services
 
             if (File.Exists(ubtExe))
             {
-                var args = $"-projectfiles -project=\"{uprojectPath}\" -game -rocket -progress";
+                var args = BuildProjectFilesArguments(uprojectPath, engine);
                 var psi = new ProcessStartInfo
                 {
                     FileName = ubtExe,
@@ -43,10 +44,7 @@ namespace DreamUnrealManager.Services
                     WorkingDirectory = engineRoot
                 };
 
-                using var proc = Process.Start(psi);
-                if (proc == null) return false;
-                await proc.WaitForExitAsync(ct);
-                return proc.ExitCode == 0;
+                return await RunWithLogsAsync(psi, null, null, ct);
             }
 
             // 回退方案：调用 GenerateProjectFiles.bat（某些版本可用）
@@ -59,12 +57,11 @@ namespace DreamUnrealManager.Services
                     Arguments = $"\"{uprojectPath}\"",
                     WorkingDirectory = Path.GetDirectoryName(genBat),
                     UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
                     CreateNoWindow = true
                 };
-                using var proc = Process.Start(psi);
-                if (proc == null) return false;
-                await proc.WaitForExitAsync(ct);
-                return proc.ExitCode == 0;
+                return await RunWithLogsAsync(psi, null, null, ct);
             }
 
             return false;
@@ -79,11 +76,12 @@ namespace DreamUnrealManager.Services
             if (string.IsNullOrWhiteSpace(uprojectPath) || !File.Exists(uprojectPath))
                 return false;
 
-            var engineRoot = await GetEngineRootForProjectAsync(uprojectPath, ct);
-            if (string.IsNullOrEmpty(engineRoot) || !Directory.Exists(engineRoot))
+            var engine = await ResolveEngineForProjectAsync(uprojectPath, ct);
+            if (engine == null || !Directory.Exists(engine.EnginePath))
                 return false;
 
             // 先尝试 UBT.exe（5.x）
+            var engineRoot = engine.EnginePath;
             var ubtExe = Path.Combine(engineRoot, "Engine", "Binaries", "DotNET", "UnrealBuildTool", "UnrealBuildTool.exe");
             if (!File.Exists(ubtExe))
             {
@@ -93,7 +91,7 @@ namespace DreamUnrealManager.Services
 
             if (File.Exists(ubtExe))
             {
-                var args = $"-projectfiles -project=\"{uprojectPath}\" -game -rocket -progress";
+                var args = BuildProjectFilesArguments(uprojectPath, engine);
                 var psi = new ProcessStartInfo
                 {
                     FileName = ubtExe,
@@ -187,8 +185,8 @@ namespace DreamUnrealManager.Services
         }
 
 
-        // 读取 .uproject 的 EngineAssociation，匹配到本机引擎的根目录
-        private static async Task<string?> GetEngineRootForProjectAsync(string uprojectPath, CancellationToken ct)
+        // 读取 .uproject 的 EngineAssociation，匹配到本机引擎。
+        private static async Task<Models.UnrealEngineInfo?> ResolveEngineForProjectAsync(string uprojectPath, CancellationToken ct)
         {
             string? engineAssociation = null;
 
@@ -211,17 +209,28 @@ namespace DreamUnrealManager.Services
 
             if (!string.IsNullOrWhiteSpace(engineAssociation))
             {
-                var hit = engines.FirstOrDefault(e =>
-                    e.Version == engineAssociation ||
-                    e.FullVersion == engineAssociation ||
-                    (e.BuildVersionInfo?.BranchName?.Contains(engineAssociation) ?? false));
-                if (hit != null && Directory.Exists(hit.EnginePath))
-                    return hit.EnginePath;
+                var resolver = new EngineResolverService();
+                var resolved = await resolver.ResolveAsync(engineAssociation, ct).ConfigureAwait(false);
+                if (resolved != null && Directory.Exists(resolved.EnginePath))
+                {
+                    return resolved;
+                }
             }
 
             // 回退：取第一个有效引擎
             var first = engines.FirstOrDefault(e => e.IsValid && Directory.Exists(e.EnginePath));
-            return first?.EnginePath;
+            return first;
+        }
+
+        private static string BuildProjectFilesArguments(string uprojectPath, Models.UnrealEngineInfo engine)
+        {
+            var args = $"-projectfiles -project=\"{uprojectPath}\" -game -progress";
+            if (!engine.IsSourceBuild)
+            {
+                args += " -rocket";
+            }
+
+            return args;
         }
     }
 }

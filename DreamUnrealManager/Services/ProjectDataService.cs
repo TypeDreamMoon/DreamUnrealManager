@@ -316,7 +316,8 @@ namespace DreamUnrealManager.Services
                         Category = dto.Category,
                         LastModified = dto.LastModified,
                         LastUsed = dto.LastUsed,
-                        ProjectSize = dto.ProjectSize
+                        ProjectSize = dto.ProjectSize,
+                        IsFavorite = dto.IsFavorite
                     }).ToList();
 
                 WriteDebug($"从备份恢复了 {projects.Count} 个项目");

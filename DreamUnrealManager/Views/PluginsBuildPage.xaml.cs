@@ -42,6 +42,34 @@ namespace DreamUnrealManager.Views
         private static readonly System.Text.RegularExpressions.Regex BuildActionProgressRegex =
             new(@"\[(\d+)\/(\d+)\]", System.Text.RegularExpressions.RegexOptions.Compiled);
 
+        private void RunOnUiThread(Action action)
+        {
+            if (DispatcherQueue.HasThreadAccess)
+            {
+                try
+                {
+                    action();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"RunOnUiThread action error: {ex.Message}");
+                }
+                return;
+            }
+
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                try
+                {
+                    action();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"RunOnUiThread action error: {ex.Message}");
+                }
+            });
+        }
+
         private sealed class BatchBuildSummary
         {
             public int Total
@@ -1018,11 +1046,14 @@ namespace DreamUnrealManager.Views
             finally
             {
                 _isBuildInProgress = false;
-                StartBuildButton.IsEnabled = true;
-                StopBuildButton.IsEnabled = false;
+                RunOnUiThread(() =>
+                {
+                    StartBuildButton.IsEnabled = true;
+                    StopBuildButton.IsEnabled = false;
+                    BuildStatusCard.Visibility = Visibility.Collapsed;
+                });
                 _buildCancellationTokenSource?.Dispose();
                 _buildCancellationTokenSource = null;
-                BuildStatusCard.Visibility = Visibility.Collapsed;
 
                 // 延迟3秒后清除状态
                 await Task.Delay(3000);
@@ -1222,9 +1253,12 @@ namespace DreamUnrealManager.Views
                     }
 
                     var line = e.Data.Trim();
-                    WriteToTerminal(line);
-                    UpdateBuildProgressFromOutput(line);
-                    UpdateNavigationStatusFromOutput(line, engine);
+                    RunOnUiThread(() =>
+                    {
+                        WriteToTerminal(line);
+                        UpdateBuildProgressFromOutput(line);
+                        UpdateNavigationStatusFromOutput(line, engine);
+                    });
 
                     if (line.Contains("BUILD FAILED", StringComparison.OrdinalIgnoreCase))
                     {
@@ -1578,15 +1612,18 @@ namespace DreamUnrealManager.Views
         {
             try
             {
-                // 使用全局状态服务更新
-                if (isActive)
+                RunOnUiThread(() =>
                 {
-                    Services.PluginsBuildStatusService.Instance.UpdateStatus(isActive, taskCount, statusText);
-                }
-                else
-                {
-                    Services.PluginsBuildStatusService.Instance.UpdateStatus(false, 0, statusText);
-                }
+                    // 使用全局状态服务更新
+                    if (isActive)
+                    {
+                        Services.PluginsBuildStatusService.Instance.UpdateStatus(isActive, taskCount, statusText);
+                    }
+                    else
+                    {
+                        Services.PluginsBuildStatusService.Instance.UpdateStatus(false, 0, statusText);
+                    }
+                });
             }
             catch (Exception ex)
             {

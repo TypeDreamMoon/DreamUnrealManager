@@ -78,7 +78,10 @@ public partial class App : Application
 
             services.AddSingleton<IDialogService, DialogService>();
 
-            services.AddSingleton<IEngineManagerService, EngineManagerService>();
+            services.AddSingleton<IEngineManagerService>(_ => EngineManagerService.Instance);
+            services.AddSingleton<IEngineResolverService, EngineResolverService>();
+            services.AddSingleton<IBuildService, BuildService>();
+            services.AddSingleton<IProjectRepositoryService, ProjectRepositoryService>();
             services.AddSingleton<IUnrealProjectService, UnrealProjectService>();
 
             services.AddTransient<IProjectDataService, ProjectDataService>();
@@ -132,7 +135,7 @@ public partial class App : Application
         var opt = ThemeService.Load();
         ThemeService.ApplyToWindow(App.MainWindow, opt);
 
-        RepositoryService = new ProjectRepositoryService();
+        RepositoryService = (ProjectRepositoryService)App.GetService<IProjectRepositoryService>();
         await RepositoryService.LoadAsync();
 
         UiDispatcherService.Initialize(MainWindow);

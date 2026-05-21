@@ -45,7 +45,7 @@ public sealed partial class MainPage : Page
     {
         ViewModel = App.GetService<MainViewModel>();
 
-        _repo = new ProjectRepositoryService();
+        _repo = App.GetService<IProjectRepositoryService>();
         _projectFilterService = new ProjectFilterService();
         _build = new BuildService();
         _ide = new IdeLauncherService();

@@ -37,7 +37,6 @@ namespace DreamUnrealManager.Services
             _configFilePath = Path.Combine(appFolder, "engines.json");
 
             Engines = new ObservableCollection<UnrealEngineInfo>();
-            _ = LoadEngines();
         }
 
         public async Task LoadEngines()
@@ -212,15 +211,15 @@ namespace DreamUnrealManager.Services
 
             var relativePaths = new[]
             {
-        @"Program Files\Epic Games",
-        @"Program Files\Unreal Engine",
-        @"Program Files\UnrealEngine",
-        @"Program Files\UE",
-        @"Unreal Engine",
-        @"UE",
-        @"UnrealEngine",
-        @"Unreal",
-    };
+                @"Program Files\Epic Games",
+                @"Program Files\Unreal Engine",
+                @"Program Files\UnrealEngine",
+                @"Program Files\UE",
+                @"Unreal Engine",
+                @"UE",
+                @"UnrealEngine",
+                @"Unreal",
+            };
 
             var otherPaths = drives.SelectMany(drive =>
                 relativePaths.Select(relativePath => Path.Combine(drive.RootDirectory.FullName, relativePath)));
@@ -230,13 +229,7 @@ namespace DreamUnrealManager.Services
                 if (!Directory.Exists(basePath)) continue;
 
                 var engineDirs = Directory.GetDirectories(basePath)
-                    .Where(dir =>
-                    {
-                        var folderName = Path.GetFileName(dir);
-                        return folderName.StartsWith("UE_", StringComparison.OrdinalIgnoreCase) ||
-                               folderName.StartsWith("UnrealEngine", StringComparison.OrdinalIgnoreCase) ||
-                               folderName.Contains("Unreal", StringComparison.OrdinalIgnoreCase);
-                    })
+                    .Where(IsPotentialEngineDirectory)
                     .ToList();
 
                 foreach (var engineDir in engineDirs)
@@ -269,6 +262,20 @@ namespace DreamUnrealManager.Services
         public UnrealEngineInfo? GetEngineByDisplayName(string displayName)
         {
             return Engines.FirstOrDefault(e => e != null && e.DisplayName == displayName);
+        }
+
+        private static bool IsPotentialEngineDirectory(string dir)
+        {
+            var folderName = Path.GetFileName(dir);
+            if (string.IsNullOrWhiteSpace(folderName))
+            {
+                return false;
+            }
+
+            return folderName.StartsWith("UE_", StringComparison.OrdinalIgnoreCase) ||
+                   folderName.StartsWith("UnrealEngine", StringComparison.OrdinalIgnoreCase) ||
+                   folderName.Contains("Unreal", StringComparison.OrdinalIgnoreCase) ||
+                   System.Text.RegularExpressions.Regex.IsMatch(folderName, @"^\d+(\.\d+){1,2}$");
         }
 
         public UnrealEngineInfo? GetEngineByVersion(string version)
