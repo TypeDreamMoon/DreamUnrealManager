@@ -86,6 +86,7 @@ namespace DreamUnrealManager.Views
                 SetStatus("正在加载项目...");
                 LoadEngineFilters();
                 ApplyFilters();
+                DispatcherQueue.TryEnqueue(() => UpdateGridItemSizing());
 
                 if (FavoriteFrontToggle != null)
                 {
@@ -631,6 +632,63 @@ namespace DreamUnrealManager.Views
                     ProjectsListView.ItemTemplate = (DataTemplate)Resources["CompactProjectTemplate"];
                     break;
             }
+
+            // 切换布局后，等面板重建再按新模式均分列宽。
+            DispatcherQueue.TryEnqueue(() => UpdateGridItemSizing());
+        }
+
+        private void ProjectsListView_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            UpdateGridItemSizing();
+        }
+
+        /// <summary>
+        /// 让网格/紧凑模式按可用宽度均分列宽：铺满整行且不留不均匀的右侧空白（列表模式无需处理）。
+        /// 切换布局后面板是异步重建的，这里带少量重试，等 ItemsWrapGrid 就绪再计算，避免切换后不生效。
+        /// </summary>
+        private void UpdateGridItemSizing(int attempt = 0)
+        {
+            var index = LayoutSegmented?.SelectedIndex ?? 0;
+            if (index == 1)
+            {
+                return; // 列表模式（ItemsStackPanel）无需列宽计算
+            }
+
+            if (ProjectsListView?.ItemsPanelRoot is not ItemsWrapGrid wrap)
+            {
+                // 面板尚未重建为 ItemsWrapGrid，稍后重试。
+                if (attempt < 5 && ProjectsListView != null)
+                {
+                    DispatcherQueue.TryEnqueue(() => UpdateGridItemSizing(attempt + 1));
+                }
+
+                return;
+            }
+
+            var available = ProjectsListView.ActualWidth - 24; // 预留竖向滚动条/内边距
+            if (available <= 0)
+            {
+                if (attempt < 5)
+                {
+                    DispatcherQueue.TryEnqueue(() => UpdateGridItemSizing(attempt + 1));
+                }
+
+                return;
+            }
+
+            if (index == 2) // 紧凑：较宽的信息行，多列
+            {
+                var colsCompact = Math.Max(1, (int)(available / 520));
+                wrap.ItemWidth = Math.Floor(available / colsCompact);
+                wrap.ItemHeight = 104;
+                return;
+            }
+
+            // 网格：方形缩略图瓷砖
+            var cols = Math.Max(1, (int)(available / 340));
+            var width = Math.Floor(available / cols);
+            wrap.ItemWidth = width;
+            wrap.ItemHeight = width;
         }
 
         #endregion

@@ -15,9 +15,11 @@
         <helpers:BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
         <!-- ===== ItemsPanel（3种布局） ===== -->
-        <!-- 网格：横向平铺、填满宽度、从顶部开始 -->
+        <!-- 网格：多列瓷砖，列宽在代码中按可用宽度均分以铺满 -->
         <ItemsPanelTemplate x:Key="GridItemsPanel">
             <ItemsWrapGrid Orientation="Horizontal"
+                           ItemWidth="340"
+                           ItemHeight="340"
                            HorizontalAlignment="Stretch"
                            VerticalAlignment="Top" />
         </ItemsPanelTemplate>
@@ -27,9 +29,13 @@
             <ItemsStackPanel Orientation="Vertical" />
         </ItemsPanelTemplate>
 
-        <!-- 紧凑：单列整宽密集行（虚拟化） -->
+        <!-- 紧凑：多列密集信息行，列宽在代码中按可用宽度均分 -->
         <ItemsPanelTemplate x:Key="CompactItemsPanel">
-            <ItemsStackPanel Orientation="Vertical" />
+            <ItemsWrapGrid Orientation="Horizontal"
+                           ItemWidth="520"
+                           ItemHeight="104"
+                           HorizontalAlignment="Stretch"
+                           VerticalAlignment="Top" />
         </ItemsPanelTemplate>
 
         <!-- ===== DataTemplates（3种卡片） ===== -->
@@ -58,9 +64,9 @@
 
         <!-- 网格卡片（图主导） -->
         <DataTemplate x:Key="GridProjectTemplate" x:DataType="models:ProjectInfo">
-            <Border Width="360"
-                    Height="360"
-                    Margin="8"
+            <Border HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Margin="4"
                     CornerRadius="12"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
@@ -452,11 +458,13 @@
                                 Tag="{Binding}"
                                 Click="StartProjectButton_OnClick" />
 
-                        <Button MinWidth="110"
-                                Content="用 IDE 打开"
+                        <Button MinWidth="40"
                                 Tag="{Binding}"
                                 Click="StartWithIdeButton_OnClick"
-                                Visibility="{Binding IsCPlusPlusProject, Converter={StaticResource BoolToVisibility}}" />
+                                ToolTipService.ToolTip="用 IDE 打开"
+                                Visibility="{Binding IsCPlusPlusProject, Converter={StaticResource BoolToVisibility}}">
+                            <FontIcon Glyph="&#xEC7A;" />
+                        </Button>
 
                         <Button Tag="{Binding}"
                                 MinWidth="40"
@@ -702,6 +710,7 @@
                       VerticalContentAlignment="Top"
                       ScrollViewer.HorizontalScrollMode="Disabled"
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                      SizeChanged="ProjectsListView_SizeChanged"
                       ItemsPanel="{StaticResource GridItemsPanel}"
                       ItemTemplate="{StaticResource GridProjectTemplate}" >
             </ListView>
