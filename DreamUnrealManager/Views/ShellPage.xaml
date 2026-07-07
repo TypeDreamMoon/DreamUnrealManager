@@ -19,6 +19,7 @@
               VerticalAlignment="Top">
             <Image Source="/Assets/WindowIcon.ico"
                    HorizontalAlignment="Left"
+                   VerticalAlignment="Center"
                    Width="16"
                    Height="16" />
             <TextBlock x:Name="AppTitleBarText"
@@ -91,7 +92,7 @@
             <NavigationView.FooterMenuItems>
                 <NavigationViewItem x:Uid="Shell_Fab" helpers:NavigationHelper.NavigateTo="DreamUnrealManager.ViewModels.FabViewModel">
                     <NavigationViewItem.Icon>
-                        <ImageIcon Source="../Assets/Fab.png" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" />
+                        <ImageIcon Source="../Assets/Fab.png" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.FooterMenuItems>

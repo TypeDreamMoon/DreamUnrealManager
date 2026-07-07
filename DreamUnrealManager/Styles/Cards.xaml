@@ -1,0 +1,32 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+      统一的卡片与排版样式，供各页面复用以保持视觉一致。
+      文本层级请优先使用 WinUI 内置类型：
+        TitleTextBlockStyle    页面标题（28）
+        SubtitleTextBlockStyle 分区/卡片标题（20）
+        BodyStrongTextBlockStyle / BodyTextBlockStyle 正文
+        CaptionTextBlockStyle  次要说明（12）
+    -->
+
+    <!-- 分组卡片容器：统一圆角/描边/内边距 -->
+    <Style x:Key="CardStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="20" />
+    </Style>
+
+    <!-- 嵌套在卡片内的次级信息块 -->
+    <Style x:Key="SubCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorSecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="15" />
+    </Style>
+
+</ResourceDictionary>

@@ -39,13 +39,12 @@
                     <StackPanel Grid.Column="1" Spacing="6" Margin="8,12,12,12" VerticalAlignment="Center">
                         <TextBlock Text="{x:Bind DisplayName}"
                                    Style="{ThemeResource BodyStrongTextBlockStyle}"
-                                   FontSize="18"
                                    TextTrimming="CharacterEllipsis" />
                         <TextBlock Text="{x:Bind EngineDisplayName}"
                                    Style="{ThemeResource CaptionTextBlockStyle}" />
                     </StackPanel>
 
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="15" Spacing="15">
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="12" Spacing="8">
                         <!-- 快速启动按钮 -->
                         <Button Tag="{x:Bind}"
                                 Click="QuickLaunchFavoriteProject_Click">
@@ -82,24 +81,29 @@
             <Image
                 Height="256"
                 HorizontalAlignment="Right"
-                Margin="25"
+                Margin="24"
                 Source="../Assets/DreamUnrealManager.png"
                 VerticalAlignment="Top"
                 Width="256" />
 
 
             <StackPanel Orientation="Vertical"
-                        Margin="75,50,0,0">
+                        Spacing="6"
+                        Margin="48,48,0,0">
 
                 <TextBlock
-                    FontSize="50"
-                    FontWeight="Bold"
+                    Style="{StaticResource TitleLargeTextBlockStyle}"
                     Text="Dream Unreal Manager"
-                    Margin="0, 0, 0, 15"
+                    Margin="0,0,0,8"
                     Foreground="White" />
 
-                <TextBlock x:Name="CurrentVersionTextBlock" Foreground="Gray" />
-                <TextBlock x:Name="GithubVersionTextBlock" Foreground="Gray" Text="正在检查..." />
+                <TextBlock x:Name="CurrentVersionTextBlock"
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="#E0E0E0" />
+                <TextBlock x:Name="GithubVersionTextBlock"
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="#E0E0E0"
+                           Text="正在检查..." />
                 <HyperlinkButton x:Name="NewVersionHyperLinkButton"
                                  NavigateUri="https://github.com/TypeDreamMoon/DreamUnrealManager"
                                  Visibility="Collapsed">
@@ -110,12 +114,12 @@
 
             <Border
                 Background="{ThemeResource SystemControlAcrylicElementBrush}"
-                CornerRadius="10"
+                CornerRadius="8"
                 HorizontalAlignment="Right"
-                Margin="25"
-                Padding="10"
+                Margin="24"
+                Padding="12"
                 VerticalAlignment="Bottom">
-                <StackPanel Spacing="10">
+                <StackPanel Spacing="8">
                     <Button
                         HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Stretch"
@@ -124,9 +128,9 @@
                         <Grid ColumnDefinitions="Auto, *" ColumnSpacing="5">
                             <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xEDDA;" />
                             <TextBlock
-                                FontSize="20"
+                                Style="{StaticResource BodyStrongTextBlockStyle}"
                                 Grid.Column="1"
-                                HorizontalAlignment="Right"
+                                TextAlignment="Right"
                                 Text="打开项目"
                                 VerticalAlignment="Center" />
                         </Grid>
@@ -140,7 +144,7 @@
                         <Grid ColumnDefinitions="Auto, *" ColumnSpacing="5">
                             <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xEDDA;" />
                             <TextBlock
-                                FontSize="20"
+                                Style="{StaticResource BodyStrongTextBlockStyle}"
                                 Grid.Column="1"
                                 Text="开始构建"
                                 TextAlignment="Right"
@@ -156,7 +160,7 @@
                 Width="500"
                 MinHeight="50"
                 MaxHeight="600"
-                Margin="25"
+                Margin="24"
                 CornerRadius="8">
 
             <Border.Background>
@@ -167,7 +171,7 @@
 
             <Grid HorizontalAlignment="Stretch"
                   VerticalAlignment="Stretch"
-                  Padding="15">
+                  Padding="16">
 
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -176,15 +180,15 @@
 
                 <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10">
                     <TextBlock Text="我的收藏"
-                               FontSize="22"
-                               FontWeight="SemiBold"
-                               HorizontalAlignment="Center" />
+                               Style="{StaticResource SubtitleTextBlockStyle}"
+                               VerticalAlignment="Center" />
                     <FontIcon FontFamily="Segoe Fluent Icons"
                               Glyph="&#xE735;"
-                              HorizontalAlignment="Center" />
+                              VerticalAlignment="Center" />
 
                     <TextBlock VerticalAlignment="Center"
-                               HorizontalAlignment="Center"
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                Visibility="{x:Bind FavoritesListView.ItemsSource, Mode=OneWay, Converter={StaticResource EmptyListToCollapsedConverter}}"
                                Text="暂无收藏。要不去收藏一个?" />
 
@@ -193,6 +197,7 @@
                 <ListView Grid.Row="1" x:Name="FavoritesListView"
                           ItemsSource="{x:Bind FavoritesProjects}"
                           ItemTemplate="{StaticResource FavoriteProjectTemplate}"
+                          ItemContainerStyle="{StaticResource ProjectItemContainerStyle}"
                           SelectionMode="None"
                           Visibility="{x:Bind FavoritesListView.ItemsSource, Mode=OneWay, Converter={StaticResource ListToVisibilityConverter}}"
                           IsItemClickEnabled="False" />
@@ -204,7 +209,7 @@
                          VerticalAlignment="Bottom"
                          Padding="15"
                          Opacity="0.5">
-            <TextBlock Text="图片出处: 战双帕弥什官方 角色: 赛琳娜·希声" FontSize="15" />
+            <TextBlock Text="图片出处: 战双帕弥什官方 角色: 赛琳娜·希声" Style="{StaticResource CaptionTextBlockStyle}" />
         </HyperlinkButton>
     </Grid>
 </Page>

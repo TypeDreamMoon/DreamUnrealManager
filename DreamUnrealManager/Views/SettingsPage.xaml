@@ -1,4 +1,4 @@
-﻿<Page
+<Page
     x:Class="DreamUnrealManager.Views.SettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -10,72 +10,81 @@
 
     <Grid x:Name="ContentArea">
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="20" Spacing="20">
+            <StackPanel Margin="24" Spacing="16">
 
                 <!-- 页面标题 -->
                 <TextBlock Text="设置"
-                           FontSize="28"
-                           FontWeight="SemiBold"
-                           Margin="0,0,0,10" />
+                           Style="{StaticResource TitleTextBlockStyle}"
+                           Margin="0,0,0,4" />
 
-                <!-- 其他设置卡片 -->
+                <!-- ===================== IDE ===================== -->
+                <TextBlock Text="IDE"
+                           Style="{StaticResource SubtitleTextBlockStyle}" />
 
-                <controls:SettingsCard x:Name="ConsoleFontSettingCard"
-                                       Description="控制台字体"
-                                       Header="控制台字体"
-                                       CornerRadius="8">
+                <StackPanel Spacing="4">
 
-                    <ComboBox x:Name="FontCombo"
-                              PlaceholderText="选择字体…"
-                              ItemsSource="{x:Bind AvailableFonts}"
-                              SelectionChanged="FontCombo_SelectionChanged"
-                              SelectedValuePath="Name"
-                              MaxDropDownHeight="420">
+                    <controls:SettingsCard x:Name="ConsoleFontSettingCard"
+                                           Description="控制台字体"
+                                           Header="控制台字体">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE8D2;" />
+                        </controls:SettingsCard.HeaderIcon>
 
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate x:DataType="views:FontOption">
-                                <Grid ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="180" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="FontCombo"
+                                  MinWidth="240"
+                                  PlaceholderText="选择字体…"
+                                  ItemsSource="{x:Bind AvailableFonts}"
+                                  SelectionChanged="FontCombo_SelectionChanged"
+                                  SelectedValuePath="Name"
+                                  MaxDropDownHeight="420">
 
-                                    <TextBlock Grid.Column="0"
-                                               Text="{x:Bind Name}"
-                                               VerticalAlignment="Center" />
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="views:FontOption">
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
 
-                                    <TextBlock Grid.Column="1"
-                                               Text="Aa 0123 中國汉字 かなカナ — The quick brown fox"
-                                               FontFamily="{x:Bind FontFamily}"
-                                               Opacity="0.9"
-                                               TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{x:Bind Name}"
+                                                   VerticalAlignment="Center" />
 
-                </controls:SettingsCard>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="Aa 0123 中國汉字 かなカナ — The quick brown fox"
+                                                   FontFamily="{x:Bind FontFamily}"
+                                                   Opacity="0.9"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
 
-                <controls:SettingsCard x:Name="DefaultIdeSettingCard"
-                                       Description="默认启动IDE"
-                                       Header="默认启动IDE"
-                                       CornerRadius="8">
-                    <ComboBox x:Name="DefaultIdeComboBox"
-                              PlaceholderText="请选择默认IDE"
-                              MinWidth="400"
-                              SelectionChanged="DefaultIdeComboBox_OnSelectionChanged">
-                        <ComboBoxItem Content="Visual Studio" Tag="VS"></ComboBoxItem>
-                        <ComboBoxItem Content="Rider" Tag="RD"></ComboBoxItem>
-                        <ComboBoxItem Content="Visual Studio Code" Tag="VSCode"></ComboBoxItem>
-                    </ComboBox>
-                </controls:SettingsCard>
+                    </controls:SettingsCard>
 
-                <controls:SettingsCard x:Name="IdePathSettingCard"
-                                       Description="IDE路径设置"
-                                       Header="IDE路径"
-                                       CornerRadius="8">
-                    <StackPanel Orientation="Vertical" Spacing="10">
-                        <Grid>
+                    <controls:SettingsCard x:Name="DefaultIdeSettingCard"
+                                           Description="默认启动IDE"
+                                           Header="默认启动IDE">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xEB51;" />
+                        </controls:SettingsCard.HeaderIcon>
+                        <ComboBox x:Name="DefaultIdeComboBox"
+                                  PlaceholderText="请选择默认IDE"
+                                  MinWidth="240"
+                                  SelectionChanged="DefaultIdeComboBox_OnSelectionChanged">
+                            <ComboBoxItem Content="Visual Studio" Tag="VS"></ComboBoxItem>
+                            <ComboBoxItem Content="Rider" Tag="RD"></ComboBoxItem>
+                            <ComboBoxItem Content="Visual Studio Code" Tag="VSCode"></ComboBoxItem>
+                        </ComboBox>
+                    </controls:SettingsCard>
+
+                    <controls:SettingsCard x:Name="IdePathSettingCard"
+                                           Description="IDE路径设置"
+                                           Header="IDE路径">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE8B7;" />
+                        </controls:SettingsCard.HeaderIcon>
+                        <Grid ColumnSpacing="8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
@@ -83,84 +92,127 @@
 
                             <TextBox x:Name="IdePathTextBox"
                                      Grid.Column="0"
+                                     HorizontalAlignment="Stretch"
                                      PlaceholderText="例如: C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\devenv.exe"
                                      TextChanged="IdePathTextBox_TextChanged" />
 
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,0">
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                                 <Button Content="浏览..."
                                         Click="BrowseIdePath_Click" />
                                 <Button Content="自动检测"
-                                        Margin="10,0,0,0"
+                                        Style="{StaticResource AccentButtonStyle}"
                                         Click="AutoDetectIdeButton_Click" />
                             </StackPanel>
                         </Grid>
-                    </StackPanel>
-                </controls:SettingsCard>
+                    </controls:SettingsCard>
 
-                <controls:SettingsCard x:Name="RiderLauncherMethodSettingCard"
-                                       Description="Rider的启动方式"
-                                       Header="Rider项目启动方式">
-                    <ComboBox x:Name="RiderLauncherMethodComboBox"
-                              Width="200"
-                              SelectedIndex="0"
-                              SelectionChanged="RiderLauncherMethodComboBox_OnSelectionChanged">
-                        <ComboBoxItem Content="Solution" Tag="SOLUTION" />
-                        <ComboBoxItem Content="Uproject" Tag="UPROJECT" />
-                    </ComboBox>
-                </controls:SettingsCard>
+                    <controls:SettingsCard x:Name="RiderLauncherMethodSettingCard"
+                                           Description="Rider的启动方式"
+                                           Header="Rider项目启动方式">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE756;" />
+                        </controls:SettingsCard.HeaderIcon>
+                        <ComboBox x:Name="RiderLauncherMethodComboBox"
+                                  MinWidth="240"
+                                  SelectedIndex="0"
+                                  SelectionChanged="RiderLauncherMethodComboBox_OnSelectionChanged">
+                            <ComboBoxItem Content="Solution" Tag="SOLUTION" />
+                            <ComboBoxItem Content="Uproject" Tag="UPROJECT" />
+                        </ComboBox>
+                    </controls:SettingsCard>
 
-                <controls:SettingsCard x:Name="OpenConfigFolderSettingCard"
-                                       Description="打开配置文件所在目录"
-                                       Header="配置文件目录"
-                                       IsClickEnabled="True"
-                                       CornerRadius="8"
-                                       Click="OpenConfigFolderButton_Click">
-                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}">
-                        查看
-                    </TextBlock>
-                </controls:SettingsCard>
+                </StackPanel>
 
-                <controls:SettingsCard x:Name="CloseBehaviorSettingCard"
-                                       Description="点击窗口关闭按钮时最小化到后台，不直接退出"
-                                       Header="关闭行为"
-                                       CornerRadius="8">
-                    <ToggleSwitch x:Name="CloseToBackgroundToggle"
-                                  Toggled="CloseToBackgroundToggle_Toggled" />
-                </controls:SettingsCard>
+                <!-- ===================== 常规 ===================== -->
+                <TextBlock Text="常规"
+                           Style="{StaticResource SubtitleTextBlockStyle}" />
 
-                <controls:SettingsCard Description="主题设置" Header="主题">
-                    <controls:SettingsCard.HeaderIcon>
-                        <FontIcon Glyph="&#xE790;" />
-                    </controls:SettingsCard.HeaderIcon>
-                    <ComboBox
-                        x:Name="ThemeModeComboBox"
-                        AutomationProperties.AutomationId="ThemeModeComboBox"
-                        SelectionChanged="ThemeMode_SelectionChanged">
-                        <ComboBoxItem Content="亮色" Tag="Light" />
-                        <ComboBoxItem Content="暗色" Tag="Dark" />
-                        <ComboBoxItem Content="系统设置" Tag="Default" />
-                    </ComboBox>
-                </controls:SettingsCard>
+                <StackPanel Spacing="4">
 
-                <controls:SettingsCard Description="亚克力透明度" Header="亚克力透明度">
-                    <Slider x:Name="AcrylicTintOpacitySettingSlider"
-                            TickFrequency="10"
-                            TickPlacement="Inline"
-                            SnapsTo="StepValues"
-                            ValueChanged="AcrylicTintOpacitySettingSlider_OnValueChanged" />
-                </controls:SettingsCard>
+                    <controls:SettingsCard x:Name="OpenConfigFolderSettingCard"
+                                           Description="打开配置文件所在目录"
+                                           Header="配置文件目录"
+                                           IsClickEnabled="True"
+                                           Click="OpenConfigFolderButton_Click">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE8B7;" />
+                        </controls:SettingsCard.HeaderIcon>
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <TextBlock Text="查看"
+                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       VerticalAlignment="Center" />
+                            <FontIcon Glyph="&#xE8A7;"
+                                      FontSize="14"
+                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </controls:SettingsCard>
 
-                <controls:SettingsCard Description="亚克力亮度不透明度" Header="亚克力亮度不透明度">
-                    <Slider x:Name="AcrylicTintLuminosityOpacitySettingSlider"
-                            TickFrequency="10"
-                            TickPlacement="Inline"
-                            SnapsTo="StepValues"
-                            ValueChanged="AcrylicTintLuminosityOpacitySettingSlider_OnValueChanged" />
-                </controls:SettingsCard>
+                    <controls:SettingsCard x:Name="CloseBehaviorSettingCard"
+                                           Description="点击窗口关闭按钮时最小化到后台，不直接退出"
+                                           Header="关闭行为">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE8BB;" />
+                        </controls:SettingsCard.HeaderIcon>
+                        <ToggleSwitch x:Name="CloseToBackgroundToggle"
+                                      Toggled="CloseToBackgroundToggle_Toggled" />
+                    </controls:SettingsCard>
 
-                <controls:SettingsCard Description="关掉背景图片" Header="二刺猿蒸鹅心" ContentAlignment="Right">
-                    <ToggleSwitch x:Name="CloseBackgroundImageButton" IsOn="{x:Bind ViewModel.ShowBackground, Mode=TwoWay}" />
-                </controls:SettingsCard>
+                </StackPanel>
+
+                <!-- ===================== 外观 ===================== -->
+                <TextBlock Text="外观"
+                           Style="{StaticResource SubtitleTextBlockStyle}" />
+
+                <StackPanel Spacing="4">
+
+                    <controls:SettingsCard Description="主题设置" Header="主题">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE790;" />
+                        </controls:SettingsCard.HeaderIcon>
+                        <ComboBox
+                            x:Name="ThemeModeComboBox"
+                            MinWidth="240"
+                            AutomationProperties.AutomationId="ThemeModeComboBox"
+                            SelectionChanged="ThemeMode_SelectionChanged">
+                            <ComboBoxItem Content="亮色" Tag="Light" />
+                            <ComboBoxItem Content="暗色" Tag="Dark" />
+                            <ComboBoxItem Content="系统设置" Tag="Default" />
+                        </ComboBox>
+                    </controls:SettingsCard>
+
+                    <controls:SettingsCard Description="亚克力透明度" Header="亚克力透明度">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE7B3;" />
+                        </controls:SettingsCard.HeaderIcon>
+                        <Slider x:Name="AcrylicTintOpacitySettingSlider"
+                                MinWidth="240"
+                                TickFrequency="10"
+                                TickPlacement="Inline"
+                                SnapsTo="StepValues"
+                                ValueChanged="AcrylicTintOpacitySettingSlider_OnValueChanged" />
+                    </controls:SettingsCard>
+
+                    <controls:SettingsCard Description="亚克力亮度不透明度" Header="亚克力亮度不透明度">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE706;" />
+                        </controls:SettingsCard.HeaderIcon>
+                        <Slider x:Name="AcrylicTintLuminosityOpacitySettingSlider"
+                                MinWidth="240"
+                                TickFrequency="10"
+                                TickPlacement="Inline"
+                                SnapsTo="StepValues"
+                                ValueChanged="AcrylicTintLuminosityOpacitySettingSlider_OnValueChanged" />
+                    </controls:SettingsCard>
+
+                    <controls:SettingsCard Description="关掉背景图片" Header="显示背景图片" ContentAlignment="Right">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xEB9F;" />
+                        </controls:SettingsCard.HeaderIcon>
+                        <ToggleSwitch x:Name="CloseBackgroundImageButton" IsOn="{x:Bind ViewModel.ShowBackground, Mode=TwoWay}" />
+                    </controls:SettingsCard>
+
+                </StackPanel>
 
             </StackPanel>
         </ScrollViewer>

@@ -26,43 +26,48 @@
 
     <Grid x:Name="ContentArea">
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="20" Spacing="20">
+            <StackPanel Margin="24" Spacing="16">
+
+                <!-- Page header -->
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="Unreal Horde 管理"
-                               FontSize="28"
-                               FontWeight="SemiBold"
+                               Style="{StaticResource TitleTextBlockStyle}"
                                VerticalAlignment="Center" />
                     <Button Grid.Column="1"
-                            Content="刷新全部"
-                            Click="RefreshAll_Click" />
+                            Style="{StaticResource AccentButtonStyle}"
+                            Click="RefreshAll_Click"
+                            VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE72C;" FontSize="16" />
+                            <TextBlock Text="刷新全部" />
+                        </StackPanel>
+                    </Button>
                 </Grid>
 
-                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="16">
-                    <StackPanel Spacing="10">
+                <!-- Card 1: 本机网络信息 -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel Spacing="12">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="本机网络信息"
-                                       FontSize="18"
-                                       FontWeight="SemiBold"
+                                       Style="{StaticResource SubtitleTextBlockStyle}"
                                        VerticalAlignment="Center" />
                             <Button Grid.Column="1"
                                     Content="刷新IP"
-                                    Click="RefreshIp_Click" />
+                                    Click="RefreshIp_Click"
+                                    VerticalAlignment="Center" />
                         </Grid>
 
                         <TextBlock x:Name="HostNameTextBlock"
                                    Text="主机名: -"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         <TextBlock x:Name="LocalIpTextBlock"
                                    Text="本机IP: -"
@@ -70,11 +75,8 @@
                     </StackPanel>
                 </Border>
 
-                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="16">
+                <!-- Card 2: Windows 服务控制 -->
+                <Border Style="{StaticResource CardStyle}">
                     <StackPanel Spacing="16">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -82,15 +84,16 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="Windows 服务控制"
-                                       FontSize="18"
-                                       FontWeight="SemiBold"
+                                       Style="{StaticResource SubtitleTextBlockStyle}"
                                        VerticalAlignment="Center" />
                             <Button Grid.Column="1"
                                     Content="刷新服务状态"
-                                    Click="RefreshServices_Click" />
+                                    Click="RefreshServices_Click"
+                                    VerticalAlignment="Center" />
                         </Grid>
 
                         <TextBlock Text="服务名称: Horde Agent / Horde Server。支持启动、暂停与继续。"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    TextWrapping="Wrap" />
 
@@ -101,46 +104,48 @@
                             </Grid.ColumnDefinitions>
 
                             <Border Grid.Column="0"
-                                    Background="{ThemeResource ControlFillColorSecondaryBrush}"
-                                    CornerRadius="6"
-                                    Padding="12">
+                                    Style="{StaticResource SubCardStyle}">
                                 <StackPanel Spacing="8">
                                     <TextBlock x:Name="AgentServiceNameText"
                                                Text="Horde Agent"
-                                               FontSize="16"
-                                               FontWeight="SemiBold" />
+                                               Style="{StaticResource BodyStrongTextBlockStyle}" />
                                     <TextBlock x:Name="AgentServiceStatusText"
                                                Text="状态: -"
+                                               Style="{StaticResource CaptionTextBlockStyle}"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <Button x:Name="StartAgentButton"
                                                 Content="启动"
+                                                Style="{StaticResource AccentButtonStyle}"
+                                                MinWidth="80"
                                                 Click="StartAgent_Click" />
                                         <Button x:Name="PauseOrContinueAgentButton"
                                                 Content="暂停"
+                                                MinWidth="80"
                                                 Click="PauseOrContinueAgent_Click" />
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
 
                             <Border Grid.Column="1"
-                                    Background="{ThemeResource ControlFillColorSecondaryBrush}"
-                                    CornerRadius="6"
-                                    Padding="12">
+                                    Style="{StaticResource SubCardStyle}">
                                 <StackPanel Spacing="8">
                                     <TextBlock x:Name="ServerServiceNameText"
                                                Text="Horde Server"
-                                               FontSize="16"
-                                               FontWeight="SemiBold" />
+                                               Style="{StaticResource BodyStrongTextBlockStyle}" />
                                     <TextBlock x:Name="ServerServiceStatusText"
                                                Text="状态: -"
+                                               Style="{StaticResource CaptionTextBlockStyle}"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <Button x:Name="StartServerButton"
                                                 Content="启动"
+                                                Style="{StaticResource AccentButtonStyle}"
+                                                MinWidth="80"
                                                 Click="StartServer_Click" />
                                         <Button x:Name="PauseOrContinueServerButton"
                                                 Content="暂停"
+                                                MinWidth="80"
                                                 Click="PauseOrContinueServer_Click" />
                                     </StackPanel>
                                 </StackPanel>
@@ -149,88 +154,85 @@
 
                         <TextBlock x:Name="ServiceActionTextBlock"
                                    Text="服务操作日志: 就绪"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
 
-                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="16">
+                <!-- Card 3: 服务事件日志 -->
+                <Border Style="{StaticResource CardStyle}">
                     <StackPanel Spacing="12">
-                        <Grid>
+                        <Grid ColumnSpacing="12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="服务事件日志"
-                                       FontSize="18"
-                                       FontWeight="SemiBold"
+                                       Style="{StaticResource SubtitleTextBlockStyle}"
                                        VerticalAlignment="Center" />
                             <ToggleSwitch Grid.Column="1"
                                           x:Name="ServiceLogAutoRefreshSwitch"
                                           Header="自动刷新"
                                           IsOn="True"
-                                          Margin="0,0,12,0"
+                                          VerticalAlignment="Center"
                                           Toggled="ServiceLogAutoRefreshSwitch_Toggled" />
                             <Button Grid.Column="2"
                                     Content="刷新日志"
-                                    Click="RefreshServiceLogs_Click" />
+                                    Click="RefreshServiceLogs_Click"
+                                    VerticalAlignment="Center" />
                         </Grid>
 
                         <TextBlock x:Name="ServiceLogStatusTextBlock"
                                    Text="事件日志: 未刷新"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    TextWrapping="Wrap" />
 
-                        <ListView x:Name="ServiceLogListView"
-                                  SelectionMode="None"
-                                  IsItemClickEnabled="False"
-                                  MaxHeight="300">
-                            <ListView.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding}"
-                                               TextWrapping="Wrap"
-                                               FontFamily="Consolas"
-                                               Margin="0,2,0,2" />
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
+                        <Border Style="{StaticResource SubCardStyle}">
+                            <ListView x:Name="ServiceLogListView"
+                                      SelectionMode="None"
+                                      IsItemClickEnabled="False"
+                                      MaxHeight="300">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}"
+                                                   TextWrapping="Wrap"
+                                                   FontFamily="Consolas"
+                                                   Margin="0,2,0,2" />
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Border>
                     </StackPanel>
                 </Border>
 
-                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="16">
-                    <StackPanel Spacing="14">
+                <!-- Card 4: Horde 注册表配置 -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel Spacing="12">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="Horde 注册表配置"
-                                       FontSize="18"
-                                       FontWeight="SemiBold"
+                                       Style="{StaticResource SubtitleTextBlockStyle}"
                                        VerticalAlignment="Center" />
                             <Button Grid.Column="1"
                                     Content="刷新注册表"
-                                    Click="RefreshRegistry_Click" />
+                                    Click="RefreshRegistry_Click"
+                                    VerticalAlignment="Center" />
                         </Grid>
 
-                        <Border Background="{ThemeResource ControlFillColorSecondaryBrush}"
-                                CornerRadius="8"
-                                Padding="12">
+                        <Border Style="{StaticResource SubCardStyle}">
                             <StackPanel Orientation="Horizontal"
                                         Spacing="8">
                                 <FontIcon Glyph="&#xE946;"
-                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                          VerticalAlignment="Center" />
                                 <TextBlock Text="可编辑项通过弹框修改并二次确认；不可编辑项不显示修改按钮。写入 HKLM 需要管理员权限。"
-                                           FontFamily="Consolas"
+                                           Style="{StaticResource CaptionTextBlockStyle}"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                            TextWrapping="Wrap"
                                            VerticalAlignment="Center" />
@@ -282,8 +284,7 @@
                                                                FontFamily="Consolas"
                                                                TextWrapping="Wrap"
                                                                MinHeight="22"
-                                                               VerticalAlignment="Center"
-                                                               Margin="0,0,0,2" />
+                                                               VerticalAlignment="Center" />
                                                 </StackPanel>
                                             </Border>
 
@@ -303,6 +304,7 @@
 
                                                 <Button Grid.Column="1"
                                                         Content="修改值"
+                                                        HorizontalAlignment="Right"
                                                         Tag="{x:Bind}"
                                                         Click="EditRegistryValue_Click"
                                                         Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
