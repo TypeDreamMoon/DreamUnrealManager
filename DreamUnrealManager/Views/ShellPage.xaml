@@ -71,6 +71,14 @@
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
 
+                <NavigationViewItem x:Name="FabComplianceNavItem"
+                                    x:Uid="Shell_FabCompliance"
+                                    helpers:NavigationHelper.NavigateTo="DreamUnrealManager.ViewModels.FabComplianceViewModel">
+                    <NavigationViewItem.Icon>
+                        <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE9D5;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+
                 <NavigationViewItem x:Name="UnrealHordeNavItem"
                                     x:Uid="Shell_UnrealHorde"
                                     helpers:NavigationHelper.NavigateTo="DreamUnrealManager.ViewModels.UnrealHordeViewModel">

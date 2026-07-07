@@ -94,6 +94,8 @@ public partial class App : Application
             services.AddTransient<SettingsPage>();
             services.AddTransient<PluginsBuildViewModel>();
             services.AddTransient<PluginsBuildPage>();
+            services.AddTransient<FabComplianceViewModel>();
+            services.AddTransient<FabCompliancePage>();
             services.AddTransient<LauncherViewModel>();
             services.AddTransient<LauncherPage>();
             services.AddTransient<MainViewModel>();

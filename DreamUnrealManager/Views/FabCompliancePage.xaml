@@ -1,0 +1,154 @@
+<Page
+    x:Class="DreamUnrealManager.Views.FabCompliancePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid x:Name="ContentArea">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="20" Spacing="20">
+
+                <!-- 页面标题 -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Fab 上架合规检查"
+                               FontSize="28"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="依据 Epic Fab《Technical Review Checklist》对插件进行自动 + 人工合规检查，帮助你在上传前发现常见退回问题。"
+                               FontSize="13"
+                               TextWrapping="Wrap"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+
+                <!-- 选择插件 -->
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="8"
+                        Padding="20">
+                    <StackPanel Spacing="15">
+                        <TextBlock Text="选择插件"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="插件 .uplugin 文件:" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="UPluginPathTextBox"
+                                         PlaceholderText="选择插件 .uplugin 文件" />
+                                <Button Grid.Column="1"
+                                        Content="浏览..."
+                                        Margin="10,0,0,0"
+                                        Click="BrowseUPlugin_Click" />
+                            </Grid>
+                        </StackPanel>
+
+                        <TextBlock x:Name="PluginInfoText"
+                                   FontSize="13"
+                                   TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Visibility="Collapsed" />
+
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Button x:Name="AnalyzeButton"
+                                    Content="开始检查"
+                                    Style="{ThemeResource AccentButtonStyle}"
+                                    MinWidth="120"
+                                    Click="Analyze_Click" />
+                            <Button x:Name="ExportButton"
+                                    Content="导出报告"
+                                    MinWidth="120"
+                                    IsEnabled="False"
+                                    Click="Export_Click" />
+                            <ProgressRing x:Name="AnalyzingRing"
+                                          Width="24"
+                                          Height="24"
+                                          IsActive="False"
+                                          VerticalAlignment="Center" />
+                            <TextBlock x:Name="AnalyzingText"
+                                       Text=""
+                                       VerticalAlignment="Center"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 检查结果概要 -->
+                <Border x:Name="SummaryCard"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="8"
+                        Padding="20"
+                        Visibility="Collapsed">
+                    <StackPanel Spacing="15">
+                        <TextBlock Text="检查结果概要"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+
+                        <Border x:Name="VerdictBorder"
+                                CornerRadius="6"
+                                Padding="15,12"
+                                Background="{ThemeResource ControlFillColorInputActiveBrush}">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <FontIcon x:Name="VerdictIcon"
+                                          FontFamily="Segoe Fluent Icons"
+                                          Glyph="&#xE9D5;"
+                                          FontSize="22"
+                                          VerticalAlignment="Center" />
+                                <TextBlock x:Name="VerdictText"
+                                           Text=""
+                                           FontSize="17"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Border Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}"
+                                    CornerRadius="12" Padding="10,4">
+                                <TextBlock x:Name="PassCountText" Text="通过 0"
+                                           Foreground="{ThemeResource SystemFillColorSuccessBrush}"
+                                           FontWeight="SemiBold" />
+                            </Border>
+                            <Border Background="{ThemeResource SystemFillColorCriticalBackgroundBrush}"
+                                    CornerRadius="12" Padding="10,4">
+                                <TextBlock x:Name="FailCountText" Text="失败 0"
+                                           Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                           FontWeight="SemiBold" />
+                            </Border>
+                            <Border Background="{ThemeResource SystemFillColorCautionBackgroundBrush}"
+                                    CornerRadius="12" Padding="10,4">
+                                <TextBlock x:Name="WarningCountText" Text="警告 0"
+                                           Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                           FontWeight="SemiBold" />
+                            </Border>
+                            <Border Background="{ThemeResource SystemFillColorAttentionBackgroundBrush}"
+                                    CornerRadius="12" Padding="10,4">
+                                <TextBlock x:Name="RecommendedCountText" Text="推荐 0"
+                                           Foreground="{ThemeResource SystemFillColorAttentionBrush}"
+                                           FontWeight="SemiBold" />
+                            </Border>
+                            <Border Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                                    CornerRadius="12" Padding="10,4">
+                                <TextBlock x:Name="ManualCountText" Text="待确认 0"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           FontWeight="SemiBold" />
+                            </Border>
+                        </StackPanel>
+
+                        <TextBlock x:Name="ManualProgressText"
+                                   FontSize="13"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- 结果分组（动态注入） -->
+                <StackPanel x:Name="ResultsPanel" Spacing="20" />
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

@@ -17,6 +17,7 @@ public class PageService : IPageService
         Configure<UnrealLauncherViewModel, UnrealLauncherPage>();
         Configure<UnrealHordeViewModel, UnrealHordePage>();
         Configure<PluginsBuildViewModel, PluginsBuildPage>();
+        Configure<FabComplianceViewModel, FabCompliancePage>();
         Configure<SettingsViewModel, SettingsPage>();
         Configure<FabViewModel, FabPage>();
     }
