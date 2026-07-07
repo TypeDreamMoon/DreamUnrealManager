@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using DreamUnrealManager.Helpers;
 using DreamUnrealManager.Models;
 
 namespace DreamUnrealManager.Services
@@ -121,6 +124,7 @@ namespace DreamUnrealManager.Services
                 report.PluginName = GetStringProp(rootEl, "FriendlyName")
                                     ?? Path.GetFileNameWithoutExtension(upluginPath);
                 report.PluginVersion = GetStringProp(rootEl, "VersionName") ?? string.Empty;
+                report.Publisher = GetStringProp(rootEl, "CreatedBy") ?? string.Empty;
                 report.EngineVersion = GetStringProp(rootEl, "EngineVersion") ?? string.Empty;
 
                 // 预先枚举一次可分发文件，供多个检查复用。
@@ -391,6 +395,7 @@ namespace DreamUnrealManager.Services
                               + (unreadable.Count > 0 ? $" 另有 {unreadable.Count} 个文件无法读取以验证。" : string.Empty);
                 item.Offenders = missing.Concat(unreadable.Select(u => $"{u}（无法读取）")).ToList();
                 item.Recommendation = "在每个源文件/头文件顶部添加注释，例如: // Copyright <发布者> <年份>. All Rights Reserved.";
+                item.AutoFix = AutoFixKind.AddCopyrightNotice;
             }
             else
             {
@@ -425,8 +430,8 @@ namespace DreamUnrealManager.Services
                 item.Status = ComplianceStatus.Fail;
                 item.Detail = $"发现 {found.Count} 个需要移除的生成目录。";
                 item.Offenders = found;
-                item.Recommendation = "打包分发前请删除这些目录。可点击右侧“一键清理”。";
-                item.SupportsCleanup = true;
+                item.Recommendation = "打包分发前请删除这些目录。可点击右侧“自动修复”。";
+                item.AutoFix = AutoFixKind.CleanGeneratedFolders;
             }
 
             return item;
@@ -726,6 +731,7 @@ namespace DreamUnrealManager.Services
                 item.Detail = $"发现 {emptyDirs.Count} 个空文件夹。";
                 item.Offenders = emptyDirs.OrderBy(x => x).ToList();
                 item.Recommendation = "移除空文件夹与未使用的资产（无法自动判断未使用资产，请人工复核）。";
+                item.AutoFix = AutoFixKind.RemoveEmptyFolders;
             }
 
             return item;
@@ -820,6 +826,7 @@ namespace DreamUnrealManager.Services
                 item.Detail = "ModelingToolsEditorMode 已启用。若商品描述未说明，必须将其禁用。";
                 item.Offenders = enabled;
                 item.Recommendation = "禁用 ModelingToolsEditorMode，或在商品描述中明确说明其用途。";
+                item.AutoFix = AutoFixKind.DisableModelingTools;
             }
             else if (enabled.Count > 0)
             {
@@ -838,7 +845,7 @@ namespace DreamUnrealManager.Services
 
         #endregion
 
-        #region 一键清理
+        #region 自动修复
 
         /// <summary>
         /// 删除插件目录下的 Binaries/Build/Intermediate/Saved/DerivedDataCache 目录。返回被删除的目录相对路径。
@@ -868,6 +875,223 @@ namespace DreamUnrealManager.Services
             }
 
             return removed;
+        }
+
+        /// <summary>
+        /// 删除插件目录下的空文件夹（自底向上，连带删除因子目录被清空而变空的父目录）。返回被删除目录的相对路径。
+        /// </summary>
+        public List<string> RemoveEmptyFolders(string pluginFolder)
+        {
+            var removed = new List<string>();
+            if (string.IsNullOrWhiteSpace(pluginFolder) || !Directory.Exists(pluginFolder))
+            {
+                return removed;
+            }
+
+            // 路径长的先处理（近似自底向上），使父目录在子目录删除后也能被判空并删除。
+            var dirs = EnumerateDistributableDirectories(pluginFolder)
+                .OrderByDescending(d => d.Length)
+                .ToList();
+
+            foreach (var dir in dirs)
+            {
+                try
+                {
+                    if (!Directory.EnumerateFileSystemEntries(dir).Any())
+                    {
+                        var rel = Rel(pluginFolder, dir);
+                        Directory.Delete(dir);
+                        removed.Add(rel);
+                    }
+                }
+                catch
+                {
+                    // 忽略单个删除失败
+                }
+            }
+
+            return removed;
+        }
+
+        /// <summary>
+        /// 为缺少版权声明的源码/头文件顶部添加版权注释。返回已修改的文件数。
+        /// </summary>
+        public int AddCopyrightNotices(string pluginFolder, string publisher, int year)
+        {
+            if (string.IsNullOrWhiteSpace(pluginFolder) || !Directory.Exists(pluginFolder))
+            {
+                return 0;
+            }
+
+            var owner = string.IsNullOrWhiteSpace(publisher) ? Path.GetFileName(pluginFolder) : publisher.Trim();
+            var notice = $"// Copyright (C) {year} {owner}. All Rights Reserved.";
+
+            var count = 0;
+            foreach (var file in EnumerateDistributableFiles(pluginFolder))
+            {
+                if (!CodeFileExtensions.Contains(Path.GetExtension(file).ToLowerInvariant()))
+                {
+                    continue;
+                }
+
+                // 仅在“确认缺少”版权声明时添加；已存在或无法读取（null）都跳过，避免重复添加或误改。
+                if (HasCopyrightNotice(file) != false)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var bytes = File.ReadAllBytes(file);
+                    var hasBom = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF;
+                    var original = File.ReadAllText(file); // 自动按 BOM 解码，返回不含 BOM 的文本
+
+                    // 保留原文件的换行风格与 BOM，避免只加一行注释却改动整份文件的行尾/编码。
+                    var newline = original.Contains("\r\n") ? "\r\n" : "\n";
+                    File.WriteAllText(file, notice + newline + original, new UTF8Encoding(hasBom));
+                    count++;
+                }
+                catch
+                {
+                    // 忽略单个写入失败
+                }
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// 在 .uplugin 中将 ModelingToolsEditorMode 依赖的 Enabled 置为 false。返回是否有实际改动。
+        /// </summary>
+        public bool DisableModelingToolsEditorMode(string upluginPath)
+        {
+            if (string.IsNullOrWhiteSpace(upluginPath) || !File.Exists(upluginPath))
+            {
+                return false;
+            }
+
+            try
+            {
+                var text = File.ReadAllText(upluginPath);
+                if (JsonNode.Parse(text) is not JsonObject rootObj || rootObj["Plugins"] is not JsonArray plugins)
+                {
+                    return false;
+                }
+
+                var changed = false;
+                foreach (var node in plugins)
+                {
+                    if (node is not JsonObject dep)
+                    {
+                        continue;
+                    }
+
+                    string? name = null;
+                    if (dep["Name"] is JsonValue nameValue)
+                    {
+                        nameValue.TryGetValue(out name);
+                    }
+
+                    if (string.Equals(name, "ModelingToolsEditorMode", StringComparison.OrdinalIgnoreCase))
+                    {
+                        dep["Enabled"] = false;
+                        changed = true;
+                    }
+                }
+
+                if (!changed)
+                {
+                    return false;
+                }
+
+                AtomicFile.WriteAllText(upluginPath,
+                    rootObj.ToJsonString(new JsonSerializerOptions
+                    {
+                        WriteIndented = true,
+                        // 不转义中文/<>&+ 等字符，避免把未改动的 FriendlyName/Description 等字段变成 \uXXXX。
+                        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                    }));
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 判断给定插件目录是否真正处于 Git 管理下：要求该目录内确实存在被 Git 跟踪的文件，
+        /// 而不仅仅是恰好嵌套在某个父仓库里（否则对已跟踪文件的改动才谈得上可回滚）。
+        /// </summary>
+        public async Task<bool> IsUnderGitAsync(string folder)
+        {
+            if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
+            {
+                return false;
+            }
+
+            var (ok, output) = await RunGitAsync(folder, "ls-files");
+            return ok && !string.IsNullOrWhiteSpace(output);
+        }
+
+        /// <summary>
+        /// 在指定目录运行 git 命令，带 5 秒超时并并发读取 stdout/stderr，避免挂起或管道死锁。
+        /// </summary>
+        private static async Task<(bool Ok, string Output)> RunGitAsync(string folder, string arguments)
+        {
+            Process? proc = null;
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "git",
+                    Arguments = arguments,
+                    WorkingDirectory = folder,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                proc = Process.Start(psi);
+                if (proc == null)
+                {
+                    return (false, string.Empty);
+                }
+
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+                // 并发读取，避免只读 stdout 时 stderr 写满缓冲区导致死锁。
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync(cts.Token);
+                var stderrTask = proc.StandardError.ReadToEndAsync(cts.Token);
+
+                await proc.WaitForExitAsync(cts.Token);
+                var stdout = await stdoutTask;
+                await stderrTask;
+
+                return (proc.ExitCode == 0, stdout);
+            }
+            catch
+            {
+                // 超时/被取消/git 未安装等：尝试结束进程并回退为“未管理”。
+                try
+                {
+                    if (proc is { HasExited: false })
+                    {
+                        proc.Kill(entireProcessTree: true);
+                    }
+                }
+                catch
+                {
+                    // 忽略
+                }
+
+                return (false, string.Empty);
+            }
+            finally
+            {
+                proc?.Dispose();
+            }
         }
 
         #endregion

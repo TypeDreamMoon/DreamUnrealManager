@@ -28,6 +28,8 @@ namespace DreamUnrealManager.Views
         private readonly FabComplianceService _service = new();
         private ComplianceReport? _report;
         private bool _isAnalyzing;
+        private bool _isUnderGit;
+        private bool _isFixing;
 
         // 分组的展示顺序与中文标题。
         private static readonly (ComplianceCategory Category, string Title)[] CategoryOrder =
@@ -91,6 +93,7 @@ namespace DreamUnrealManager.Views
             {
                 var report = await _service.AnalyzeAsync(path);
                 _report = report;
+                _isUnderGit = await _service.IsUnderGitAsync(report.PluginFolder);
                 RenderReport(report);
                 ExportButton.IsEnabled = true;
                 SetStatusMessage($"检查完成 · {DateTime.Now:HH:mm:ss}", isError: false);
@@ -161,6 +164,7 @@ namespace DreamUnrealManager.Views
             RecommendedCountText.Text = $"推荐 {report.RecommendedCount}";
             ManualCountText.Text = $"待确认 {report.ManualCount}";
             UpdateManualProgress();
+            UpdateAutoFixUi();
 
             // 结果分组
             ResultsPanel.Children.Clear();
@@ -188,6 +192,28 @@ namespace DreamUnrealManager.Views
             ManualProgressText.Text = manualItems.Count > 0
                 ? $"人工确认进度: {done}/{manualItems.Count}（这些项无法自动判断，请逐项核对后勾选）"
                 : "无需人工确认项。";
+        }
+
+        private void UpdateAutoFixUi()
+        {
+            var fixable = _report?.Items.Count(i => i.AutoFix != AutoFixKind.None) ?? 0;
+
+            if (_isUnderGit)
+            {
+                GitStatusIcon.Glyph = GlyphPass;
+                GitStatusIcon.Foreground = GetBrush("SystemFillColorSuccessBrush", Colors.SeaGreen);
+                GitStatusText.Text = fixable > 0
+                    ? $"该插件目录在 Git 管理下，可自动修复 {fixable} 项。修复前建议提交/暂存当前改动以便回滚。"
+                    : "该插件目录在 Git 管理下。当前没有可自动修复的项。";
+            }
+            else
+            {
+                GitStatusIcon.Glyph = GlyphWarning;
+                GitStatusIcon.Foreground = GetBrush("SystemFillColorCautionBrush", Colors.Orange);
+                GitStatusText.Text = "未检测到 Git 管理，自动修复已禁用。请将插件置于 Git 仓库中，以便修复后可回滚。";
+            }
+
+            AutoFixAllButton.IsEnabled = _isUnderGit && fixable > 0;
         }
 
         private FrameworkElement BuildCategoryCard(string title, List<ComplianceCheckItem> items)
@@ -332,17 +358,20 @@ namespace DreamUnrealManager.Views
                 Grid.SetColumn(check, 2);
                 grid.Children.Add(check);
             }
-            else if (item.SupportsCleanup && item.Status == ComplianceStatus.Fail)
+            else if (item.AutoFix != AutoFixKind.None)
             {
-                var cleanupButton = new Button
+                var fixButton = new Button
                 {
-                    Content = "一键清理",
+                    Content = "自动修复",
+                    Tag = item,
+                    IsEnabled = _isUnderGit,
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(12, 0, 0, 0)
                 };
-                cleanupButton.Click += CleanupGenerated_Click;
-                Grid.SetColumn(cleanupButton, 2);
-                grid.Children.Add(cleanupButton);
+                ToolTipService.SetToolTip(fixButton, _isUnderGit ? "自动修复此项" : "需在 Git 管理下才能使用自动修复");
+                fixButton.Click += AutoFix_Click;
+                Grid.SetColumn(fixButton, 2);
+                grid.Children.Add(fixButton);
             }
 
             return new Border
@@ -393,41 +422,79 @@ namespace DreamUnrealManager.Views
 
         #endregion
 
-        #region 一键清理
+        #region 自动修复
 
-        private async void CleanupGenerated_Click(object sender, RoutedEventArgs e)
+        private async void AutoFix_Click(object sender, RoutedEventArgs e)
         {
-            var folder = _report?.PluginFolder;
-            if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
+            if (sender is Button { Tag: ComplianceCheckItem item })
+            {
+                await ApplyAutoFixAsync(new[] { item.AutoFix });
+            }
+        }
+
+        private async void AutoFixAll_Click(object sender, RoutedEventArgs e)
+        {
+            if (_report == null)
             {
                 return;
             }
 
-            var dialog = new ContentDialog
-            {
-                XamlRoot = this.XamlRoot,
-                Title = "清理生成目录",
-                Content = "将永久删除该插件目录下的 Binaries、Build、Intermediate、Saved、DerivedDataCache 目录。\n" +
-                          "这些目录会在下次构建时重新生成。是否继续？",
-                PrimaryButtonText = "删除",
-                CloseButtonText = "取消",
-                DefaultButton = ContentDialogButton.Close
-            };
+            var kinds = _report.Items
+                .Select(i => i.AutoFix)
+                .Where(k => k != AutoFixKind.None)
+                .Distinct()
+                .ToArray();
 
-            var result = await dialog.ShowAsync();
-            if (result != ContentDialogResult.Primary)
+            await ApplyAutoFixAsync(kinds);
+        }
+
+        private async Task ApplyAutoFixAsync(IReadOnlyList<AutoFixKind> kinds)
+        {
+            // 防重入：修复或分析进行中时忽略后续点击（也避免重新检查期间的旧按钮触发第二个对话框）。
+            if (_report == null || kinds.Count == 0 || _isFixing || _isAnalyzing)
             {
                 return;
             }
 
+            // 自动修复只在 Git 管理下可用，确保用户可回滚。
+            if (!_isUnderGit)
+            {
+                SetStatusMessage("未检测到 Git 管理，已禁用自动修复。", isError: true);
+                return;
+            }
+
+            _isFixing = true;
+            AnalyzeButton.IsEnabled = false;
             try
             {
-                var removed = await Task.Run(() => _service.CleanGeneratedFolders(folder));
-                SetStatusMessage(removed.Count > 0
-                    ? $"已清理 {removed.Count} 个目录，正在重新检查..."
-                    : "没有可清理的目录。", isError: false);
+                var folder = _report.PluginFolder;
+                var uplugin = _report.PluginPath;
 
-                // 重新检查以刷新结果。
+                var confirm = new ContentDialog
+                {
+                    XamlRoot = this.XamlRoot,
+                    Title = "自动修复",
+                    Content = "将执行以下操作：\n\n"
+                              + string.Join("\n", kinds.Select(k => "· " + DescribeFix(k)))
+                              + "\n\n已跟踪文件的改动可用 Git 回滚，生成目录删除后可重新构建。建议先提交/暂存当前改动。是否继续？",
+                    PrimaryButtonText = "修复",
+                    CloseButtonText = "取消",
+                    DefaultButton = ContentDialogButton.Close
+                };
+
+                if (await confirm.ShowAsync() != ContentDialogResult.Primary)
+                {
+                    return;
+                }
+
+                var summaries = new List<string>();
+                foreach (var kind in kinds)
+                {
+                    summaries.Add(await ApplyOneAsync(kind, folder, uplugin));
+                }
+
+                SetStatusMessage(string.Join("；", summaries) + "，正在重新检查...", isError: false);
+
                 if (!string.IsNullOrWhiteSpace(UPluginPathTextBox.Text))
                 {
                     await RunAnalysisAsync(UPluginPathTextBox.Text.Trim());
@@ -435,8 +502,57 @@ namespace DreamUnrealManager.Views
             }
             catch (Exception ex)
             {
-                SetStatusMessage($"清理失败: {ex.Message}", isError: true);
+                SetStatusMessage($"自动修复失败: {ex.Message}", isError: true);
             }
+            finally
+            {
+                _isFixing = false;
+                AnalyzeButton.IsEnabled = true;
+            }
+        }
+
+        private async Task<string> ApplyOneAsync(AutoFixKind kind, string folder, string upluginPath)
+        {
+            switch (kind)
+            {
+                case AutoFixKind.CleanGeneratedFolders:
+                {
+                    var removed = await Task.Run(() => _service.CleanGeneratedFolders(folder));
+                    return $"清理生成目录 {removed.Count} 个";
+                }
+                case AutoFixKind.RemoveEmptyFolders:
+                {
+                    var removed = await Task.Run(() => _service.RemoveEmptyFolders(folder));
+                    return $"删除空文件夹 {removed.Count} 个";
+                }
+                case AutoFixKind.AddCopyrightNotice:
+                {
+                    var publisher = _report?.Publisher ?? string.Empty;
+                    var year = DateTime.Now.Year;
+                    var n = await Task.Run(() => _service.AddCopyrightNotices(folder, publisher, year));
+                    return $"添加版权声明 {n} 个文件";
+                }
+                case AutoFixKind.DisableModelingTools:
+                {
+                    var ok = await Task.Run(() => _service.DisableModelingToolsEditorMode(upluginPath));
+                    return ok ? "已禁用 ModelingToolsEditorMode" : "未找到 ModelingToolsEditorMode";
+                }
+                default:
+                    return string.Empty;
+            }
+        }
+
+        private string DescribeFix(AutoFixKind kind)
+        {
+            return kind switch
+            {
+                AutoFixKind.CleanGeneratedFolders => "删除 Binaries/Build/Intermediate/Saved/DerivedDataCache 生成目录",
+                AutoFixKind.RemoveEmptyFolders => "删除空文件夹",
+                AutoFixKind.AddCopyrightNotice =>
+                    $"为缺少版权声明的源码文件顶部添加：// Copyright (C) {DateTime.Now.Year} {(string.IsNullOrWhiteSpace(_report?.Publisher) ? "<发布者>" : _report!.Publisher)}. All Rights Reserved.",
+                AutoFixKind.DisableModelingTools => "在 .uplugin 中禁用 ModelingToolsEditorMode",
+                _ => string.Empty
+            };
         }
 
         #endregion

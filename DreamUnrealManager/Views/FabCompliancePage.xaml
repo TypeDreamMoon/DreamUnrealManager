@@ -142,6 +142,38 @@
                         <TextBlock x:Name="ManualProgressText"
                                    FontSize="13"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                        <!-- Git 状态与一键自动修复 -->
+                        <Border BorderThickness="0,1,0,0"
+                                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                                Padding="0,12,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="8"
+                                            VerticalAlignment="Center">
+                                    <FontIcon x:Name="GitStatusIcon"
+                                              FontFamily="Segoe Fluent Icons"
+                                              Glyph="&#xE946;"
+                                              FontSize="16"
+                                              VerticalAlignment="Center" />
+                                    <TextBlock x:Name="GitStatusText"
+                                               Text=""
+                                               FontSize="13"
+                                               TextWrapping="Wrap"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                                <Button x:Name="AutoFixAllButton"
+                                        Grid.Column="1"
+                                        Content="一键自动修复"
+                                        Margin="12,0,0,0"
+                                        IsEnabled="False"
+                                        Click="AutoFixAll_Click" />
+                            </Grid>
+                        </Border>
                     </StackPanel>
                 </Border>
 

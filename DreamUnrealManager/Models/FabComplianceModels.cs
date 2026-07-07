@@ -42,6 +42,26 @@ namespace DreamUnrealManager.Models
     }
 
     /// <summary>
+    /// 可自动修复的类型（仅限简单且安全、可被 Git 回滚的操作）。
+    /// </summary>
+    public enum AutoFixKind
+    {
+        None,
+
+        /// <summary>删除 Binaries/Build/Intermediate/Saved/DerivedDataCache 等生成目录。</summary>
+        CleanGeneratedFolders,
+
+        /// <summary>删除空文件夹。</summary>
+        RemoveEmptyFolders,
+
+        /// <summary>为缺少版权声明的源码/头文件顶部添加版权注释。</summary>
+        AddCopyrightNotice,
+
+        /// <summary>在 .uplugin 中禁用 ModelingToolsEditorMode 依赖。</summary>
+        DisableModelingTools
+    }
+
+    /// <summary>
     /// 单条合规检查项。
     /// </summary>
     public class ComplianceCheckItem
@@ -74,8 +94,8 @@ namespace DreamUnrealManager.Models
         /// <summary>人工检查项的勾选状态。</summary>
         public bool ManualChecked { get; set; }
 
-        /// <summary>该项是否支持“一键清理”（当前仅生成目录清理项使用）。</summary>
-        public bool SupportsCleanup { get; set; }
+        /// <summary>该项支持的自动修复类型（None 表示不支持）。</summary>
+        public AutoFixKind AutoFix { get; set; } = AutoFixKind.None;
     }
 
     /// <summary>
@@ -90,6 +110,9 @@ namespace DreamUnrealManager.Models
         public string PluginName { get; set; } = string.Empty;
 
         public string PluginVersion { get; set; } = string.Empty;
+
+        /// <summary>发布者（.uplugin 的 CreatedBy），用于自动添加版权声明。</summary>
+        public string Publisher { get; set; } = string.Empty;
 
         public string EngineVersion { get; set; } = string.Empty;
 
