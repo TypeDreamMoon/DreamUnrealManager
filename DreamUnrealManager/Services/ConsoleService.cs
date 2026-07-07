@@ -53,12 +53,12 @@ namespace DreamUnrealManager.Services
                 _proc.OutputDataReceived += (_, e) =>
                 {
                     if (!string.IsNullOrEmpty(e.Data))
-                        OutputReceived?.Invoke(e.Data);
+                        RaiseOutput(e.Data);
                 };
                 _proc.ErrorDataReceived += (_, e) =>
                 {
                     if (!string.IsNullOrEmpty(e.Data))
-                        OutputReceived?.Invoke(e.Data);
+                        RaiseOutput(e.Data);
                 };
 
                 _proc.Start();
@@ -112,6 +112,19 @@ namespace DreamUnrealManager.Services
             finally
             {
                 OutputReceived -= Handler;
+            }
+        }
+
+        private void RaiseOutput(string data)
+        {
+            try
+            {
+                OutputReceived?.Invoke(data);
+            }
+            catch (Exception ex)
+            {
+                // 订阅方（如已销毁的页面）抛出的异常不应让进程读取线程崩溃整个应用。
+                System.Diagnostics.Debug.WriteLine($"OutputReceived subscriber threw: {ex.Message}");
             }
         }
 

@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using DreamUnrealManager.Contracts.Services;
+using DreamUnrealManager.Helpers;
 using DreamUnrealManager.Models;
 
 namespace DreamUnrealManager.Services
@@ -57,13 +58,26 @@ namespace DreamUnrealManager.Services
                 if (File.Exists(_configFilePath))
                 {
                     var json = await File.ReadAllTextAsync(_configFilePath);
-                    var engines = JsonSerializer.Deserialize<List<UnrealEngineInfo>>(json) ?? new List<UnrealEngineInfo>();
+
+                    List<UnrealEngineInfo>? engines;
+                    try
+                    {
+                        engines = JsonSerializer.Deserialize<List<UnrealEngineInfo>>(json);
+                    }
+                    catch (JsonException ex)
+                    {
+                        // 配置文件损坏：把损坏内容备份为 engines.json.bad，避免后续保存直接覆盖导致永久丢失，
+                        // 然后以空列表继续（用户可重新检测/添加引擎）。
+                        System.Diagnostics.Debug.WriteLine($"engines.json 解析失败，已备份损坏文件: {ex.Message}");
+                        TryBackupCorruptConfig();
+                        engines = new List<UnrealEngineInfo>();
+                    }
 
                     // 过滤掉历史数据里的 null 项
-                    engines = engines.Where(e => e != null).ToList();
+                    var validEngines = (engines ?? new List<UnrealEngineInfo>()).Where(e => e != null).ToList();
 
                     Engines.Clear();
-                    foreach (var engine in engines)
+                    foreach (var engine in validEngines)
                     {
                         // 防御式刷新，单个失败不影响整体
                         try { engine.RefreshVersionInfo(); } catch { }
@@ -100,13 +114,28 @@ namespace DreamUnrealManager.Services
                     Engines.Where(e => e != null).ToList(),
                     new JsonSerializerOptions { WriteIndented = true }
                 );
-                await File.WriteAllTextAsync(_configFilePath, json);
+                await AtomicFile.WriteAllTextAsync(_configFilePath, json);
                 MarkConfigSnapshot();
                 _isLoaded = true;
             }
             catch (Exception ex)
             {
                 throw new Exception($"保存引擎配置失败: {ex.Message}");
+            }
+        }
+
+        private void TryBackupCorruptConfig()
+        {
+            try
+            {
+                if (File.Exists(_configFilePath))
+                {
+                    File.Copy(_configFilePath, _configFilePath + ".bad", overwrite: true);
+                }
+            }
+            catch
+            {
+                // 忽略备份失败
             }
         }
 

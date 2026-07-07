@@ -539,12 +539,24 @@ namespace DreamUnrealManager.Views
                 var freshList = new List<ProjectInfo>();
                 foreach (var p in LoadedProjects.ToList())
                 {
-                    if (!File.Exists(p.ProjectPath)) continue;
+                    // 确实已删除的项目才移除；离线磁盘/网络盘上暂时不可达的项目保留原条目，避免误删。
+                    if (PathUtils.IsGenuinelyMissing(p.ProjectPath)) continue;
+
+                    if (!File.Exists(p.ProjectPath))
+                    {
+                        freshList.Add(p);
+                        continue;
+                    }
+
                     var fresh = await _factoryService.CreateAsync(p.ProjectPath);
                     if (fresh != null)
                     {
                         fresh.LastUsed = p.LastUsed;
                         freshList.Add(fresh);
+                    }
+                    else
+                    {
+                        freshList.Add(p);
                     }
                 }
 
@@ -893,7 +905,7 @@ namespace DreamUnrealManager.Views
                 SetStatus(ok ? "生成成功" : "生成失败");
 
                 if (!ok)
-                    await _dialogs.ShowMessageAsync("提示", "生成 VS 项目文件失败，请检查引擎路径与 UBT。");
+                    dlg.AppendLine("[提示] 生成 VS 项目文件失败，请检查引擎路径与 UBT。");
             }
             catch (OperationCanceledException)
             {
@@ -906,7 +918,7 @@ namespace DreamUnrealManager.Views
                 dlg.AppendLine("[异常] " + ex.Message);
                 dlg.Complete(false);
                 SetStatus("生成失败");
-                await _dialogs.ShowMessageAsync("错误", $"生成失败：{ex.Message}");
+                // 进度对话框仍打开，异常信息已写入其日志；不再弹出第二个 ContentDialog（与进度对话框同时打开会崩溃）。
             }
         }
 
@@ -928,7 +940,7 @@ namespace DreamUnrealManager.Views
                 dlg.Complete(ok);
                 SetStatus(ok ? "生成成功" : "生成失败");
                 if (!ok)
-                    await _dialogs.ShowMessageAsync("提示", "生成 VS 项目文件失败，请检查引擎路径与 UBT。");
+                    dlg.AppendLine("[提示] 生成 VS 项目文件失败，请检查引擎路径与 UBT。");
             }
             catch (OperationCanceledException)
             {
@@ -941,7 +953,7 @@ namespace DreamUnrealManager.Views
                 dlg.AppendLine("[异常] " + ex.Message);
                 dlg.Complete(false);
                 SetStatus("生成失败");
-                await _dialogs.ShowMessageAsync("错误", $"生成失败：{ex.Message}");
+                // 进度对话框仍打开，异常信息已写入其日志；不再弹出第二个 ContentDialog（与进度对话框同时打开会崩溃）。
             }
         }
 

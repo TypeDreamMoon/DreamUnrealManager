@@ -180,6 +180,18 @@ namespace DreamUnrealManager.Services
             });
 
             var code = await tcs.Task.ConfigureAwait(false);
+
+            // 有界等待异步输出读取排空，避免丢失最后几行日志；用超时防止子进程继承管道句柄导致无限阻塞。
+            try
+            {
+                using var drainCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                await proc.WaitForExitAsync(drainCts.Token).ConfigureAwait(false);
+            }
+            catch
+            {
+                // 超时/已退出/已取消等情况忽略
+            }
+
             percent?.Report(100);
             return code == 0;
         }

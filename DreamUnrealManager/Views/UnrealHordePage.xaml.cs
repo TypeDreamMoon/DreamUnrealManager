@@ -368,6 +368,15 @@ public sealed partial class UnrealHordePage : Page
             string.Equals(x.ServiceName, requestedName, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(x.DisplayName, requestedName, StringComparison.OrdinalIgnoreCase));
 
+        // 释放未被选中的其余 ServiceController，避免每次调用泄漏原生服务句柄。
+        foreach (var s in allServices)
+        {
+            if (!ReferenceEquals(s, service))
+            {
+                s.Dispose();
+            }
+        }
+
         if (service == null)
         {
             return new ServiceSnapshot
@@ -499,6 +508,15 @@ public sealed partial class UnrealHordePage : Page
         using var service = allServices.FirstOrDefault(x =>
             string.Equals(x.ServiceName, targetName, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(x.DisplayName, targetName, StringComparison.OrdinalIgnoreCase));
+
+        // 释放未被选中的其余 ServiceController，避免每次调用泄漏原生服务句柄。
+        foreach (var s in allServices)
+        {
+            if (!ReferenceEquals(s, service))
+            {
+                s.Dispose();
+            }
+        }
 
         if (service == null)
         {

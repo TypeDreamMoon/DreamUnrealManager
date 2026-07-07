@@ -79,7 +79,8 @@ namespace DreamUnrealManager.Services
                 var processStartInfo = new ProcessStartInfo
                 {
                     FileName = idePath,
-                    Arguments = projectPath,
+                    // 加引号：路径常含空格，不加引号会被 IDE 拆成多个参数而打不开工程。
+                    Arguments = $"\"{projectPath}\"",
                     UseShellExecute = true
                 };
 

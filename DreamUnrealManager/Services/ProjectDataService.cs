@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using DreamUnrealManager.Models;
+using DreamUnrealManager.Helpers;
 using Windows.Storage;
 using DreamUnrealManager.Contracts.Services;
 
@@ -124,27 +125,9 @@ namespace DreamUnrealManager.Services
                 var jsonString = JsonSerializer.Serialize(projectsData, jsonOptions);
                 WriteDebug($"JSON 序列化完成，长度: {jsonString.Length}");
 
-                // 先保存备份文件
-                try
-                {
-                    if (File.Exists(filePath))
-                    {
-                        var existingContent = await File.ReadAllTextAsync(filePath);
-                        await File.WriteAllTextAsync(backupPath, existingContent);
-                        WriteDebug("备份文件已创建");
-                    }
-                    else
-                    {
-                        WriteDebug("没有找到现有文件，跳过备份");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    WriteDebug($"创建备份文件失败: {ex.Message}");
-                }
-
-                // 保存新文件
-                await File.WriteAllTextAsync(filePath, jsonString);
+                // 原子写入：写入临时文件后用 File.Replace 替换，并把旧文件原子保留为备份，
+                // 避免写入中断（崩溃/掉电）把 projects.json 截断损坏。
+                await AtomicFile.WriteAllTextAsync(filePath, jsonString, backupPath);
                 WriteDebug($"文件写入完成: {filePath}");
 
                 // 立即验证文件是否写入成功
@@ -217,37 +200,40 @@ namespace DreamUnrealManager.Services
                 {
                     WriteDebug($"处理项目记录: {dto.DisplayName} - {dto.ProjectPath}");
 
+                    // 仅跳过“确实已删除”的项目；离线磁盘/网络盘上暂时不可达的项目仍保留，避免误删。
+                    if (PathUtils.IsGenuinelyMissing(dto.ProjectPath))
+                    {
+                        WriteDebug($"项目文件已删除，跳过: {dto.ProjectPath}");
+                        continue;
+                    }
+
+                    var projectInfo = new ProjectInfo
+                    {
+                        ProjectPath = dto.ProjectPath,
+                        DisplayName = dto.DisplayName,
+                        ProjectDirectory = dto.ProjectDirectory,
+                        EngineAssociation = dto.EngineAssociation,
+                        Description = dto.Description,
+                        Category = dto.Category,
+                        LastModified = dto.LastModified,
+                        LastUsed = dto.LastUsed,
+                        ProjectSize = dto.ProjectSize,
+                        IsFavorite = dto.IsFavorite
+                    };
+
+                    // 更新文件修改时间（如果文件已更改且当前可访问）
                     if (File.Exists(dto.ProjectPath))
                     {
-                        var projectInfo = new ProjectInfo
-                        {
-                            ProjectPath = dto.ProjectPath,
-                            DisplayName = dto.DisplayName,
-                            ProjectDirectory = dto.ProjectDirectory,
-                            EngineAssociation = dto.EngineAssociation,
-                            Description = dto.Description,
-                            Category = dto.Category,
-                            LastModified = dto.LastModified,
-                            LastUsed = dto.LastUsed,
-                            ProjectSize = dto.ProjectSize,
-                            IsFavorite = dto.IsFavorite
-                        };
-
-                        // 更新文件修改时间（如果文件已更改）
                         var actualModified = File.GetLastWriteTime(dto.ProjectPath);
                         if (actualModified != dto.LastModified)
                         {
                             projectInfo.LastModified = actualModified;
                             WriteDebug($"项目文件已更新: {projectInfo.DisplayName}");
                         }
+                    }
 
-                        projects.Add(projectInfo);
-                        WriteDebug($"加载项目成功: {projectInfo.DisplayName}");
-                    }
-                    else
-                    {
-                        WriteDebug($"项目文件不存在，跳过: {dto.ProjectPath}");
-                    }
+                    projects.Add(projectInfo);
+                    WriteDebug($"加载项目成功: {projectInfo.DisplayName}");
                 }
 
                 WriteDebug($"项目数据加载完成，共 {projects.Count} 个有效项目");
@@ -267,7 +253,7 @@ namespace DreamUnrealManager.Services
         {
             projects ??= new List<ProjectInfo>();
 
-            var validProjects = projects.Where(p => p != null && File.Exists(p.ProjectPath)).ToList();
+            var validProjects = projects.Where(p => p != null && !PathUtils.IsGenuinelyMissing(p.ProjectPath)).ToList();
             var removedCount = projects.Count - validProjects.Count;
 
             if (removedCount > 0)
@@ -305,7 +291,7 @@ namespace DreamUnrealManager.Services
                 }
 
                 var projects = projectsData.Projects
-                    .Where(dto => File.Exists(dto.ProjectPath))
+                    .Where(dto => !PathUtils.IsGenuinelyMissing(dto.ProjectPath))
                     .Select(dto => new ProjectInfo
                     {
                         ProjectPath = dto.ProjectPath,

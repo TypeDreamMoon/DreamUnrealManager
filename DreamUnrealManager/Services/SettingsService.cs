@@ -2,6 +2,7 @@
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using DreamUnrealManager.Helpers;
 
 namespace DreamUnrealManager.Services
 {
@@ -25,7 +26,23 @@ namespace DreamUnrealManager.Services
                     _json = JsonNode.Parse(txt)?.AsObject() ?? new JsonObject();
                 }
             }
-            catch { _json = new JsonObject(); }
+            catch
+            {
+                // 配置损坏：保留损坏文件为 settings.json.bad，避免静默丢弃全部设置且无从排查。
+                try
+                {
+                    if (File.Exists(FilePath))
+                    {
+                        File.Copy(FilePath, FilePath + ".bad", overwrite: true);
+                    }
+                }
+                catch
+                {
+                    // 忽略备份失败
+                }
+
+                _json = new JsonObject();
+            }
         }
 
         public static T Get<T>(string key, T defaultValue = default!)
@@ -45,7 +62,7 @@ namespace DreamUnrealManager.Services
             lock (_lock)
             {
                 _json[key] = JsonSerializer.SerializeToNode(value);
-                File.WriteAllText(FilePath, _json.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+                AtomicFile.WriteAllText(FilePath, _json.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
             }
         }
     }
