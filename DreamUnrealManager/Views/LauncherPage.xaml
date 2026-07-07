@@ -15,25 +15,21 @@
         <helpers:BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
         <!-- ===== ItemsPanel（3种布局） ===== -->
-        <!-- 网格 -->
+        <!-- 网格：横向平铺、填满宽度、从顶部开始 -->
         <ItemsPanelTemplate x:Key="GridItemsPanel">
             <ItemsWrapGrid Orientation="Horizontal"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center" />
-        </ItemsPanelTemplate>
-
-        <!-- 列表 -->
-        <ItemsPanelTemplate x:Key="ListItemsPanel">
-            <StackPanel Orientation="Vertical"
-                        Spacing="8"
-                        Margin="0,4,0,4" />
-        </ItemsPanelTemplate>
-
-        <!-- 紧凑 -->
-        <ItemsPanelTemplate x:Key="CompactItemsPanel">
-            <ItemsWrapGrid Orientation="Horizontal"
-                           HorizontalAlignment="Center"
+                           HorizontalAlignment="Stretch"
                            VerticalAlignment="Top" />
+        </ItemsPanelTemplate>
+
+        <!-- 列表：单列整宽行（虚拟化，避免大量项目卡顿） -->
+        <ItemsPanelTemplate x:Key="ListItemsPanel">
+            <ItemsStackPanel Orientation="Vertical" />
+        </ItemsPanelTemplate>
+
+        <!-- 紧凑：单列整宽密集行（虚拟化） -->
+        <ItemsPanelTemplate x:Key="CompactItemsPanel">
+            <ItemsStackPanel Orientation="Vertical" />
         </ItemsPanelTemplate>
 
         <!-- ===== DataTemplates（3种卡片） ===== -->
@@ -702,8 +698,10 @@
                       ItemContainerStyle="{StaticResource ProjectItemContainerStyle}"
                       IsItemClickEnabled="False"
                       SelectionMode="None"
-                      HorizontalContentAlignment="Center"
-                      VerticalContentAlignment="Center"
+                      HorizontalContentAlignment="Stretch"
+                      VerticalContentAlignment="Top"
+                      ScrollViewer.HorizontalScrollMode="Disabled"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                       ItemsPanel="{StaticResource GridItemsPanel}"
                       ItemTemplate="{StaticResource GridProjectTemplate}" >
             </ListView>

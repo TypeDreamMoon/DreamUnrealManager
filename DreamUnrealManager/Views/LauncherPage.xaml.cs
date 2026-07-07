@@ -13,6 +13,7 @@ using Microsoft.UI;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Navigation;
 
 namespace DreamUnrealManager.Views
 {
@@ -57,6 +58,7 @@ namespace DreamUnrealManager.Views
         private int _metaTotal;
         private int _metaDone;
         private CancellationTokenSource? _rehydrateCts;
+        private bool _hasHydrated;
 
         public LauncherPage()
         {
@@ -71,6 +73,7 @@ namespace DreamUnrealManager.Views
             _uproj = new UnrealProjectService();
 
             InitializeComponent(); // 再加载 XAML
+            NavigationCacheMode = NavigationCacheMode.Required; // 缓存页面实例，避免每次导航重建/重扫
             Loaded += LauncherPage_Loaded;
             Unloaded += LauncherPage_Unloaded;
         }
@@ -89,8 +92,11 @@ namespace DreamUnrealManager.Views
                     FavoriteFrontToggle.IsChecked = SettingsService.Get("Launcher.FavoriteFirst", true);
                 }
 
-                // 两阶段补全（元数据→体积）
-                StartRehydrateProjects(LoadedProjects);
+                // 两阶段补全（元数据→体积）——只在首次进入时执行，避免每次导航都重扫。
+                if (!_hasHydrated)
+                {
+                    StartRehydrateProjects(LoadedProjects);
+                }
 
                 SetStatus("就绪");
             }
@@ -204,41 +210,42 @@ namespace DreamUnrealManager.Views
 
         private async Task RehydrateProjectsAsync(List<ProjectInfo> list, CancellationToken ct)
         {
-            var items = list.ToList();
+            var items = list.Where(p => p != null).ToList();
             _metaTotal = items.Count;
             _metaDone = 0;
 
             if (_metaTotal == 0)
             {
+                _hasHydrated = true;
                 SetStatus("就绪");
                 return;
             }
 
-            SetStatus($"正在后台补全项目信息... 0/{_metaTotal}");
+            var changed = 0;
 
-            // 阶段A：元数据（决定遮罩+全局进度）
-            var semA = new SemaphoreSlim(4); // 限制并发数为4
+            // 阶段A：元数据。只有确有变化的项目才重解析并显示加载遮罩；
+            // 未变化的项目只做轻量缩略图刷新，不再让每张卡片都闪一次加载环。
+            var semA = new SemaphoreSlim(4);
             var metaTasks = items.Select(async p =>
             {
                 await semA.WaitAsync(ct);
                 try
                 {
                     ct.ThrowIfCancellationRequested();
-                    RunOnUI(() => p.IsLoadingMeta = true);
 
                     if (!NeedsMetadataRefresh(p))
                     {
-                        // 不做重解析，轻量刷新缩略图与状态。
                         RunOnUI(() => p.RefreshThumbnail(includeGitStatus: false));
                     }
-                    else
+                    else if (File.Exists(p.ProjectPath))
                     {
-                        if (File.Exists(p.ProjectPath))
+                        RunOnUI(() => p.IsLoadingMeta = true);
+                        try
                         {
                             var fresh = await _factoryService.CreateAsync(p.ProjectPath, ct);
                             if (fresh != null)
                             {
-                                // 回填关键字段并统一刷新派生属性
+                                Interlocked.Exchange(ref changed, 1);
                                 RunOnUI(() =>
                                 {
                                     p.UpdateFrom(fresh);
@@ -246,10 +253,14 @@ namespace DreamUnrealManager.Views
                                 });
                             }
                         }
-                        else
+                        finally
                         {
-                            RunOnUI(() => p.IsValid = false);
+                            RunOnUI(() => p.IsLoadingMeta = false);
                         }
+                    }
+                    else
+                    {
+                        RunOnUI(() => p.IsValid = false);
                     }
                 }
                 catch (OperationCanceledException)
@@ -262,11 +273,10 @@ namespace DreamUnrealManager.Views
                 }
                 finally
                 {
-                    RunOnUI(() => p.IsLoadingMeta = false);
                     var d = Interlocked.Increment(ref _metaDone);
                     if (d == _metaTotal || d % 8 == 0)
                     {
-                        SetStatus($"正在后台补全项目信息... {d}/{_metaTotal}");
+                        SetStatus($"正在补全项目信息... {d}/{_metaTotal}");
                     }
 
                     semA.Release();
@@ -282,47 +292,170 @@ namespace DreamUnrealManager.Views
                 // ignore
             }
 
-            if (!ct.IsCancellationRequested)
+            if (ct.IsCancellationRequested)
             {
-                SetStatus("就绪");
+                return;
+            }
+
+            // 阶段B：后台计算尚未知晓的项目体积（低并发，跳过 Binaries/Intermediate 等大目录）。
+            var sizeChanged = await CalculateSizesAsync(items, ct);
+
+            if (ct.IsCancellationRequested)
+            {
+                return;
+            }
+
+            _hasHydrated = true;
+            SetStatus("就绪");
+
+            // 持久化补全后的元数据与体积，避免下次启动重复计算。
+            if (changed == 1 || sizeChanged)
+            {
+                try
+                {
+                    await Repository.SaveAsync(LoadedProjects);
+                }
+                catch
+                {
+                    /* 忽略保存失败 */
+                }
             }
         }
 
+        /// <summary>
+        /// 阶段B：为体积未知（ProjectSize &lt;= 0）的项目在后台计算大小。返回是否有项目被更新。
+        /// </summary>
+        private async Task<bool> CalculateSizesAsync(List<ProjectInfo> items, CancellationToken ct)
+        {
+            var pending = items
+                .Where(p => p != null
+                            && p.ProjectSize <= 0
+                            && !string.IsNullOrWhiteSpace(p.ProjectDirectory)
+                            && Directory.Exists(p.ProjectDirectory))
+                .ToList();
 
-        private static Task<long> CalculateProjectSizeAsync(string root)
+            if (pending.Count == 0)
+            {
+                return false;
+            }
+
+            var any = 0;
+            var sem = new SemaphoreSlim(2);
+            var tasks = pending.Select(async p =>
+            {
+                await sem.WaitAsync(ct);
+                try
+                {
+                    ct.ThrowIfCancellationRequested();
+                    var size = await CalculateProjectSizeAsync(p.ProjectDirectory!, ct);
+                    if (ct.IsCancellationRequested || size <= 0)
+                    {
+                        return;
+                    }
+
+                    Interlocked.Exchange(ref any, 1);
+                    RunOnUI(() => p.SetProjectSize(size));
+                }
+                catch (OperationCanceledException)
+                {
+                    // ignore
+                }
+                catch
+                {
+                    /* ignore */
+                }
+                finally
+                {
+                    sem.Release();
+                }
+            });
+
+            try
+            {
+                await Task.WhenAll(tasks);
+            }
+            catch (OperationCanceledException)
+            {
+                // ignore
+            }
+
+            return any == 1;
+        }
+
+
+        private static Task<long> CalculateProjectSizeAsync(string root, CancellationToken ct)
         {
             return Task.Run(() =>
             {
                 long total = 0;
-                try
+
+                // 直接剪掉这些大/临时目录（不进入枚举），比“先全量枚举再按前缀过滤”快得多。
+                var excludes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    // 可按需排除
-                    var excludes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                    {
-                        ".git", "Intermediate", "Binaries", "DerivedDataCache", ".vs", "Saved/Logs"
-                    };
+                    ".git", ".vs", ".svn", "Intermediate", "Binaries", "DerivedDataCache", "Saved"
+                };
 
-                    foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
-                    {
-                        try
-                        {
-                            var rel = Path.GetRelativePath(root, file).Replace('\\', '/');
-                            if (excludes.Any(ex => rel.StartsWith(ex, StringComparison.OrdinalIgnoreCase)))
-                                continue;
+                var stack = new Stack<string>();
+                stack.Push(root);
 
-                            total += new FileInfo(file).Length;
-                        }
-                        catch
+                while (stack.Count > 0)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    var dir = stack.Pop();
+
+                    try
+                    {
+                        foreach (var file in Directory.EnumerateFiles(dir))
                         {
+                            try
+                            {
+                                total += new FileInfo(file).Length;
+                            }
+                            catch
+                            {
+                                // 忽略单个文件
+                            }
                         }
                     }
-                }
-                catch
-                {
+                    catch
+                    {
+                        // 忽略无法枚举的目录
+                    }
+
+                    try
+                    {
+                        foreach (var sub in Directory.EnumerateDirectories(dir))
+                        {
+                            var name = Path.GetFileName(sub);
+                            if (excludes.Contains(name))
+                            {
+                                continue;
+                            }
+
+                            try
+                            {
+                                // 跳过符号链接/联接，避免目录环
+                                if ((new DirectoryInfo(sub).Attributes & FileAttributes.ReparsePoint) != 0)
+                                {
+                                    continue;
+                                }
+                            }
+                            catch
+                            {
+                                continue;
+                            }
+
+                            stack.Push(sub);
+                        }
+                    }
+                    catch
+                    {
+                        // 忽略无法枚举子目录的目录
+                    }
                 }
 
                 return total;
-            });
+            }, ct);
         }
 
         #endregion
@@ -478,25 +611,24 @@ namespace DreamUnrealManager.Views
             if (ProjectsListView == null || LayoutSegmented == null) return;
 
             var index = LayoutSegmented.SelectedIndex;
+
+            // 三种模式统一填满宽度、从顶部开始排列（此前网格/紧凑被设为居中，导致两侧留白填不满屏幕）。
+            ProjectsListView.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+            ProjectsListView.VerticalContentAlignment = VerticalAlignment.Top;
+
             switch (index)
             {
                 case 0: // 网格
                     ProjectsListView.ItemsPanel = (ItemsPanelTemplate)Resources["GridItemsPanel"];
                     ProjectsListView.ItemTemplate = (DataTemplate)Resources["GridProjectTemplate"];
-                    ProjectsListView.HorizontalContentAlignment = HorizontalAlignment.Center;
-                    ProjectsListView.VerticalContentAlignment = VerticalAlignment.Center;
                     break;
                 case 1: // 列表
                     ProjectsListView.ItemsPanel = (ItemsPanelTemplate)Resources["ListItemsPanel"];
                     ProjectsListView.ItemTemplate = (DataTemplate)Resources["ListProjectTemplate"];
-                    ProjectsListView.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-                    ProjectsListView.VerticalContentAlignment = VerticalAlignment.Stretch;
                     break;
                 case 2: // 紧凑
                     ProjectsListView.ItemsPanel = (ItemsPanelTemplate)Resources["CompactItemsPanel"];
                     ProjectsListView.ItemTemplate = (DataTemplate)Resources["CompactProjectTemplate"];
-                    ProjectsListView.HorizontalContentAlignment = HorizontalAlignment.Center;
-                    ProjectsListView.VerticalContentAlignment = VerticalAlignment.Center;
                     break;
             }
         }
@@ -552,6 +684,7 @@ namespace DreamUnrealManager.Views
                     if (fresh != null)
                     {
                         fresh.LastUsed = p.LastUsed;
+                        fresh.SetProjectSize(p.ProjectSize); // 沿用已算出的体积，避免刷新时重复全量扫描目录
                         freshList.Add(fresh);
                     }
                     else
