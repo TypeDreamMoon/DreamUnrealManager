@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/.NET-8.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET 8" />
   <img src="https://img.shields.io/badge/WinUI-3-0078D4?style=for-the-badge&logo=windows11&logoColor=white" alt="WinUI 3" />
   <img src="https://img.shields.io/badge/Windows-10%2F11-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows 10/11" />
-  <img src="https://img.shields.io/badge/Version-0.3.1-22C55E?style=for-the-badge" alt="Version 0.3.1" />
+  <img src="https://img.shields.io/badge/Version-0.4.0-22C55E?style=for-the-badge" alt="Version 0.3.1" />
 </p>
 
 <p align="center">
