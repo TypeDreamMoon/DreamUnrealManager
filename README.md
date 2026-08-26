@@ -15,6 +15,12 @@
   <img src="https://img.shields.io/badge/Version-0.3.1-22C55E?style=for-the-badge" alt="Version 0.3.1" />
 </p>
 
+<p align="center">
+  <a href="https://github.com/TypeDreamMoon/DreamUnrealManager/actions/workflows/ci.yml"><img src="https://github.com/TypeDreamMoon/DreamUnrealManager/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/TypeDreamMoon/DreamUnrealManager/actions/workflows/release.yml"><img src="https://github.com/TypeDreamMoon/DreamUnrealManager/actions/workflows/release.yml/badge.svg" alt="Release" /></a>
+  <a href="https://github.com/TypeDreamMoon/DreamUnrealManager/releases/latest"><img src="https://img.shields.io/github/v/release/TypeDreamMoon/DreamUnrealManager?include_prereleases&label=latest" alt="Latest Release" /></a>
+</p>
+
 ---
 
 ## 目录
@@ -23,6 +29,7 @@
 - [功能概览](#功能概览)
 - [Gallery](#gallery)
 - [快速开始](#快速开始)
+- [发布流程](#发布流程)
 - [配置与数据文件](#配置与数据文件)
 - [项目结构](#项目结构)
 
@@ -79,6 +86,46 @@ dotnet build .\DreamUnrealManager.sln -c Debug
 dotnet run --project .\DreamUnrealManager\DreamUnrealManager.csproj -c Debug -f net8.0-windows10.0.22000.0
 ```
 
+## 发布流程
+
+构建与发布已全部交给 GitHub Actions，本地不再需要手工打包。
+
+| 工作流 | 触发时机 | 作用 |
+| --- | --- | --- |
+| [`ci.yml`](.github/workflows/ci.yml) | push 到 `main`、PR、手动 | Release / x64 构建校验 |
+| [`release.yml`](.github/workflows/release.yml) | 推送 `v*` 标签、手动 | 发布产物并创建 GitHub Release |
+
+### 发布一个新版本
+
+```powershell
+pwsh ./tools/release.ps1 -Version 0.3.2 -Push
+```
+
+脚本会更新 `DreamUnrealManager.csproj` 的 `<Version>` 与 README 徽章，提交并打出 `v0.3.2`
+标签后推送；也可以省略 `-Push` 先在本地确认，再手动推送。手工发布同样可行：
+
+```powershell
+git tag -a v0.3.2 -m "Dream Unreal Manager v0.3.2"
+git push origin v0.3.2
+```
+
+### 标签推送后发生了什么
+
+1. 从标签解析版本号（`v0.3.2` → `0.3.2`），并以 `-p:Version` 注入构建，
+   保证程序内的版本检查与 Release 标签一致。
+2. `dotnet publish -c Release -r win-x64`，self-contained + ReadyToRun。
+3. 产出两份分发物并各自生成 `.sha256` 校验和：
+   - `DreamUnrealManager-v0.3.2-win-x64.zip` —— 免安装版，解压即用
+   - `DreamUnrealManager-v0.3.2-win-x64-Setup.exe` —— 安装包，由
+     [`installer/DreamUnrealManager.iss`](installer/DreamUnrealManager.iss) 编译，
+     默认按当前用户安装（无需 UAC），带开始菜单快捷方式与卸载程序，
+     向导中可切换为所有用户安装
+4. 用自动生成的更新日志创建 Release 并上传产物；带后缀的标签
+   （如 `v0.4.0-beta.1`）自动标记为预发布。
+
+> 需要额外架构时，在 `release.yml` 的 `matrix.include` 中取消 `win-arm64` / `win-x86`
+> 的注释即可，其余流程无需改动。
+
 ## 配置与数据文件
 
 程序默认写入以下目录：
@@ -97,8 +144,11 @@ dotnet run --project .\DreamUnrealManager\DreamUnrealManager.csproj -c Debug -f 
 
 ```text
 DreamUnrealManager/
+├─ .github/workflows/           # CI 构建与 Release 发布流水线
+├─ installer/                   # Inno Setup 安装包脚本
 ├─ DreamUnrealManager/          # WinUI 主项目（Views / Services / ViewModels）
 ├─ DreamUnrealManager.Core/     # 核心公共库
+├─ tools/release.ps1            # 版本号更新 + 打 tag 助手
 ├─ DreamUnrealManager.sln       # 解决方案
 └─ README.md                    # 当前说明文档
 ```

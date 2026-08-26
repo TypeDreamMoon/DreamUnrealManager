@@ -1,0 +1,232 @@
+name: Release
+
+# 打 tag 即发布：推送 vX.Y.Z 标签后自动构建并创建 GitHub Release。
+# 也可手动触发（workflow_dispatch）只做一次构建验证，不会创建 Release。
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号，例如 0.3.2（手动运行只产出构建产物，不创建 Release）'
+        required: true
+        default: '0.0.0'
+
+permissions:
+  contents: write
+
+env:
+  PROJECT_PATH: DreamUnrealManager/DreamUnrealManager.csproj
+  TARGET_FRAMEWORK: net8.0-windows10.0.22000.0
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+
+jobs:
+  build:
+    name: 构建 ${{ matrix.rid }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: win-x64
+            platform: x64
+          # 需要发布更多架构时取消下面的注释即可，其余流程无需改动。
+          # - rid: win-arm64
+          #   platform: arm64
+          # - rid: win-x86
+          #   platform: x86
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 解析版本号
+        id: meta
+        shell: pwsh
+        # 通过 env 传值而不是直接内插，避免 ref 名称进入脚本文本
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          RID: ${{ matrix.rid }}
+        run: |
+          if ($env:REF_TYPE -eq 'tag') {
+            $tag = $env:REF_NAME
+            $version = $tag -replace '^v', ''
+          }
+          else {
+            $version = "$($env:INPUT_VERSION)".Trim()
+            $tag = "v$version"
+          }
+
+          if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') {
+            throw "版本号非法: '$version'。标签需形如 v1.2.3 或 v1.2.3-beta.1"
+          }
+
+          # AssemblyVersion / FileVersion 只接受纯数字，预发布后缀在此剥离。
+          $numeric = ($version -split '-', 2)[0]
+
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "tag=$tag"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "assembly_version=$numeric.0"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "package_name=DreamUnrealManager-$tag-$($env:RID)"
+
+          Write-Host "版本 $version / 标签 $tag / 程序集版本 $numeric.0"
+
+      - name: 安装 .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 缓存 NuGet 包
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: 还原依赖
+        run: >
+          dotnet restore ${{ env.PROJECT_PATH }}
+          -r ${{ matrix.rid }}
+          -p:Platform=${{ matrix.platform }}
+
+      - name: 发布（self-contained）
+        run: >
+          dotnet publish ${{ env.PROJECT_PATH }}
+          -c Release
+          -f ${{ env.TARGET_FRAMEWORK }}
+          -r ${{ matrix.rid }}
+          --no-restore
+          -p:Platform=${{ matrix.platform }}
+          -p:SelfContained=true
+          -p:PublishReadyToRun=true
+          -p:PublishSingleFile=false
+          -p:Version=${{ steps.meta.outputs.version }}
+          -p:AssemblyVersion=${{ steps.meta.outputs.assembly_version }}
+          -p:FileVersion=${{ steps.meta.outputs.assembly_version }}
+          -p:InformationalVersion=${{ steps.meta.outputs.version }}+${{ github.sha }}
+          -p:ContinuousIntegrationBuild=true
+          -o publish/${{ matrix.rid }}
+
+      - name: 打包 zip（免安装版）
+        shell: pwsh
+        env:
+          PACKAGE_NAME: ${{ steps.meta.outputs.package_name }}
+          RID: ${{ matrix.rid }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $name = $env:PACKAGE_NAME
+          $src  = "publish/$($env:RID)"
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          $zip = "artifacts/$name.zip"
+
+          # 自解压目录较大，优先用 runner 自带的 7z，明显快于 Compress-Archive。
+          if (Get-Command 7z -ErrorAction SilentlyContinue) {
+            7z a -tzip -mx=5 "$zip" "$src/*" | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "7z 打包失败，退出码 $LASTEXITCODE" }
+          }
+          else {
+            Compress-Archive -Path "$src/*" -DestinationPath $zip -CompressionLevel Optimal
+          }
+
+      - name: 构建安装包（Inno Setup）
+        shell: pwsh
+        env:
+          PACKAGE_NAME: ${{ steps.meta.outputs.package_name }}
+          RID: ${{ matrix.rid }}
+          APP_VERSION: ${{ steps.meta.outputs.version }}
+          APP_VERSION_NUMERIC: ${{ steps.meta.outputs.assembly_version }}
+          APP_ARCH: ${{ matrix.platform }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          # windows runner 预装了 Inno Setup，但不同镜像版本的 PATH 不一定带 iscc
+          $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) {
+            $iscc = @(
+              (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'),
+              (Join-Path $env:ProgramFiles 'Inno Setup 6\ISCC.exe')
+            ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          }
+          if (-not $iscc) {
+            Write-Host 'runner 未预装 Inno Setup，改用 Chocolatey 安装'
+            choco install innosetup -y --no-progress
+            $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          }
+          if (-not $iscc -or -not (Test-Path $iscc)) { throw '找不到 ISCC.exe，无法构建安装包' }
+          Write-Host "使用 $iscc"
+
+          $root = (Get-Location).Path
+          & $iscc `
+            "/DAppVersion=$($env:APP_VERSION)" `
+            "/DAppVersionNumeric=$($env:APP_VERSION_NUMERIC)" `
+            "/DAppArch=$($env:APP_ARCH)" `
+            "/DSourceDir=$root\publish\$($env:RID)" `
+            "/DOutputDir=$root\artifacts" `
+            "/DOutputName=$($env:PACKAGE_NAME)-Setup" `
+            "installer\DreamUnrealManager.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup 编译失败，退出码 $LASTEXITCODE" }
+
+      - name: 生成 SHA256 校验和
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = @(Get-ChildItem artifacts -File | Where-Object { $_.Extension -in '.zip', '.exe' })
+          if ($files.Count -eq 0) { throw 'artifacts 目录下没有可发布的产物' }
+          foreach ($f in $files) {
+            $hash = (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($f.Name)" | Set-Content -Path "$($f.FullName).sha256" -Encoding ascii
+            Write-Host ('{0,-52} {1,7:N1} MB  {2}' -f $f.Name, ($f.Length / 1MB), $hash)
+          }
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: DreamUnrealManager-${{ matrix.rid }}
+          path: artifacts/*
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: 创建 Release
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载全部构建产物
+        uses: actions/download-artifact@v4
+        with:
+          pattern: DreamUnrealManager-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: 发布到 GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          ls -lh artifacts
+
+          # 带 - 的标签（v1.2.3-beta.1）视为预发布
+          flags=()
+          if [[ "$TAG" == *-* ]]; then
+            flags+=(--prerelease)
+          fi
+
+          # 重跑同一个 tag 时覆盖已有资产，而不是直接失败
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            echo "Release $TAG 已存在，覆盖上传资产"
+            gh release upload "$TAG" artifacts/* --clobber --repo "$REPO"
+          else
+            gh release create "$TAG" artifacts/* \
+              --repo "$REPO" \
+              --title "Dream Unreal Manager $TAG" \
+              --generate-notes \
+              "${flags[@]}"
+          fi
