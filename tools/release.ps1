@@ -27,6 +27,14 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
+
+# 原样保留文件的 BOM 与换行，避免版本号改动引出整文件 diff
+function Write-TextPreservingBom([string] $Path, [string] $Content) {
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $hasBom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+    [System.IO.File]::WriteAllText($Path, $Content, [System.Text.UTF8Encoding]::new($hasBom))
+}
+
 Push-Location $repoRoot
 try {
     $Version = $Version.Trim().TrimStart('v')
@@ -50,13 +58,13 @@ try {
     if ($updated -eq $csprojText) {
         throw "未能在 $csproj 中找到 <Version> 节点"
     }
-    Set-Content -Path $csproj -Value $updated -NoNewline
+    Write-TextPreservingBom -Path (Resolve-Path $csproj) -Content $updated
 
     # README 顶部的版本徽章
     $readmeText = Get-Content $readme -Raw
     $badge = [regex]::Replace($readmeText, 'Version-[0-9][^-]*-22C55E', "Version-$Version-22C55E", 1)
     if ($badge -ne $readmeText) {
-        Set-Content -Path $readme -Value $badge -NoNewline
+        Write-TextPreservingBom -Path (Resolve-Path $readme) -Content $badge
     }
     else {
         Write-Warning "README 版本徽章未匹配，已跳过"
