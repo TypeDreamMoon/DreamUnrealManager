@@ -89,10 +89,14 @@ jobs:
           restore-keys: ${{ runner.os }}-nuget-
 
       - name: 还原依赖
+        # ReadyToRun 的 crossgen2 包只有在 restore 阶段就带上同样的属性时才会被拉下来，
+        # 否则后面 --no-restore 的 publish 会报 "a valid runtime package was not found"
         run: >
           dotnet restore ${{ env.PROJECT_PATH }}
           -r ${{ matrix.rid }}
           -p:Platform=${{ matrix.platform }}
+          -p:SelfContained=true
+          -p:PublishReadyToRun=true
 
       - name: 发布（self-contained）
         run: >
