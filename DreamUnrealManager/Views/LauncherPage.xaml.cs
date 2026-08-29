@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System.Collections.ObjectModel;
@@ -1393,12 +1393,15 @@ namespace DreamUnrealManager.Views
             {
                 if (sender is Image img)
                 {
-                    string path = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "UnrealIcon.png");
+                    // 必须用 BaseDirectory 而不是 GetCurrentDirectory()：工作目录不等于安装目录，
+                    // 文件选择器等操作都会改动它，占位图会在用户第一次选过文件之后失效。
+                    var path = Path.Combine(AppContext.BaseDirectory, "Assets", "UnrealIcon.png");
                     img.Source = new BitmapImage(new Uri(path));
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                AppLogService.Warn($"加载项目占位图失败: {ex.Message}", "Image");
             }
         }
 
