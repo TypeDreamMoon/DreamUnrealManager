@@ -186,5 +186,19 @@ public partial class App : Application
         await RepositoryService.LoadAsync();
 
         UiDispatcherService.Initialize(MainWindow);
+
+        // 用户再次双击图标 / 从命令行拉起时，把已有窗口带到前台，而不是开第二个进程。
+        Program.Redirected += OnInstanceRedirected;
+    }
+
+    private void OnInstanceRedirected(Microsoft.Windows.AppLifecycle.AppActivationArguments args)
+    {
+        MainWindow.DispatcherQueue.TryEnqueue(() =>
+        {
+            if (MainWindow is MainWindow window)
+            {
+                window.RestoreFromTray();
+            }
+        });
     }
 }

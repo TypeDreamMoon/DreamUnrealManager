@@ -25,6 +25,8 @@
         <PackageIcon>DreamUnrealManager.png</PackageIcon>
         <RepositoryUrl>https://github.com/typedreammoon/dreamunrealmanager</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
+        <!-- 关掉自动生成的 Main，改用 Program.cs：需要在建窗口之前做单实例重定向 -->
+        <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     </PropertyGroup>
     <ItemGroup>
         <Manifest Include="$(ApplicationManifest)"/>
