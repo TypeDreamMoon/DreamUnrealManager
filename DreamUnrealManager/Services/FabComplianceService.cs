@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -1051,7 +1051,7 @@ namespace DreamUnrealManager.Services
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true
-                };
+                }.UseUtf8Output();
 
                 proc = Process.Start(psi);
                 if (proc == null)

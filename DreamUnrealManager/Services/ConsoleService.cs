@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using DreamUnrealManager.Helpers;
 
 namespace DreamUnrealManager.Services
 {
@@ -49,6 +50,8 @@ namespace DreamUnrealManager.Services
                     },
                     EnableRaisingEvents = true
                 };
+
+                _proc.StartInfo.UseUtf8Output();
 
                 _proc.OutputDataReceived += (_, e) =>
                 {

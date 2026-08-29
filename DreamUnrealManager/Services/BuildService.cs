@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using DreamUnrealManager.Contracts.Services;
+using DreamUnrealManager.Helpers;
 
 namespace DreamUnrealManager.Services
 {
@@ -131,6 +132,9 @@ namespace DreamUnrealManager.Services
             IProgress<int>? percent,
             CancellationToken ct)
         {
+            // UBT / GenerateProjectFiles.bat 的输出按 UTF-8 解码，避免中文系统上日志乱码。
+            psi.UseUtf8Output();
+
             using var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
 
             var tcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);

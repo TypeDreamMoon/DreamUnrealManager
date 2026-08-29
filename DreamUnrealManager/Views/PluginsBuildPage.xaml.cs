@@ -1318,6 +1318,10 @@ namespace DreamUnrealManager.Views
                     EnableRaisingEvents = true
                 };
 
+                // RunUAT / AutomationTool 输出 UTF-8；不指定的话 .NET 会按控制台代码页解码，
+                // 中文系统上整份构建日志的中文都会变成乱码。
+                process.StartInfo.UseUtf8Output();
+
                 void OutputHandler(object? _, DataReceivedEventArgs e)
                 {
                     if (string.IsNullOrWhiteSpace(e.Data))
