@@ -1,4 +1,5 @@
-﻿using DreamUnrealManager.Activation;
+﻿using System.Reflection;
+using DreamUnrealManager.Activation;
 using DreamUnrealManager.Contracts.Services;
 using DreamUnrealManager.Core.Contracts.Services;
 using DreamUnrealManager.Core.Services;
@@ -116,14 +117,48 @@ public partial class App : Application
         }).Build();
 
         App.GetService<IAppNotificationService>().Initialize();
-        
+
         UnhandledException += App_UnhandledException;
+
+        // XAML 的 UnhandledException 只覆盖 UI 线程；后台线程与被丢弃的 Task 走另外两条通道，
+        // 三条都接上才能保证崩溃现场一定落到日志里。
+        AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+        AppLogService.Info($"应用启动，版本 {AppVersion}", "App");
+    }
+
+    /// <summary>程序集版本，形如 0.4.0。供日志与版本检查共用，避免各处各写一份解析逻辑。</summary>
+    public static string AppVersion
+    {
+        get
+        {
+            var version = Assembly.GetExecutingAssembly().GetName().Version;
+            return version == null
+                ? "0.0.0"
+                : $"{version.Major}.{version.Minor}.{version.Build}";
+        }
     }
 
     private void App_UnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
-        // TODO: Log and handle exceptions as appropriate.
-        // https://docs.microsoft.com/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.application.unhandledexception.
+        AppLogService.Error($"UI 线程未捕获异常: {e.Message}", e.Exception, "App");
+    }
+
+    private static void OnDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
+    {
+        AppLogService.Error(
+            $"后台线程未捕获异常 (IsTerminating={e.IsTerminating})",
+            e.ExceptionObject as Exception,
+            "App");
+    }
+
+    private static void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        AppLogService.Error("Task 未观察异常", e.Exception, "App");
+        // 标记为已观察：这类异常通常来自 fire-and-forget 的 UI 操作，
+        // 已经落盘就没必要再按进程级致命错误处理。
+        e.SetObserved();
     }
 
     protected async override void OnLaunched(LaunchActivatedEventArgs args)
