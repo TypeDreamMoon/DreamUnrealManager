@@ -148,6 +148,16 @@
                         </StackPanel>
                     </controls:SettingsCard>
 
+                    <controls:SettingsCard x:Name="FileAssociationSettingCard"
+                                           Description="把本程序加入 .uproject 的「打开方式」列表（不会抢占默认关联）"
+                                           Header="关联 .uproject 文件">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE8A5;" />
+                        </controls:SettingsCard.HeaderIcon>
+                        <ToggleSwitch x:Name="FileAssociationToggle"
+                                      Toggled="FileAssociationToggle_Toggled" />
+                    </controls:SettingsCard>
+
                     <controls:SettingsCard x:Name="CloseBehaviorSettingCard"
                                            Description="点击窗口关闭按钮时隐藏到系统托盘，可从托盘图标还原或退出"
                                            Header="关闭行为">

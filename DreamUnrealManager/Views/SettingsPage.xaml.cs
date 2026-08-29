@@ -64,6 +64,14 @@ namespace DreamUnrealManager.Views
                 CloseToBackgroundToggle.IsOn = SettingsService.Get(MainWindow.CloseToBackgroundKey, false);
             }
 
+            if (FileAssociationToggle != null)
+            {
+                // 以注册表实际状态为准，而不是另存一份设置——用户可能在系统里手动改过。
+                _suppressAssociationToggle = true;
+                FileAssociationToggle.IsOn = FileAssociationService.IsRegistered();
+                _suppressAssociationToggle = false;
+            }
+
             AutoDetectIdePaths();
             OnLoaded_SyncThemeSelection();
 
@@ -578,6 +586,41 @@ namespace DreamUnrealManager.Views
         {
             var tag = ((ComboBoxItem)RiderLauncherMethodComboBox.SelectedItem).Tag as string;
             SettingsService.Set("IDE.Rider.LaunchMethod", tag);
+        }
+
+        /// <summary>切换开关时用 _suppressAssociationToggle 屏蔽掉回滚赋值触发的二次回调。</summary>
+        private bool _suppressAssociationToggle;
+
+        private async void FileAssociationToggle_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (_suppressAssociationToggle || FileAssociationToggle == null)
+            {
+                return;
+            }
+
+            var wantRegistered = FileAssociationToggle.IsOn;
+            var ok = wantRegistered
+                ? FileAssociationService.Register(out var error)
+                : FileAssociationService.Unregister(out error);
+
+            if (ok)
+            {
+                return;
+            }
+
+            // 失败时把开关拨回真实状态，别让 UI 显示一个并不成立的结果。
+            _suppressAssociationToggle = true;
+            FileAssociationToggle.IsOn = !wantRegistered;
+            _suppressAssociationToggle = false;
+
+            var dialog = new ContentDialog
+            {
+                Title = wantRegistered ? "注册文件关联失败" : "移除文件关联失败",
+                Content = error ?? "未知错误",
+                CloseButtonText = "确定",
+                XamlRoot = XamlRoot
+            };
+            await dialog.ShowAsync();
         }
 
         private void CloseToBackgroundToggle_Toggled(object sender, RoutedEventArgs e)
