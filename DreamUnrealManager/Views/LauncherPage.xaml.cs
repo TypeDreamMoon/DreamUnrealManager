@@ -39,7 +39,7 @@ namespace DreamUnrealManager.Views
         private readonly IEngineSwitchService _engineSwitch;
         private readonly IDialogService _dialogs;
         private readonly IUnrealProjectService _uproj;
-        private ProjectRepositoryService Repository => App.RepositoryService!;
+        private IProjectRepositoryService Repository => App.RepositoryService;
         private List<ProjectInfo> LoadedProjects
         {
             get

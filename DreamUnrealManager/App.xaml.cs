@@ -50,11 +50,12 @@ public partial class App : Application
         set;
     }
 
-    public static ProjectRepositoryService RepositoryService
-    {
-        get;
-        set;
-    } = new();
+    /// <summary>
+    /// 项目仓库。原先这里是 <c>= new()</c>：类型初始化时先造一个孤儿实例，
+    /// 到 OnLaunched 才换成容器里的单例，中间任何一次访问拿到的都是另一份缓存，
+    /// 保存时会互相覆盖。改为始终走容器，保证全局只有一个实例。
+    /// </summary>
+    public static IProjectRepositoryService RepositoryService => GetService<IProjectRepositoryService>();
 
     public App()
     {
@@ -182,7 +183,6 @@ public partial class App : Application
         var opt = ThemeService.Load();
         ThemeService.ApplyToWindow(App.MainWindow, opt);
 
-        RepositoryService = (ProjectRepositoryService)App.GetService<IProjectRepositoryService>();
         await RepositoryService.LoadAsync();
 
         UiDispatcherService.Initialize(MainWindow);

@@ -42,6 +42,13 @@ namespace DreamUnrealManager.Services
         {
             var list = projects?.ToList() ?? new List<ProjectInfo>();
             await App.GetService<IProjectDataService>().SaveProjectsAsync(list);
+
+            // 关键：保存后必须同步缓存。传进来的若不是缓存自身那份 List，
+            // 缓存就会停留在旧内容，下一次 LoadAsync 因为 _isDataLoaded 为 true
+            // 直接返回旧数据，界面上表现为“保存了但改动没了”。
+            _loadedData = list;
+            _isDataLoaded = true;
+            OnPropertyChanged(nameof(LoadedData));
         }
 
         // 通过属性加载数据
