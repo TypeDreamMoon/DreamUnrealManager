@@ -17,7 +17,7 @@ namespace DreamUnrealManager.Services
             if (string.IsNullOrWhiteSpace(uprojectPath) || !File.Exists(uprojectPath))
                 return false;
 
-            var engine = await ResolveEngineForProjectAsync(uprojectPath, ct);
+            var engine = await ResolveEngineForProjectAsync(uprojectPath, null, ct);
             if (engine == null || !Directory.Exists(engine.EnginePath))
                 return false;
 
@@ -76,7 +76,7 @@ namespace DreamUnrealManager.Services
             if (string.IsNullOrWhiteSpace(uprojectPath) || !File.Exists(uprojectPath))
                 return false;
 
-            var engine = await ResolveEngineForProjectAsync(uprojectPath, ct);
+            var engine = await ResolveEngineForProjectAsync(uprojectPath, log, ct);
             if (engine == null || !Directory.Exists(engine.EnginePath))
                 return false;
 
@@ -198,7 +198,10 @@ namespace DreamUnrealManager.Services
 
 
         // 读取 .uproject 的 EngineAssociation，匹配到本机引擎。
-        private static async Task<Models.UnrealEngineInfo?> ResolveEngineForProjectAsync(string uprojectPath, CancellationToken ct)
+        private static async Task<Models.UnrealEngineInfo?> ResolveEngineForProjectAsync(
+            string uprojectPath,
+            IProgress<string>? log,
+            CancellationToken ct)
         {
             string? engineAssociation = null;
 
@@ -209,15 +212,21 @@ namespace DreamUnrealManager.Services
                 if (doc.RootElement.TryGetProperty("EngineAssociation", out var eng))
                     engineAssociation = eng.GetString();
             }
-            catch
+            catch (Exception ex)
             {
-                // ignore
+                Report(log, $"读取 {Path.GetFileName(uprojectPath)} 的 EngineAssociation 失败: {ex.Message}");
+                AppLogService.Warn($"读取 EngineAssociation 失败: {uprojectPath}", "Build");
             }
 
             var mgr = EngineManagerService.Instance;
             await mgr.LoadEngines(); // 直接 await（不需要 AsTask）
             var engines = mgr.GetValidEngines();
-            if (engines == null || !engines.Any()) return null;
+            if (engines == null || !engines.Any())
+            {
+                Report(log, "未找到任何有效的 Unreal Engine 安装，请先在“引擎管理”中添加。");
+                AppLogService.Warn("没有可用引擎", "Build");
+                return null;
+            }
 
             if (!string.IsNullOrWhiteSpace(engineAssociation))
             {
@@ -227,11 +236,33 @@ namespace DreamUnrealManager.Services
                 {
                     return resolved;
                 }
+
+                // 关键：项目明确写了 EngineAssociation 却匹配不上时必须失败退出。
+                // 原先这里会静默回退到“列表里第一个引擎”，等于拿一个用户根本没指定的
+                // 引擎版本去生成工程文件，产物是错的而用户毫不知情。
+                Report(log,
+                    $"项目指定的引擎版本 \"{engineAssociation}\" 未在本机找到，已中止。" +
+                    "请在“引擎管理”中添加该版本，或修改项目的引擎关联。");
+                AppLogService.Warn(
+                    $"EngineAssociation \"{engineAssociation}\" 无法解析，已中止: {uprojectPath}", "Build");
+                return null;
             }
 
-            // 回退：取第一个有效引擎
+            // EngineAssociation 为空是合法情况（例如未关联的纯蓝图项目），
+            // 此时回退到第一个有效引擎，但必须让用户知道用的是哪一个。
             var first = engines.FirstOrDefault(e => e.IsValid && Directory.Exists(e.EnginePath));
+            if (first != null)
+            {
+                Report(log, $"项目未指定引擎版本，使用 {first.DisplayName} ({first.EnginePath})。");
+                AppLogService.Info($"项目未指定引擎版本，回退到 {first.EnginePath}", "Build");
+            }
+
             return first;
+        }
+
+        private static void Report(IProgress<string>? log, string message)
+        {
+            log?.Report(message);
         }
 
         private static string BuildProjectFilesArguments(string uprojectPath, Models.UnrealEngineInfo engine)
