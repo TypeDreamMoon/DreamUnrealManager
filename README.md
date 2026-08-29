@@ -48,12 +48,12 @@ Dream Unreal Manager 是一个桌面端 Unreal Engine 管理器，当前聚焦�
 | 模块 | 说明 |
 | --- | --- |
 | Main | 首页入口、版本检查、收藏项目快捷启动 |
-| Launcher | 项目列表管理、搜索筛选、收藏、引擎切换、生成 VS 工程文件 |
+| Launcher | 项目列表管理、搜索筛选、收藏、引擎切换、生成 VS 工程文件、清理生成文件、查看日志与崩溃 |
 | Unreal Launcher | 引擎列表管理、自动检测、设置默认引擎、快速启动编辑器 |
 | Plugins Build | 选择 `.uplugin`、单/多引擎构建、平台配置、实时日志与问题统计 |
 | Fab Compliance | 依据 Fab《Technical Review Checklist》自动 + 人工检查插件上架合规性，支持一键清理生成目录与导出报告 |
 | Unreal Horde | 服务状态控制、事件日志查看、注册表配置管理 |
-| Settings | 默认 IDE、IDE 路径自动检测、主题、Acrylic 参数、关闭行为等 |
+| Settings | 默认 IDE、IDE 路径自动检测、主题、Acrylic 参数、关闭行为、构建通知、文件关联、配置导入导出 |
 | Fab | 内置 WebView2 页面入口 |
 
 ## Gallery
@@ -85,6 +85,27 @@ dotnet restore .\DreamUnrealManager.sln
 dotnet build .\DreamUnrealManager.sln -c Debug
 dotnet run --project .\DreamUnrealManager\DreamUnrealManager.csproj -c Debug -f net8.0-windows10.0.22000.0
 ```
+
+### 运行测试
+
+```powershell
+dotnet test .\DreamUnrealManager.sln -c Debug -p:Platform=x64
+```
+
+### 命令行用法
+
+```powershell
+# 在项目列表中定位指定项目
+DreamUnrealManager.exe "D:\Games\MyGame\MyGame.uproject"
+
+# 直接启动该项目的编辑器
+DreamUnrealManager.exe --launch "D:\Games\MyGame\MyGame.uproject"
+```
+
+命令行指定的项目若不在列表中会自动加入。设置页可以把程序注册进
+`.uproject` 的「打开方式」列表（不会抢占 UnrealVersionSelector 的默认关联）。
+
+程序为单实例运行：重复启动会把参数转交给已有窗口并将其带到前台。
 
 ## 发布流程
 
@@ -139,6 +160,11 @@ git push origin v0.3.2
 - `engines.json`：引擎列表与引擎信息
 - `projects.json`：项目列表
 - `projects_backup.json`：项目列表备份
+- `settings.json`：应用设置（主题、IDE 路径、各项开关）
+- `Logs/app-yyyyMMdd.log`：运行日志，按天滚动、保留 7 天；反馈问题时请附上
+- `Backup/before-import-*`：导入配置前自动生成的回退备份
+
+设置页「数据与诊断」可以把上述配置打包导出为 zip，或从 zip 导入恢复。
 
 ## 项目结构
 
@@ -148,6 +174,7 @@ DreamUnrealManager/
 ├─ installer/                   # Inno Setup 安装包脚本
 ├─ DreamUnrealManager/          # WinUI 主项目（Views / Services / ViewModels）
 ├─ DreamUnrealManager.Core/     # 核心公共库
+├─ DreamUnrealManager.Tests/    # 单元测试（xUnit，随 CI 一起跑）
 ├─ tools/release.ps1            # 版本号更新 + 打 tag 助手
 ├─ DreamUnrealManager.sln       # 解决方案
 └─ README.md                    # 当前说明文档
