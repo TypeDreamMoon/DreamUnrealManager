@@ -551,8 +551,9 @@ namespace DreamUnrealManager.Views
 
                 EngineFilterComboBox.SelectedIndex = 0;
             }
-            catch
+            catch (Exception ex)
             {
+                AppLogService.Error("构建引擎筛选项失败", ex, "Launcher");
             }
         }
 
@@ -565,8 +566,9 @@ namespace DreamUnrealManager.Views
                 if (FilterStatsText != null)
                     FilterStatsText.Text = total == filtered ? $"显示 {total} 个项目" : $"显示 {filtered} / {total} 个项目";
             }
-            catch
+            catch (Exception ex)
             {
+                AppLogService.Warn($"更新筛选统计失败: {ex.Message}", "Launcher");
             }
         }
 
@@ -598,8 +600,9 @@ namespace DreamUnrealManager.Views
                     ProjectsListView.Visibility = Visibility.Visible;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                AppLogService.Warn($"更新空状态显示失败: {ex.Message}", "Launcher");
             }
         }
 
@@ -1008,8 +1011,9 @@ namespace DreamUnrealManager.Views
                     if (Directory.Exists(p.ProjectDirectory))
                         Process.Start("explorer.exe", p.ProjectDirectory);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    AppLogService.Warn($"打开项目目录失败 ({p.ProjectDirectory}): {ex.Message}", "Launcher");
                 }
             };
 
@@ -1022,8 +1026,9 @@ namespace DreamUnrealManager.Views
                     dp.SetText(p.ProjectPath);
                     Clipboard.SetContent(dp);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    AppLogService.Warn($"复制项目路径到剪贴板失败: {ex.Message}", "Launcher");
                 }
             };
 
@@ -1257,8 +1262,9 @@ namespace DreamUnrealManager.Views
             {
                 project.RefreshThumbnail();
             }
-            catch
+            catch (Exception ex)
             {
+                AppLogService.Warn($"刷新项目缩略图失败 ({project.DisplayName}): {ex.Message}", "Launcher");
             }
         }
 

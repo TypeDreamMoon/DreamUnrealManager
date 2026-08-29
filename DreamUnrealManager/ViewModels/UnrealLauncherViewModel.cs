@@ -1,11 +1,13 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
 using System;
+using DreamUnrealManager.Helpers;
 using DreamUnrealManager.Models;
+using DreamUnrealManager.Services;
 
 namespace DreamUnrealManager.ViewModels
 {
@@ -93,12 +95,19 @@ namespace DreamUnrealManager.ViewModels
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(GetStorePath()) ?? string.Empty);
-                using var s = File.Create(GetStorePath());
-                await JsonSerializer.SerializeAsync(s, Engines.ToList(), new JsonSerializerOptions { WriteIndented = true });
+                var json = JsonSerializer.Serialize(Engines.ToList(),
+                    new JsonSerializerOptions { WriteIndented = true });
+
+                // 原来是 File.Create + SerializeAsync：写到一半崩溃/掉电就把 engines.json
+                // 截断成半截 JSON，引擎列表整个丢失。改走 AtomicFile，与项目列表一致。
+                await AtomicFile.WriteAllTextAsync(GetStorePath(), json);
             }
-            catch
+            catch (Exception ex)
             {
+                // 保存失败必须让用户知道：静默吞掉的话，用户以为配好了，
+                // 下次启动引擎列表却是空的。
+                AppLogService.Error("保存引擎列表失败", ex, "UnrealLauncher");
+                StatusText = $"保存引擎列表失败: {ex.Message}";
             }
         }
 
@@ -160,8 +169,10 @@ namespace DreamUnrealManager.ViewModels
                 {
                     e.RefreshVersionInfo();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    // 单个引擎读取失败不该中断整轮刷新，但要留下痕迹。
+                    AppLogService.Warn($"刷新引擎版本信息失败 ({e.EnginePath}): {ex.Message}", "UnrealLauncher");
                 }
             }
 
@@ -191,8 +202,10 @@ namespace DreamUnrealManager.ViewModels
                 var flagPath = Path.Combine(Path.GetDirectoryName(GetStorePath()) ?? string.Empty, "default.txt");
                 File.WriteAllText(flagPath, id);
             }
-            catch
+            catch (Exception ex)
             {
+                AppLogService.Error("写入默认引擎标记失败", ex, "UnrealLauncher");
+                StatusText = $"设置默认引擎失败: {ex.Message}";
             }
 
             // 也顺手把它置顶/更新时间

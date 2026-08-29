@@ -86,8 +86,9 @@ namespace DreamUnrealManager.Views
                 var path = ViewModel.GetStorePath();
                 Process.Start("explorer.exe", path);
             }
-            catch
+            catch (Exception ex)
             {
+                AppLogService.Warn($"打开配置文件位置失败: {ex.Message}", "UnrealLauncher");
             }
         }
 
@@ -99,8 +100,9 @@ namespace DreamUnrealManager.Views
                 {
                     Process.Start("explorer.exe", path);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    AppLogService.Warn($"打开引擎目录失败 ({path}): {ex.Message}", "UnrealLauncher");
                 }
             }
         }
@@ -116,8 +118,10 @@ namespace DreamUnrealManager.Views
                     Clipboard.SetContent(dp);
                     _ = ViewModel.ToastAsync("已复制引擎路径");
                 }
-                catch
+                catch (Exception ex)
                 {
+                    // 剪贴板可能被其他进程独占，属于常见的瞬时失败。
+                    AppLogService.Warn($"复制引擎路径到剪贴板失败: {ex.Message}", "UnrealLauncher");
                 }
             }
         }

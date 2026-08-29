@@ -179,8 +179,11 @@ namespace DreamUnrealManager.Services
                 {
                     if (!proc.HasExited) proc.Kill(true);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    // HasExited 与 Kill 之间进程可能刚好退出，这类竞态是预期内的；
+                    // 但仍要记下来，否则真正的"杀不掉"会完全无迹可寻。
+                    AppLogService.Debug($"终止构建进程时异常（可能已自行退出）: {ex.Message}", "Build");
                 }
 
                 tcs.TrySetCanceled(ct);
