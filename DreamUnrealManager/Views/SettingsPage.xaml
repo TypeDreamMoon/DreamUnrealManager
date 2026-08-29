@@ -148,6 +148,15 @@
                         </StackPanel>
                     </controls:SettingsCard>
 
+                    <controls:SettingsCard Description="插件构建结束时发送系统通知（窗口在前台时不打扰）"
+                                           Header="构建完成通知">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xEA8F;" />
+                        </controls:SettingsCard.HeaderIcon>
+                        <ToggleSwitch x:Name="BuildNotifyToggle"
+                                      Toggled="BuildNotifyToggle_Toggled" />
+                    </controls:SettingsCard>
+
                     <controls:SettingsCard x:Name="FileAssociationSettingCard"
                                            Description="把本程序加入 .uproject 的「打开方式」列表（不会抢占默认关联）"
                                            Header="关联 .uproject 文件">

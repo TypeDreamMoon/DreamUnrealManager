@@ -1103,6 +1103,12 @@ namespace DreamUnrealManager.Views
                     UpdateNavigationStatus(false, 0, "构建完成（含失败项）");
                     WriteToTerminal("=== 构建完成（含失败项）===", TerminalMessageType.Warning);
                 }
+
+                // 构建常常要十几分钟，用户多半已经切走做别的事了。
+                BuildNotificationService.NotifyBuildFinished(
+                    _currentPluginInfo?.FriendlyName ?? "插件",
+                    overallSuccess,
+                    overallSuccess ? null : $"{_errorCount} 个错误、{_warningCount} 个警告");
             }
             catch (OperationCanceledException)
             {
@@ -1115,6 +1121,10 @@ namespace DreamUnrealManager.Views
                 WriteToTerminal($"构建过程中发生错误: {ex.Message}", TerminalMessageType.Error);
                 UpdateNavigationStatus(false, 0, $"构建失败: {ex.Message}");
                 UpdateCurrentEngineInfo(null, "构建失败");
+                AppLogService.Error("插件构建失败", ex, "PluginsBuild");
+
+                BuildNotificationService.NotifyBuildFinished(
+                    _currentPluginInfo?.FriendlyName ?? "插件", success: false, detail: ex.Message);
             }
             finally
             {

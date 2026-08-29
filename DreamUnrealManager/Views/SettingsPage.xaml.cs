@@ -64,6 +64,11 @@ namespace DreamUnrealManager.Views
                 CloseToBackgroundToggle.IsOn = SettingsService.Get(MainWindow.CloseToBackgroundKey, false);
             }
 
+            if (BuildNotifyToggle != null)
+            {
+                BuildNotifyToggle.IsOn = BuildNotificationService.IsEnabled;
+            }
+
             if (FileAssociationToggle != null)
             {
                 // 以注册表实际状态为准，而不是另存一份设置——用户可能在系统里手动改过。
@@ -693,6 +698,11 @@ namespace DreamUnrealManager.Views
         {
             var tag = ((ComboBoxItem)RiderLauncherMethodComboBox.SelectedItem).Tag as string;
             SettingsService.Set("IDE.Rider.LaunchMethod", tag);
+        }
+
+        private void BuildNotifyToggle_Toggled(object sender, RoutedEventArgs e)
+        {
+            SettingsService.Set(BuildNotificationService.EnabledKey, BuildNotifyToggle?.IsOn == true);
         }
 
         /// <summary>切换开关时用 _suppressAssociationToggle 屏蔽掉回滚赋值触发的二次回调。</summary>
