@@ -224,6 +224,82 @@
 
                 </StackPanel>
 
+                <!-- ===================== 数据与诊断 ===================== -->
+                <TextBlock Text="数据与诊断"
+                           Style="{StaticResource SubtitleTextBlockStyle}" />
+
+                <StackPanel Spacing="4">
+
+                    <controls:SettingsCard Description="把项目列表、引擎列表与全部设置打包为 zip，便于备份或迁移到另一台机器"
+                                           Header="导出配置"
+                                           IsClickEnabled="True"
+                                           Click="ExportConfigCard_Click">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xEDE1;" />
+                        </controls:SettingsCard.HeaderIcon>
+                        <TextBlock Text="导出..."
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </controls:SettingsCard>
+
+                    <controls:SettingsCard Description="从 zip 恢复配置。导入会覆盖现有配置，覆盖前会自动备份一份"
+                                           Header="导入配置"
+                                           IsClickEnabled="True"
+                                           Click="ImportConfigCard_Click">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE8B5;" />
+                        </controls:SettingsCard.HeaderIcon>
+                        <TextBlock Text="导入..."
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </controls:SettingsCard>
+
+                    <controls:SettingsCard Description="程序运行日志，反馈问题时请附上"
+                                           Header="日志目录"
+                                           IsClickEnabled="True"
+                                           Click="OpenLogFolderCard_Click">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE9F9;" />
+                        </controls:SettingsCard.HeaderIcon>
+                        <TextBlock Text="查看"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </controls:SettingsCard>
+
+                </StackPanel>
+
+                <!-- ===================== 关于 ===================== -->
+                <TextBlock Text="关于"
+                           Style="{StaticResource SubtitleTextBlockStyle}" />
+
+                <StackPanel Spacing="4">
+
+                    <controls:SettingsExpander Header="Dream Unreal Manager"
+                                               Description="{x:Bind ViewModel.VersionDescription}">
+                        <controls:SettingsExpander.HeaderIcon>
+                            <BitmapIcon UriSource="ms-appx:///Assets/DreamUnrealManager.png"
+                                        ShowAsMonochrome="False" />
+                        </controls:SettingsExpander.HeaderIcon>
+                        <controls:SettingsExpander.Items>
+                            <controls:SettingsCard HorizontalContentAlignment="Left"
+                                                   ContentAlignment="Left">
+                                <StackPanel Spacing="8"
+                                            Margin="0,8,0,8">
+                                    <TextBlock Text="一个基于 WinUI 3 的 Unreal Engine 工具箱"
+                                               TextWrapping="Wrap"
+                                               Style="{StaticResource BodyTextBlockStyle}" />
+                                    <HyperlinkButton Content="项目主页 / 反馈问题"
+                                                     NavigateUri="https://github.com/TypeDreamMoon/DreamUnrealManager" />
+                                    <TextBlock Text="Copyright (C) Dream Moon. All Rights Reserved."
+                                               Style="{StaticResource CaptionTextBlockStyle}"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </controls:SettingsCard>
+                        </controls:SettingsExpander.Items>
+                    </controls:SettingsExpander>
+
+                </StackPanel>
+
             </StackPanel>
         </ScrollViewer>
     </Grid>

@@ -505,6 +505,113 @@ namespace DreamUnrealManager.Views
             return string.Empty;
         }
 
+        private async void ExportConfigCard_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+                var target = Win32DialogHelper.SaveFile(
+                    hwnd, "导出配置", "Zip 压缩包 (*.zip)|*.zip", ConfigBackupService.SuggestFileName());
+
+                if (string.IsNullOrWhiteSpace(target))
+                {
+                    return;
+                }
+
+                var result = await ConfigBackupService.ExportAsync(target);
+                await ShowResultAsync(
+                    result.Success ? "导出完成" : "导出失败",
+                    result.Success
+                        ? $"已导出 {result.Files.Count} 个配置文件到:{Environment.NewLine}{target}"
+                        : result.Error ?? "未知错误");
+            }
+            catch (Exception ex)
+            {
+                AppLogService.Error("导出配置失败", ex, "Settings");
+                await ShowResultAsync("导出失败", ex.Message);
+            }
+        }
+
+        private async void ImportConfigCard_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+                var source = Win32DialogHelper.PickSingleFile(
+                    hwnd, "选择配置备份", "Zip 压缩包 (*.zip)|*.zip");
+
+                if (string.IsNullOrWhiteSpace(source))
+                {
+                    return;
+                }
+
+                // 导入是覆盖操作，必须先确认。
+                var confirm = new ContentDialog
+                {
+                    Title = "确认导入",
+                    Content = new TextBlock
+                    {
+                        Text = "导入会覆盖当前的项目列表、引擎列表与设置。" + Environment.NewLine +
+                               "覆盖前会自动在配置目录下备份一份现有配置。" + Environment.NewLine + Environment.NewLine +
+                               "导入完成后需要重启程序才能生效。",
+                        TextWrapping = TextWrapping.Wrap
+                    },
+                    PrimaryButtonText = "确认导入",
+                    CloseButtonText = "取消",
+                    DefaultButton = ContentDialogButton.Close,
+                    XamlRoot = XamlRoot
+                };
+
+                if (await confirm.ShowAsync() != ContentDialogResult.Primary)
+                {
+                    return;
+                }
+
+                var result = await ConfigBackupService.ImportAsync(source);
+                await ShowResultAsync(
+                    result.Success ? "导入完成" : "导入失败",
+                    result.Success
+                        ? $"已导入 {result.Files.Count} 个配置文件：{string.Join("、", result.Files)}" +
+                          Environment.NewLine + Environment.NewLine + "请重启程序使配置生效。"
+                        : result.Error ?? "未知错误");
+            }
+            catch (Exception ex)
+            {
+                AppLogService.Error("导入配置失败", ex, "Settings");
+                await ShowResultAsync("导入失败", ex.Message);
+            }
+        }
+
+        private void OpenLogFolderCard_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Directory.CreateDirectory(AppLogService.Directory);
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = AppLogService.Directory,
+                    UseShellExecute = true,
+                    Verb = "open"
+                });
+            }
+            catch (Exception ex)
+            {
+                AppLogService.Error("打开日志目录失败", ex, "Settings");
+            }
+        }
+
+        private async Task ShowResultAsync(string title, string message)
+        {
+            var dialog = new ContentDialog
+            {
+                Title = title,
+                Content = new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap },
+                CloseButtonText = "确定",
+                XamlRoot = XamlRoot
+            };
+            await dialog.ShowAsync();
+        }
+
         private void OpenConfigFolderButton_Click(object sender, RoutedEventArgs e)
         {
             try
