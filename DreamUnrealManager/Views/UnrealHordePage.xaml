@@ -1,4 +1,4 @@
-<Page
+﻿<Page
     x:Class="DreamUnrealManager.Views.UnrealHordePage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -307,7 +307,7 @@
                                                         HorizontalAlignment="Right"
                                                         Tag="{x:Bind}"
                                                         Click="EditRegistryValue_Click"
-                                                        Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                        Visibility="{x:Bind CanEdit, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                             </Grid>
                                         </Grid>
                                     </Border>
