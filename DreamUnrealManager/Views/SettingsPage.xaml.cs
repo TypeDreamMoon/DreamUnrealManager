@@ -61,7 +61,7 @@ namespace DreamUnrealManager.Views
             UpdateIdePathUI();
             if (CloseToBackgroundToggle != null)
             {
-                CloseToBackgroundToggle.IsOn = SettingsService.Get("App.CloseToBackground", false);
+                CloseToBackgroundToggle.IsOn = SettingsService.Get(MainWindow.CloseToBackgroundKey, false);
             }
 
             AutoDetectIdePaths();
@@ -582,7 +582,13 @@ namespace DreamUnrealManager.Views
 
         private void CloseToBackgroundToggle_Toggled(object sender, RoutedEventArgs e)
         {
-            SettingsService.Set("App.CloseToBackground", CloseToBackgroundToggle?.IsOn == true);
+            SettingsService.Set(MainWindow.CloseToBackgroundKey, CloseToBackgroundToggle?.IsOn == true);
+
+            // 立即同步托盘图标：关掉开关却留着托盘图标会让用户以为程序还在后台跑。
+            if (App.MainWindow is MainWindow window)
+            {
+                window.SyncTrayIcon();
+            }
         }
     }
 

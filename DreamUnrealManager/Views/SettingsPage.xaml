@@ -1,4 +1,4 @@
-<Page
+﻿<Page
     x:Class="DreamUnrealManager.Views.SettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -149,7 +149,7 @@
                     </controls:SettingsCard>
 
                     <controls:SettingsCard x:Name="CloseBehaviorSettingCard"
-                                           Description="点击窗口关闭按钮时最小化到后台，不直接退出"
+                                           Description="点击窗口关闭按钮时隐藏到系统托盘，可从托盘图标还原或退出"
                                            Header="关闭行为">
                         <controls:SettingsCard.HeaderIcon>
                             <FontIcon Glyph="&#xE8BB;" />
