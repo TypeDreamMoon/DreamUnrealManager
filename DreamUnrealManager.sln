@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DreamUnrealManager", "Dream
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DreamUnrealManager.Core", "DreamUnrealManager.Core\DreamUnrealManager.Core.csproj", "{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DreamUnrealManager.Tests", "DreamUnrealManager.Tests\DreamUnrealManager.Tests.csproj", "{7B2C4E19-3A5D-4F81-9C6E-1D0A8F3B5E42}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|arm64 = Debug|arm64
@@ -47,6 +49,18 @@ Global
 		{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}.Release|x64.Build.0 = Release|x64
 		{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}.Release|x86.ActiveCfg = Release|x86
 		{C1122F60-17CB-308A-FD60-2CC9E3B8F8F0}.Release|x86.Build.0 = Release|x86
+		{7B2C4E19-3A5D-4F81-9C6E-1D0A8F3B5E42}.Debug|arm64.ActiveCfg = Debug|arm64
+		{7B2C4E19-3A5D-4F81-9C6E-1D0A8F3B5E42}.Debug|arm64.Build.0 = Debug|arm64
+		{7B2C4E19-3A5D-4F81-9C6E-1D0A8F3B5E42}.Debug|x64.ActiveCfg = Debug|x64
+		{7B2C4E19-3A5D-4F81-9C6E-1D0A8F3B5E42}.Debug|x64.Build.0 = Debug|x64
+		{7B2C4E19-3A5D-4F81-9C6E-1D0A8F3B5E42}.Debug|x86.ActiveCfg = Debug|x86
+		{7B2C4E19-3A5D-4F81-9C6E-1D0A8F3B5E42}.Debug|x86.Build.0 = Debug|x86
+		{7B2C4E19-3A5D-4F81-9C6E-1D0A8F3B5E42}.Release|arm64.ActiveCfg = Release|arm64
+		{7B2C4E19-3A5D-4F81-9C6E-1D0A8F3B5E42}.Release|arm64.Build.0 = Release|arm64
+		{7B2C4E19-3A5D-4F81-9C6E-1D0A8F3B5E42}.Release|x64.ActiveCfg = Release|x64
+		{7B2C4E19-3A5D-4F81-9C6E-1D0A8F3B5E42}.Release|x64.Build.0 = Release|x64
+		{7B2C4E19-3A5D-4F81-9C6E-1D0A8F3B5E42}.Release|x86.ActiveCfg = Release|x86
+		{7B2C4E19-3A5D-4F81-9C6E-1D0A8F3B5E42}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

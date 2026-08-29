@@ -63,43 +63,8 @@ public partial class App : Application
 
         Host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder().UseContentRoot(AppContext.BaseDirectory).ConfigureServices((context, services) =>
         {
-            // Default Activation Handler
-            services.AddTransient<ActivationHandler<LaunchActivatedEventArgs>, DefaultActivationHandler>();
-
-            // Other Activation Handlers
-            services.AddTransient<IActivationHandler, AppNotificationActivationHandler>();
-
-            // Services
-            services.AddSingleton<IAppNotificationService, AppNotificationService>();
-            services.AddSingleton<IThemeSelectorService, ThemeSelectorService>();
-            services.AddTransient<INavigationViewService, NavigationViewService>();
-
-            services.AddSingleton<IActivationService, ActivationService>();
-            services.AddSingleton<IPageService, PageService>();
-            services.AddSingleton<INavigationService, NavigationService>();
-
-            services.AddSingleton<IDialogService, DialogService>();
-
-            services.AddSingleton<IEngineManagerService>(_ => EngineManagerService.Instance);
-            services.AddSingleton<IEngineResolverService, EngineResolverService>();
-            services.AddSingleton<IBuildService, BuildService>();
-            services.AddSingleton<IProjectRepositoryService, ProjectRepositoryService>();
-            services.AddSingleton<IUnrealProjectService, UnrealProjectService>();
-            services.AddSingleton<IVersionCheckService, VersionCheckService>();
-
-            // 以下服务此前只定义了接口却从未注册，各页面只能自己 new，
-            // 既绕开了单例语义，也让依赖关系无法在一处看清。
-            services.AddSingleton<IIdeLauncherService, IdeLauncherService>();
-            services.AddSingleton<IProjectFilterService, ProjectFilterService>();
-            services.AddSingleton<IEngineSwitchService, EngineSwitchService>();
-            services.AddSingleton<IEditorLaunchService, EditorLaunchService>();
-            services.AddSingleton<IProjectFactoryService, ProjectFactoryService>();
-            services.AddSingleton<IProjectSearchService, ProjectSearchService>();
-
-            services.AddTransient<IProjectDataService, ProjectDataService>();
-
-            // Core Services
-            services.AddSingleton<IFileService, FileService>();
+            // 服务与激活处理器的注册统一放在 ServiceRegistration，测试会遍历同一份清单验证可解析性。
+            services.AddAppServices();
 
             // Views and ViewModels
             services.AddTransient<SettingsViewModel>();

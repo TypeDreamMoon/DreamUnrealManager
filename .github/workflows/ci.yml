@@ -1,4 +1,4 @@
-name: CI
+﻿name: CI
 
 # 日常构建校验：main 分支与 PR 上跑一次 Release 构建，尽早暴露编译 / XAML 错误。
 on:
@@ -50,3 +50,14 @@ jobs:
 
       - name: 构建
         run: dotnet build ${{ env.SOLUTION_PATH }} -c Release -p:Platform=x64 --no-restore
+
+      - name: 单元测试
+        run: dotnet test ${{ env.SOLUTION_PATH }} -c Release -p:Platform=x64 --no-build --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
+
+      - name: 上传测试结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/
+          if-no-files-found: ignore
