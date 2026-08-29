@@ -18,6 +18,9 @@ namespace DreamUnrealManager.Views
     {
         private CancellationTokenSource? _buildCancellationTokenSource;
         private bool _isBuildInProgress = false;
+
+        /// <summary>用户已确认过“构建中离开”，放行下一次导航，避免确认弹窗自我循环。</summary>
+        private bool _leavingConfirmed;
         private Process? _currentProcess;
         private readonly EngineManagerService _engineManager;
         private PluginInfo? _currentPluginInfo;
@@ -41,6 +44,76 @@ namespace DreamUnrealManager.Views
 
         private static readonly System.Text.RegularExpressions.Regex BuildActionProgressRegex =
             new(@"\[(\d+)\/(\d+)\]", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        /// <summary>
+        /// 构建期间离开页面会让构建失去 UI 归属：页面是 Transient 注册的，
+        /// 回来时是一个新实例，日志、进度、取消按钮全都接不回去，进程却还在跑。
+        /// 这里先拦下导航，问过用户之后再决定是终止构建还是留在本页。
+        /// </summary>
+        protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
+        {
+            base.OnNavigatingFrom(e);
+
+            if (!_isBuildInProgress || _leavingConfirmed)
+            {
+                return;
+            }
+
+            e.Cancel = true;
+
+            var targetPageType = e.SourcePageType;
+            var mode = e.NavigationMode;
+
+            _ = ConfirmLeaveDuringBuildAsync(targetPageType, mode);
+        }
+
+        private async Task ConfirmLeaveDuringBuildAsync(Type targetPageType, NavigationMode mode)
+        {
+            try
+            {
+                var dialog = new ContentDialog
+                {
+                    Title = "构建仍在进行",
+                    Content = "离开本页会失去构建日志与进度显示，但构建进程仍会继续。" +
+                              Environment.NewLine +
+                              "建议先终止构建再离开。",
+                    PrimaryButtonText = "终止构建并离开",
+                    SecondaryButtonText = "保留构建并离开",
+                    CloseButtonText = "留在本页",
+                    DefaultButton = ContentDialogButton.Close,
+                    XamlRoot = XamlRoot
+                };
+
+                var result = await dialog.ShowAsync();
+                if (result == ContentDialogResult.None)
+                {
+                    return;
+                }
+
+                if (result == ContentDialogResult.Primary)
+                {
+                    StopBuild_Click(this, new RoutedEventArgs());
+                }
+
+                // 放行本次导航：再次触发 OnNavigatingFrom 时直接跳过确认。
+                _leavingConfirmed = true;
+                if (mode == NavigationMode.Back)
+                {
+                    if (Frame.CanGoBack)
+                    {
+                        Frame.GoBack();
+                    }
+                }
+                else if (targetPageType != null)
+                {
+                    Frame.Navigate(targetPageType);
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLogService.Error("构建中离开页面的确认流程异常", ex, "PluginsBuild");
+            }
+        }
 
         private void RunOnUiThread(Action action)
         {
@@ -1275,6 +1348,10 @@ namespace DreamUnrealManager.Views
                 }
 
                 _currentProcess = process;
+
+                // 挂到 Job Object：应用崩溃或被强杀时，内核负责连带终止整棵构建进程树。
+                ProcessJobService.Track(process);
+
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
 
@@ -1554,8 +1631,10 @@ namespace DreamUnrealManager.Views
 
                     if (_currentProcess != null && !_currentProcess.HasExited)
                     {
-                        _currentProcess.Kill();
-                        WriteToTerminal("正在强制终止构建进程...", TerminalMessageType.Warning);
+                        // 必须是 Kill(true)：RunUAT 只是个壳，真正干活的 cl.exe / link.exe
+                        // 都是它的子孙进程，非递归 Kill 会把它们留成孤儿。
+                        _currentProcess.Kill(entireProcessTree: true);
+                        WriteToTerminal("正在强制终止构建进程树...", TerminalMessageType.Warning);
                     }
 
                     WriteToTerminal("正在取消构建...", TerminalMessageType.Warning);
