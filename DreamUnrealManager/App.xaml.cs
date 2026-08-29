@@ -84,6 +84,7 @@ public partial class App : Application
             services.AddSingleton<IBuildService, BuildService>();
             services.AddSingleton<IProjectRepositoryService, ProjectRepositoryService>();
             services.AddSingleton<IUnrealProjectService, UnrealProjectService>();
+            services.AddSingleton<IVersionCheckService, VersionCheckService>();
 
             services.AddTransient<IProjectDataService, ProjectDataService>();
 

@@ -1,6 +1,5 @@
 ﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Reflection;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.DataTransfer;
 using CommunityToolkit.WinUI.Controls;
@@ -15,7 +14,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using Newtonsoft.Json.Linq;
 
 namespace DreamUnrealManager.Views;
 
@@ -27,6 +25,7 @@ public sealed partial class MainPage : Page
     private readonly IIdeLauncherService _ide;
     private readonly IDialogService _dialogs;
     private readonly IUnrealProjectService _uproj;
+    private readonly IVersionCheckService _versionCheck;
 
     public ObservableCollection<ProjectInfo> FavoritesProjects
     {
@@ -51,6 +50,7 @@ public sealed partial class MainPage : Page
         _ide = new IdeLauncherService();
         _dialogs = new DialogService();
         _uproj = new UnrealProjectService();
+        _versionCheck = App.GetService<IVersionCheckService>();
 
 
         InitializeComponent();
@@ -63,23 +63,50 @@ public sealed partial class MainPage : Page
 
     private async void MainPage_Loaded(object sender, RoutedEventArgs e)
     {
-        await CheckVersion();
-    }
-
-    private async Task CheckVersion()
-    {
+        // async void 事件处理器：异常一旦逃逸就是进程级崩溃，必须自己兜住。
         try
         {
-            var appVersion = GetAppVersion();
-            CurrentVersionTextBlock.Text = $"当前版本: {appVersion}";
-            var githubRelease = await GetLatestGithubRelease("TypeDreamMoon", "DreamUnrealManager");
-            GithubVersionTextBlock.Text = $"最新版本: {githubRelease}";
-            NewVersionHyperLinkButton.Visibility = githubRelease != appVersion ? Visibility.Visible : Visibility.Collapsed;
+            await CheckVersionAsync();
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex);
-            throw;
+            AppLogService.Error("首页版本检查失败", ex, "MainPage");
+        }
+    }
+
+    private async Task CheckVersionAsync()
+    {
+        CurrentVersionTextBlock.Text = $"当前版本: v{App.AppVersion}";
+        GithubVersionTextBlock.Text = "正在检查...";
+        NewVersionHyperLinkButton.Visibility = Visibility.Collapsed;
+
+        var result = await _versionCheck.CheckAsync();
+
+        switch (result.Status)
+        {
+            case UpdateCheckStatus.UpdateAvailable:
+                GithubVersionTextBlock.Text = $"最新版本: v{result.LatestVersion}";
+                NewVersionHyperLinkButton.Visibility = Visibility.Visible;
+                if (!string.IsNullOrWhiteSpace(result.ReleaseUrl))
+                {
+                    NewVersionHyperLinkButton.NavigateUri = new Uri(result.ReleaseUrl);
+                }
+
+                break;
+
+            case UpdateCheckStatus.UpToDate:
+                GithubVersionTextBlock.Text = "已是最新版本";
+                break;
+
+            case UpdateCheckStatus.Ahead:
+                // 本地开发构建比已发布版本新，属正常情况，不该提示“有更新”。
+                GithubVersionTextBlock.Text = $"本机版本领先于已发布版本 (v{result.LatestVersion})";
+                break;
+
+            default:
+                // 关键：检查失败绝不能走到“发现新版本”分支。
+                GithubVersionTextBlock.Text = $"检查更新失败: {result.Error}";
+                break;
         }
     }
 
@@ -138,39 +165,4 @@ public sealed partial class MainPage : Page
         if (sender is Button item && item.Tag is ProjectInfo p) await _ide.LaunchAsync(p);
     }
 
-    public string GetAppVersion()
-    {
-        var version = Assembly.GetExecutingAssembly().GetName().Version;
-        if (version == null)
-        {
-            return "v0.0.0";
-        }
-
-        return $"v{version.Major}.{version.Minor}.{version.Build}";
-    }
-
-    public async Task<string> GetLatestGithubRelease(string owner, string repo)
-    {
-        try
-        {
-            var client = new HttpClient();
-            client.DefaultRequestHeaders.Add("User-Agent", "request"); // GitHub API requires a User-Agent header
-
-            // GitHub API 地址
-            var url = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";
-
-            // 获取响应
-            var response = await client.GetStringAsync(url);
-
-            // 解析 JSON 响应
-            var releaseData = JObject.Parse(response);
-            var latestVersion = releaseData["tag_name"]?.ToString(); // 获取最新的版本号
-
-            return latestVersion ?? "无法获取最新版本";
-        }
-        catch (Exception ex)
-        {
-            return $"获取GitHub发布版本失败: {ex.Message}";
-        }
-    }
 }
