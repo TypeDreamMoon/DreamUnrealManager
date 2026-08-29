@@ -13,6 +13,9 @@ namespace DreamUnrealManager.Services
 {
     public sealed class BuildService : IBuildService
     {
+        // 解析器无状态，复用一份即可；原先每解析一个项目就 new 一次。
+        private static readonly EngineResolverService Resolver = new();
+
         public async Task<bool> GenerateProjectFilesAsync(string uprojectPath, CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(uprojectPath) || !File.Exists(uprojectPath))
@@ -234,8 +237,7 @@ namespace DreamUnrealManager.Services
 
             if (!string.IsNullOrWhiteSpace(engineAssociation))
             {
-                var resolver = new EngineResolverService();
-                var resolved = await resolver.ResolveAsync(engineAssociation, ct).ConfigureAwait(false);
+                var resolved = await Resolver.ResolveAsync(engineAssociation, ct).ConfigureAwait(false);
                 if (resolved != null && Directory.Exists(resolved.EnginePath))
                 {
                     return resolved;

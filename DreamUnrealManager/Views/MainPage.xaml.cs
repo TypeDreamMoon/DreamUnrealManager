@@ -45,11 +45,11 @@ public sealed partial class MainPage : Page
         ViewModel = App.GetService<MainViewModel>();
 
         _repo = App.GetService<IProjectRepositoryService>();
-        _projectFilterService = new ProjectFilterService();
-        _build = new BuildService();
-        _ide = new IdeLauncherService();
-        _dialogs = new DialogService();
-        _uproj = new UnrealProjectService();
+        _projectFilterService = App.GetService<IProjectFilterService>();
+        _build = App.GetService<IBuildService>();
+        _ide = App.GetService<IIdeLauncherService>();
+        _dialogs = App.GetService<IDialogService>();
+        _uproj = App.GetService<IUnrealProjectService>();
         _versionCheck = App.GetService<IVersionCheckService>();
 
 

@@ -14,7 +14,7 @@ namespace DreamUnrealManager.Views
     public sealed partial class UnrealLauncherPage : Page
     {
         private readonly IEditorLaunchService _editorLaunchService =
-            new EditorLaunchService(new DialogService());
+            App.GetService<IEditorLaunchService>();
         
         public UnrealLauncherViewModel ViewModel => (UnrealLauncherViewModel)DataContext;
 

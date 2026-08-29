@@ -6,11 +6,11 @@ namespace DreamUnrealManager.Services
 {
     public sealed class UnrealProjectService : IUnrealProjectService
     {
-        private IDialogService _dlg;
+        private readonly IDialogService _dlg;
 
-        public UnrealProjectService()
+        public UnrealProjectService(IDialogService dialogService)
         {
-            _dlg = new DialogService();
+            _dlg = dialogService;
         }
 
         public async Task LaunchProject(ProjectInfo project)

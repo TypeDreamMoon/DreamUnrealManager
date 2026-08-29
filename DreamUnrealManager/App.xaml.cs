@@ -86,6 +86,15 @@ public partial class App : Application
             services.AddSingleton<IUnrealProjectService, UnrealProjectService>();
             services.AddSingleton<IVersionCheckService, VersionCheckService>();
 
+            // 以下服务此前只定义了接口却从未注册，各页面只能自己 new，
+            // 既绕开了单例语义，也让依赖关系无法在一处看清。
+            services.AddSingleton<IIdeLauncherService, IdeLauncherService>();
+            services.AddSingleton<IProjectFilterService, ProjectFilterService>();
+            services.AddSingleton<IEngineSwitchService, EngineSwitchService>();
+            services.AddSingleton<IEditorLaunchService, EditorLaunchService>();
+            services.AddSingleton<IProjectFactoryService, ProjectFactoryService>();
+            services.AddSingleton<IProjectSearchService, ProjectSearchService>();
+
             services.AddTransient<IProjectDataService, ProjectDataService>();
 
             // Core Services

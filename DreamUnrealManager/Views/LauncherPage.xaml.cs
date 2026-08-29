@@ -62,15 +62,15 @@ namespace DreamUnrealManager.Views
 
         public LauncherPage()
         {
-            // 先初始化服务（避免 XAML 初始化期间触发的事件用到空引用）
-            _filterService = new ProjectFilterService();
-            _factoryService = new ProjectFactoryService(new EngineResolverService());
-            _search = new ProjectSearchService(_factoryService);
-            _build = new BuildService();
-            _ide = new IdeLauncherService();
-            _engineSwitch = new EngineSwitchService();
-            _dialogs = new DialogService();
-            _uproj = new UnrealProjectService();
+            // 先解析服务（避免 XAML 初始化期间触发的事件用到空引用）
+            _filterService = App.GetService<IProjectFilterService>();
+            _factoryService = App.GetService<IProjectFactoryService>();
+            _search = App.GetService<IProjectSearchService>();
+            _build = App.GetService<IBuildService>();
+            _ide = App.GetService<IIdeLauncherService>();
+            _engineSwitch = App.GetService<IEngineSwitchService>();
+            _dialogs = App.GetService<IDialogService>();
+            _uproj = App.GetService<IUnrealProjectService>();
 
             InitializeComponent(); // 再加载 XAML
             NavigationCacheMode = NavigationCacheMode.Required; // 缓存页面实例，避免每次导航重建/重扫
