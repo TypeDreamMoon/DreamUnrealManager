@@ -45,14 +45,18 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
           restore-keys: ${{ runner.os }}-nuget-
 
+      # csproj 里的 PublishProfile 会让 Release 构建启用 ReadyToRun，而 R2R 需要
+      # crossgen2 运行时包——它只有在 restore 阶段带上同样属性并指定 RID 时才会被拉下来，
+      # 否则报 NETSDK1094。CI 只做编译与测试校验，产物由 release.yml 单独构建，
+      # 这里直接关掉 R2R：既避开该问题，也省掉一段可观的构建时间。
       - name: 还原依赖
-        run: dotnet restore ${{ env.SOLUTION_PATH }} -p:Platform=x64
+        run: dotnet restore ${{ env.SOLUTION_PATH }} -p:Platform=x64 -p:PublishReadyToRun=false
 
       - name: 构建
-        run: dotnet build ${{ env.SOLUTION_PATH }} -c Release -p:Platform=x64 --no-restore
+        run: dotnet build ${{ env.SOLUTION_PATH }} -c Release -p:Platform=x64 --no-restore -p:PublishReadyToRun=false
 
       - name: 单元测试
-        run: dotnet test ${{ env.SOLUTION_PATH }} -c Release -p:Platform=x64 --no-build --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
+        run: dotnet test ${{ env.SOLUTION_PATH }} -c Release -p:Platform=x64 --no-build -p:PublishReadyToRun=false --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
 
       - name: 上传测试结果
         if: always()
