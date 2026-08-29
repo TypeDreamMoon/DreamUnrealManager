@@ -32,6 +32,10 @@
         <Manifest Include="$(ApplicationManifest)"/>
     </ItemGroup>
     <ItemGroup>
+        <!-- 清理服务的安全边界判断是 internal，测试需要直接调用它 -->
+        <InternalsVisibleTo Include="DreamUnrealManager.Tests"/>
+    </ItemGroup>
+    <ItemGroup>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0"/>
         <PackageReference Include="CommunityToolkit.WinUI.Controls.Primitives" Version="8.2.250402"/>
         <PackageReference Include="CommunityToolkit.WinUI.Controls.Segmented" Version="8.2.250402"/>

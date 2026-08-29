@@ -1158,6 +1158,25 @@ namespace DreamUnrealManager.Views
             if (sender is MenuFlyoutItem item && item.Tag is ProjectInfo p) RefreshProject(p);
         }
 
+        private async void ContextMenu_CleanProject_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuFlyoutItem item || item.Tag is not ProjectInfo p) return;
+
+            // async void 事件处理器：异常逃逸即进程级崩溃，必须自己兜住。
+            try
+            {
+                await ProjectCleanupDialog.ShowAsync(XamlRoot, p);
+
+                // 清理后项目体积必然变了，刷新一下卡片上的显示。
+                RefreshProject(p);
+            }
+            catch (Exception ex)
+            {
+                AppLogService.Error($"清理项目失败 ({p.DisplayName})", ex, "Launcher");
+                await _dialogs.ShowMessageAsync("清理失败", ex.Message);
+            }
+        }
+
         private async void ContextMenu_SwitchEngine_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not MenuFlyoutItem item || item.Tag is not ProjectInfo p) return;

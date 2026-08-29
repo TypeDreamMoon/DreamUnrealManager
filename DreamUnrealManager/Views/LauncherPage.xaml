@@ -59,6 +59,12 @@
             <MenuFlyoutItem Text="刷新项目" Tag="{Binding}" Click="ContextMenu_RefreshProject_Click" />
             <MenuFlyoutItem Text="切换引擎版本" Tag="{Binding}" Click="ContextMenu_SwitchEngine_Click" />
             <MenuFlyoutSeparator />
+            <MenuFlyoutItem Text="清理生成文件..." Tag="{Binding}" Click="ContextMenu_CleanProject_Click">
+                <MenuFlyoutItem.Icon>
+                    <FontIcon Glyph="&#xE74D;" />
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutSeparator />
             <MenuFlyoutItem Text="从列表中移除" Tag="{Binding}" Click="ContextMenu_RemoveProject_Click" />
         </MenuFlyout>
 

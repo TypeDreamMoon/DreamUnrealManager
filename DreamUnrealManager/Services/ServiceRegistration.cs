@@ -47,6 +47,7 @@ namespace DreamUnrealManager.Services
             services.AddSingleton<IEditorLaunchService, EditorLaunchService>();
             services.AddSingleton<IProjectFactoryService, ProjectFactoryService>();
             services.AddSingleton<IProjectSearchService, ProjectSearchService>();
+            services.AddSingleton<IProjectCleanupService, ProjectCleanupService>();
 
             services.AddTransient<IProjectDataService, ProjectDataService>();
 
@@ -81,6 +82,7 @@ namespace DreamUnrealManager.Services
             typeof(IEditorLaunchService),
             typeof(IProjectFactoryService),
             typeof(IProjectSearchService),
+            typeof(IProjectCleanupService),
             typeof(IProjectDataService),
             typeof(IFileService)
         };
