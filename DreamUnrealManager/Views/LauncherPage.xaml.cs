@@ -1158,6 +1158,21 @@ namespace DreamUnrealManager.Views
             if (sender is MenuFlyoutItem item && item.Tag is ProjectInfo p) RefreshProject(p);
         }
 
+        private async void ContextMenu_ViewLogs_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuFlyoutItem item || item.Tag is not ProjectInfo p) return;
+
+            try
+            {
+                await ProjectLogDialog.ShowAsync(XamlRoot, p);
+            }
+            catch (Exception ex)
+            {
+                AppLogService.Error($"打开日志查看器失败 ({p.DisplayName})", ex, "Launcher");
+                await _dialogs.ShowMessageAsync("打开日志失败", ex.Message);
+            }
+        }
+
         private async void ContextMenu_CleanProject_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not MenuFlyoutItem item || item.Tag is not ProjectInfo p) return;
